@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "../contexts/AuthContext";
 import {
   ArrowLeft,
   Eye,
@@ -11,10 +12,20 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+type LoginResponse = {
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: unknown;
+  message?: string;
+  error?: string;
+};
 
 export default function LoginPage() {
   const [, navigate] = useLocation();
+  const { refreshUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,9 +36,7 @@ export default function LoginPage() {
 
   const redirectPath = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    const redirect = params.get("redirect");
-
-    return redirect || "/";
+    return params.get("redirect") || "/";
   }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -53,41 +62,64 @@ export default function LoginPage() {
         }),
       });
 
-      const data = await response.json().catch(() => null);
+      const data: LoginResponse | null = await response
+        .json()
+        .catch(() => null);
 
       if (!response.ok) {
         throw new Error(
-          data?.message ?? "E-posta veya şifre bilgileri hatalı.",
+          data?.message ||
+            data?.error ||
+            "E-posta veya şifre bilgileri hatalı.",
         );
       }
 
+      const token = data?.token || data?.accessToken;
+
+      if (!token) {
+        throw new Error("Sunucudan giriş anahtarı alınamadı.");
+      }
+
       const storage = rememberMe ? localStorage : sessionStorage;
+      const otherStorage = rememberMe ? sessionStorage : localStorage;
 
-      storage.setItem("accessToken", data.accessToken);
-      storage.setItem("refreshToken", data.refreshToken ?? "");
+      otherStorage.removeItem("accessToken");
+      otherStorage.removeItem("refreshToken");
+      otherStorage.removeItem("user");
 
-      if (data.user) {
+      storage.setItem("accessToken", token);
+
+      if (data?.refreshToken) {
+        storage.setItem("refreshToken", data.refreshToken);
+      }
+
+      if (data?.user) {
         storage.setItem("user", JSON.stringify(data.user));
       }
 
+      await refreshUser();
       navigate(redirectPath);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Giriş sırasında bir sorun oluştu.",
-      );
+      if (error instanceof TypeError) {
+        setErrorMessage(
+          "Backend sunucusuna ulaşılamadı. API adresini veya sunucunun çalışıp çalışmadığını kontrol et.",
+        );
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Giriş sırasında bir sorun oluştu.",
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    const encodedRedirect = encodeURIComponent(redirectPath);
-
-    window.location.href =
-      `${API_BASE_URL}/oauth2/authorization/google` +
-      `?redirect=${encodedRedirect}`;
+    setErrorMessage(
+      "Google ile giriş, backend tarafındaki Google API akışı netleşince bağlanacak.",
+    );
   };
 
   const handleGuestContinue = () => {

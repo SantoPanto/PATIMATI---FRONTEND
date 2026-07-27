@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Bell,
   ChevronRight,
   CirclePlus,
   Heart,
-  LogIn,
   MapPin,
   PawPrint,
   Search,
@@ -17,7 +17,6 @@ import {
 
 type ListingType = "lost" | "found" | "adoption";
 type FilterType = "all" | ListingType;
-type UserMode = "guest" | "user";
 
 interface PetListing {
   id: number;
@@ -91,18 +90,12 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
-  /*
-    Backend JWT entegrasyonu gelene kadar geçici kontrol.
+  const { user, isAuthenticated, isAuthLoading, logout } = useAuth();
 
-    Gerçek sistemde örnek:
-    const token = localStorage.getItem("accessToken");
-    const userMode = token ? "user" : "guest";
-  */
-  const userMode: UserMode = localStorage.getItem("accessToken")
-    ? "user"
-    : "guest";
-
-  const isAuthenticated = userMode === "user";
+  const userDisplayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.email ||
+    "Kullanıcı";
 
   const filteredListings = useMemo(() => {
     return listings.filter((listing) => {
@@ -131,6 +124,16 @@ export default function HomePage() {
       return matchesFilter && matchesSearch;
     });
   }, [activeFilter, searchValue]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="home-page">
+        <div className="page-container" style={{ padding: "80px 24px" }}>
+          Oturum kontrol ediliyor...
+        </div>
+      </div>
+    );
+  }
 
   const requireAuth = (targetPath: string) => {
     if (isAuthenticated) {
@@ -214,9 +217,20 @@ export default function HomePage() {
 
                   <span className="profile-button__text">
                     <small>Hoş geldin</small>
-                    <strong>Kullanıcı</strong>
+                    <strong>{userDisplayName}</strong>
                   </span>
                 </Link>
+
+                <button
+                  type="button"
+                  className="login-link"
+                  onClick={async () => {
+                    await logout();
+                    navigate("/");
+                  }}
+                >
+                  Çıkış Yap
+                </button>
               </>
             ) : (
               <div className="auth-actions">
@@ -287,28 +301,6 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {!isAuthenticated && (
-                <div className="guest-access-card">
-                  <div className="guest-access-card__icon">
-                    <LogIn size={20} />
-                  </div>
-
-                  <div className="guest-access-card__content">
-                    <strong>Hesabın olmadan da inceleyebilirsin</strong>
-                    <span>
-                      Misafir olarak ilanları ve haritayı görüntüleyebilirsin.
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate("/listings")}
-                  >
-                    Misafir devam et
-                  </button>
-                </div>
-              )}
-
               <div className="hero-location">
                 <MapPin size={16} />
                 <span>Konumunuz:</span>
@@ -364,42 +356,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        {!isAuthenticated && (
-          <section className="page-container login-options-section">
-            <div className="login-options-card">
-              <div className="login-options-card__content">
-                <span className="section-eyebrow">PATIMATI hesabı</span>
-
-                <h2>Daha fazla özellik için giriş yap</h2>
-
-                <p>
-                  İlan oluşturmak, mesajlaşmak, favori eklemek, bölgesel
-                  bildirim almak ve ilanlarını yönetmek için hesabına giriş yap.
-                </p>
-              </div>
-
-              <div className="login-options-card__actions">
-                <button
-                  type="button"
-                  className="google-login-button"
-                  onClick={handleGoogleLogin}
-                >
-                  <span className="google-icon">G</span>
-                  Google ile giriş yap
-                </button>
-
-                <Link href="/login" className="email-login-button">
-                  E-posta ile giriş yap
-                </Link>
-
-                <Link href="/register" className="create-account-link">
-                  Hesabın yok mu? Kayıt ol
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
 
         <section className="page-container quick-actions-section">
           <div className="section-heading section-heading--center">
@@ -700,7 +656,157 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
+
+        {!isAuthenticated && (
+          <section className="page-container login-options-section">
+            <div className="login-options-card">
+              <div className="login-options-card__content">
+                <span className="section-eyebrow">PATIMATI hesabı</span>
+
+                <h2>Daha fazla özellik için giriş yap</h2>
+
+                <p>
+                  İlan oluşturmak, mesajlaşmak, favori eklemek, bölgesel
+                  bildirim almak ve ilanlarını yönetmek için hesabına giriş yap.
+                </p>
+              </div>
+
+              <div className="login-options-card__actions">
+                <button
+                  type="button"
+                  className="google-login-button"
+                  onClick={handleGoogleLogin}
+                >
+                  <span className="google-icon">G</span>
+                  Google ile giriş yap
+                </button>
+
+                <Link href="/login" className="email-login-button">
+                  E-posta ile giriş yap
+                </Link>
+
+                <Link href="/register" className="create-account-link">
+                  Hesabın yok mu? Kayıt ol
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
       </main>
+
+      <footer className="border-t border-[#E2E8F0] bg-white">
+        <div className="page-container py-10 sm:py-12">
+          <div className="grid gap-8 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2"
+                aria-label="PATIMATI ana sayfa"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+                  <PawPrint size={24} strokeWidth={2.4} />
+                </span>
+
+                <span className="text-xl font-bold text-[#0F172A]">
+                  PATI<span className="text-[#F97316]">MATI</span>
+                </span>
+              </Link>
+
+              <p className="mt-4 max-w-sm text-sm leading-6 text-[#64748B]">
+                Kayıp, bulunan ve sahiplendirilecek hayvanları güvenli iletişim
+                ile doğru kişilere ulaştıran topluluk platformu.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F172A]">
+                Keşfet
+              </h3>
+
+              <nav className="mt-4 flex flex-col gap-3" aria-label="Footer keşfet">
+                <Link
+                  href="/listings"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  İlanlar
+                </Link>
+
+                <Link
+                  href="/map"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  Harita
+                </Link>
+
+                <Link
+                  href="/adoption"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  Sahiplendirme
+                </Link>
+              </nav>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F172A]">
+                PATIMATI
+              </h3>
+
+              <nav className="mt-4 flex flex-col gap-3" aria-label="Footer kurumsal">
+                <Link
+                  href="/safety"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  Güvenlik
+                </Link>
+
+                <Link
+                  href="/about"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  Hakkımızda
+                </Link>
+
+                <Link
+                  href="/contact"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  İletişim
+                </Link>
+              </nav>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F172A]">
+                Yasal
+              </h3>
+
+              <nav className="mt-4 flex flex-col gap-3" aria-label="Footer yasal">
+                <Link
+                  href="/privacy"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  Gizlilik
+                </Link>
+
+                <Link
+                  href="/terms"
+                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
+                >
+                  Kullanım Koşulları
+                </Link>
+              </nav>
+            </div>
+          </div>
+
+          <div className="mt-10 flex flex-col gap-3 border-t border-[#E2E8F0] pt-6 text-sm text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 PATIMATI. Tüm hakları saklıdır.</p>
+
+            <p>Minik dostlarımız için birlikte.</p>
+          </div>
+        </div>
+      </footer>
 
       <nav className="mobile-bottom-nav" aria-label="Mobil navigasyon">
         <Link href="/" className="mobile-bottom-nav__item active">

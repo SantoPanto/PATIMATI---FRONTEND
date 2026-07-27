@@ -8,6 +8,7 @@ import {
   LockKeyhole,
   Mail,
   PawPrint,
+  Phone,
   UserRound,
 } from "lucide-react";
 
@@ -17,7 +18,9 @@ const API_BASE_URL =
 export default function RegisterPage() {
   const [, navigate] = useLocation();
 
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordRepeat, setPasswordRepeat] = useState("");
@@ -30,13 +33,45 @@ export default function RegisterPage() {
     event.preventDefault();
     setErrorMessage("");
 
-    if (!fullName.trim() || !email.trim() || !password || !passwordRepeat) {
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !phone.trim() ||
+      !email.trim() ||
+      !password ||
+      !passwordRepeat
+    ) {
       setErrorMessage("Tüm alanları doldurmalısın.");
       return;
     }
 
-    if (password.length < 8) {
-      setErrorMessage("Şifre en az 8 karakter olmalıdır.");
+    if (firstName.trim().length < 2) {
+      setErrorMessage("Ad en az 2 karakter olmalıdır.");
+      return;
+    }
+
+    if (lastName.trim().length < 2) {
+      setErrorMessage("Soyad en az 2 karakter olmalıdır.");
+      return;
+    }
+
+    if (phone.trim().length < 9 || phone.trim().length > 15) {
+      setErrorMessage("Telefon numarası 9 ile 15 karakter arasında olmalıdır.");
+      return;
+    }
+
+    const phonePattern =
+      /^(?:\+90\d{10}|0\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}|\d{10})(?:\s\+\d+)?$/;
+
+    if (!phonePattern.test(phone.trim())) {
+      setErrorMessage(
+        "Telefon numarası formatı geçersiz. Örnek: 05336373014",
+      );
+      return;
+    }
+
+    if (password.length < 6 || password.length > 20) {
+      setErrorMessage("Şifre 6 ile 20 karakter arasında olmalıdır.");
       return;
     }
 
@@ -59,21 +94,40 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fullName: fullName.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           email: email.trim(),
           password,
+          phone: phone.trim(),
         }),
       });
 
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(
-          data?.message ?? "Hesap oluşturulurken bir sorun oluştu.",
-        );
+        const backendMessage =
+          data?.message ||
+          data?.firstName ||
+          data?.lastName ||
+          data?.email ||
+          data?.password ||
+          data?.phone ||
+          "Hesap oluşturulurken bir sorun oluştu.";
+
+        throw new Error(backendMessage);
       }
 
-      navigate("/login?registered=true");
+      if (data?.token) {
+        localStorage.setItem("accessToken", data.token);
+
+        if (data?.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
+
+        navigate("/");
+      } else {
+        navigate("/login?registered=true");
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -86,9 +140,7 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = () => {
-    window.location.href =
-      `${API_BASE_URL}/oauth2/authorization/google` +
-      "?redirect=%2F";
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
 
   return (
@@ -98,7 +150,7 @@ export default function RegisterPage() {
 
       <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-6xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_500px]">
-          <section className="relative hidden min-h-[760px] overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+          <section className="relative hidden min-h-[860px] overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.34),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.23),transparent_38%)]" />
 
             <Link
@@ -187,26 +239,80 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="register-first-name"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Ad
+                  </label>
+
+                  <div className="relative">
+                    <UserRound
+                      size={19}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      id="register-first-name"
+                      type="text"
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
+                      placeholder="Adın"
+                      autoComplete="given-name"
+                      className="h-12 w-full rounded-xl border border-slate-300 pl-12 pr-4 outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="register-last-name"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Soyad
+                  </label>
+
+                  <div className="relative">
+                    <UserRound
+                      size={19}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      id="register-last-name"
+                      type="text"
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
+                      placeholder="Soyadın"
+                      autoComplete="family-name"
+                      className="h-12 w-full rounded-xl border border-slate-300 pl-12 pr-4 outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <label
-                htmlFor="register-name"
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                htmlFor="register-phone"
+                className="mb-2 mt-4 block text-sm font-semibold text-slate-700"
               >
-                Ad Soyad
+                Telefon
               </label>
 
               <div className="relative mb-4">
-                <UserRound
+                <Phone
                   size={19}
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <input
-                  id="register-name"
-                  type="text"
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  placeholder="Adın ve soyadın"
-                  autoComplete="name"
+                  id="register-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="05336373014"
+                  autoComplete="tel"
                   className="h-12 w-full rounded-xl border border-slate-300 pl-12 pr-4 outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                 />
               </div>
@@ -253,7 +359,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="En az 8 karakter"
+                  placeholder="6-20 karakter"
                   autoComplete="new-password"
                   className="h-12 w-full rounded-xl border border-slate-300 pl-12 pr-12 outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                 />
