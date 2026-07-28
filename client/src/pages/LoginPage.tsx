@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import { login, saveAuthResponse } from "../services/auth";
 import {
   ArrowLeft,
   Eye,
@@ -10,18 +11,6 @@ import {
   Mail,
   PawPrint,
 } from "lucide-react";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-
-type LoginResponse = {
-  token?: string;
-  accessToken?: string;
-  refreshToken?: string;
-  user?: unknown;
-  message?: string;
-  error?: string;
-};
 
 export default function LoginPage() {
   const [, navigate] = useLocation();
@@ -51,52 +40,12 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
+      const data = await login({
+        email: email.trim(),
+        password,
       });
 
-      const data: LoginResponse | null = await response
-        .json()
-        .catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message ||
-            data?.error ||
-            "E-posta veya şifre bilgileri hatalı.",
-        );
-      }
-
-      const token = data?.token || data?.accessToken;
-
-      if (!token) {
-        throw new Error("Sunucudan giriş anahtarı alınamadı.");
-      }
-
-      const storage = rememberMe ? localStorage : sessionStorage;
-      const otherStorage = rememberMe ? sessionStorage : localStorage;
-
-      otherStorage.removeItem("accessToken");
-      otherStorage.removeItem("refreshToken");
-      otherStorage.removeItem("user");
-
-      storage.setItem("accessToken", token);
-
-      if (data?.refreshToken) {
-        storage.setItem("refreshToken", data.refreshToken);
-      }
-
-      if (data?.user) {
-        storage.setItem("user", JSON.stringify(data.user));
-      }
-
+      saveAuthResponse(data, rememberMe);
       await refreshUser();
       navigate(redirectPath);
     } catch (error) {

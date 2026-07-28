@@ -14,7 +14,6 @@ import {
   getStoredToken,
   logoutRequest,
 } from "../services/auth";
-
 import type { AuthUser } from "../services/auth";
 
 type AuthContextType = {
@@ -40,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setIsAuthLoading(true);
+
     try {
       const currentUser = await getCurrentUser();
 
@@ -50,7 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : sessionStorage;
 
       storage.setItem("user", JSON.stringify(currentUser));
-    } catch {
+    } catch (error) {
+      console.error("Kullanıcı oturumu alınamadı:", error);
+
       clearAuthStorage();
       setUser(null);
     } finally {
@@ -63,11 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser]);
 
   const logout = useCallback(async () => {
-    await logoutRequest();
-    setUser(null);
+    try {
+      await logoutRequest();
+    } catch (error) {
+      console.error("Çıkış isteği başarısız oldu:", error);
+    } finally {
+      clearAuthStorage();
+      setUser(null);
+    }
   }, []);
 
-  const value = useMemo(
+  const value = useMemo<AuthContextType>(
     () => ({
       user,
       isAuthenticated: Boolean(user),

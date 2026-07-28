@@ -10,6 +10,7 @@ import PetDetailPage from "./pages/PetDetailPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import NotFound from "./pages/NotFound";
 
@@ -20,7 +21,14 @@ function App() {
 
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
-      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route
+        path="/forgot-password"
+        component={ForgotPasswordPage}
+      />
+      <Route
+        path="/change-password"
+        component={ChangePasswordPage}
+      />
 
       <Route path="/listings" component={ListingsPage} />
       <Route path="/add-listing" component={AddListingPage} />
