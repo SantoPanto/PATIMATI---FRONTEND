@@ -1,3 +1,4 @@
-export default function PetDetailPage() {
-  return <h1>Ýlan Detayý</h1>
+ï»¿export default function PetDetailPage() {
+  return <h1>Ä°lan DetayÄ±</h1>
 }
+

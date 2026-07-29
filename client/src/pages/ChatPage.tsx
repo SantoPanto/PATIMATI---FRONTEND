@@ -1,3 +1,4 @@
-export default function ChatPage() {
-  return <h1>Mesajla�ma</h1>
+﻿export default function ChatPage() {
+  return <h1>Mesajlaşma</h1>
 }
+

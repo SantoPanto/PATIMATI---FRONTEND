@@ -1,3 +1,4 @@
-export default function NotFound() {
-  return <h1>Sayfa Bulunamad�</h1>
+﻿export default function NotFound() {
+  return <h1>Sayfa Bulunamadı</h1>
 }
+
