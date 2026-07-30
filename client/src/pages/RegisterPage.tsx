@@ -102,13 +102,7 @@ export default function RegisterPage() {
       return;
     }
 
-    /*
-     * Backend RegisterRequest.java ile aynı telefon formatı:
-     *
-     * +905551234567
-     * 05551234567
-     * 5551234567
-     */
+   
     const phonePattern =
       /^(?:\+90\d{10}|0\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}|\d{10})(?:\s\+\d+)?$/;
 
@@ -382,7 +376,7 @@ export default function RegisterPage() {
                   onChange={(event) =>
                     setPhone(event.target.value)
                   }
-                  placeholder="05551234567"
+                  placeholder="05451133421"
                   autoComplete="tel"
                   minLength={9}
                   maxLength={15}

@@ -1,24 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import Header from "../components/Header";
+import "../App.css";
 import {
-  Bell,
   Camera,
-  CheckCircle2,
   ChevronRight,
-  Clock3,
   CirclePlus,
   Heart,
-  LocateFixed,
   MapPin,
-  MessageCircle,
   PawPrint,
-  ScanSearch,
   Search,
   ShieldCheck,
   Sparkles,
   SlidersHorizontal,
-  UserRound,
+  X,
 } from "lucide-react";
 
 type ListingType = "lost" | "found" | "adoption";
@@ -95,18 +91,47 @@ export default function HomePage() {
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedAnimals, setSelectedAnimals] = useState<string[]>([]);
+  const [selectedListingTypes, setSelectedListingTypes] = useState<ListingType[]>([]);
+  const [maxDistance, setMaxDistance] = useState(25);
+  const [onlyFeatured, setOnlyFeatured] = useState(false);
 
-  const { user, isAuthenticated, isAuthLoading, logout } = useAuth();
+  const { isAuthenticated, isAuthLoading } = useAuth();
 
-  const userDisplayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.email ||
-    "Kullanıcı";
+  useEffect(() => {
+    if (!isFilterOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFilterOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isFilterOpen]);
 
   const filteredListings = useMemo(() => {
     return listings.filter((listing) => {
-      const matchesFilter =
+      const matchesQuickFilter =
         activeFilter === "all" || listing.type === activeFilter;
+
+      const matchesListingType =
+        selectedListingTypes.length === 0 ||
+        selectedListingTypes.includes(listing.type);
+
+      const matchesAnimal =
+        selectedAnimals.length === 0 || selectedAnimals.includes(listing.animal);
+
+      const numericDistance = Number(
+        listing.distance.replace(",", ".").replace(" km", ""),
+      );
+      const matchesDistance = numericDistance <= maxDistance;
+      const matchesFeatured = !onlyFeatured || listing.featured === true;
 
       const normalizedSearch = searchValue
         .trim()
@@ -127,9 +152,23 @@ export default function HomePage() {
           .toLocaleLowerCase("tr-TR")
           .includes(normalizedSearch);
 
-      return matchesFilter && matchesSearch;
+      return (
+        matchesQuickFilter &&
+        matchesListingType &&
+        matchesAnimal &&
+        matchesDistance &&
+        matchesFeatured &&
+        matchesSearch
+      );
     });
-  }, [activeFilter, searchValue]);
+  }, [
+    activeFilter,
+    searchValue,
+    selectedAnimals,
+    selectedListingTypes,
+    maxDistance,
+    onlyFeatured,
+  ]);
 
   if (isAuthLoading) {
     return (
@@ -183,75 +222,32 @@ export default function HomePage() {
     return "Sahiplendirme";
   };
 
+  const toggleAnimalFilter = (animal: string) => {
+    setSelectedAnimals((current) =>
+      current.includes(animal)
+        ? current.filter((item) => item !== animal)
+        : [...current, animal],
+    );
+  };
+
+  const toggleListingTypeFilter = (type: ListingType) => {
+    setSelectedListingTypes((current) =>
+      current.includes(type)
+        ? current.filter((item) => item !== type)
+        : [...current, type],
+    );
+  };
+
+  const clearAdvancedFilters = () => {
+    setSelectedAnimals([]);
+    setSelectedListingTypes([]);
+    setMaxDistance(25);
+    setOnlyFeatured(false);
+  };
+
   return (
     <div className="home-page">
-      <header className="home-header">
-        <div className="page-container home-header__content">
-          <Link href="/" className="brand" aria-label="PATIMATI ana sayfa">
-            <span className="brand__icon">
-              <PawPrint size={24} strokeWidth={2.4} />
-            </span>
-
-            <span className="brand__text">
-              PATI<span>MATI</span>
-            </span>
-          </Link>
-
-          <nav className="desktop-navigation" aria-label="Ana navigasyon">
-            <Link href="/listings">İlanlar</Link>
-            <Link href="/map">Harita</Link>
-            <Link href="/adoption">Sahiplendirme</Link>
-          </nav>
-
-          <div className="home-header__actions">
-            {isAuthenticated ? (
-              <>
-                <button
-                  className="icon-button"
-                  type="button"
-                  aria-label="Bildirimleri görüntüle"
-                  onClick={() => navigate("/notifications")}
-                >
-                  <Bell size={21} />
-                  <span className="notification-dot" />
-                </button>
-
-                <Link href="/profile" className="profile-button">
-                  <span className="profile-button__avatar">
-                    <UserRound size={19} />
-                  </span>
-
-                  <span className="profile-button__text">
-                    <small>Hoş geldin</small>
-                    <strong>{userDisplayName}</strong>
-                  </span>
-                </Link>
-
-                <button
-                  type="button"
-                  className="login-link"
-                  onClick={async () => {
-                    await logout();
-                    navigate("/");
-                  }}
-                >
-                  Çıkış Yap
-                </button>
-              </>
-            ) : (
-              <div className="auth-actions">
-                <Link href="/login" className="login-link">
-                  Giriş Yap
-                </Link>
-
-                <Link href="/register" className="register-link">
-                  Kayıt Ol
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main>
         <section className="hero-section">
@@ -262,18 +258,17 @@ export default function HomePage() {
             <div className="hero-copy">
               <div className="hero-badge">
                 <Sparkles size={16} />
-                <span>Topluluk gücüyle daha hızlı kavuşma</span>
+                <span>Minik dostları yuvalarına kavuşturuyoruz</span>
               </div>
 
               <h1>
-                Bir ilan, bin umut.
-                <span> Onları birlikte bulalım.</span>
+                Kaybolan dostlarımızı
+                <span> birlikte bulalım.</span>
               </h1>
 
               <p>
-                Kayıp ve bulunan hayvanları konum, fotoğraf ve topluluk
-                desteğiyle hızlıca eşleştir. Güvenli iletişim kur, daha fazla
-                kişiye ulaş.
+                Kayıp, bulunan ve sahiplendirilecek hayvan ilanlarını incele.
+                Yakınındaki dostlara ulaş ve güvenli iletişim kur.
               </p>
 
               <div className="hero-search">
@@ -286,7 +281,12 @@ export default function HomePage() {
                   aria-label="İlanlarda arama yap"
                 />
 
-                <button type="button" aria-label="Arama filtrelerini aç">
+                <button
+                  type="button"
+                  aria-label="Arama filtrelerini aç"
+                  aria-expanded={isFilterOpen}
+                  onClick={() => setIsFilterOpen(true)}
+                >
                   <SlidersHorizontal size={19} />
                   <span>Filtrele</span>
                 </button>
@@ -358,140 +358,6 @@ export default function HomePage() {
                 <div>
                   <strong>386</strong>
                   <span>Mutlu kavuşma</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="page-container -mt-8 relative z-10" aria-label="Platform özeti">
-          <div className="grid gap-3 rounded-[28px] border border-[#FED7AA] bg-white/95 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur md:grid-cols-3 md:p-5">
-            <div className="flex items-center gap-4 rounded-2xl bg-[#FFF7ED] px-5 py-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#F97316] shadow-sm">
-                <LocateFixed size={24} />
-              </span>
-              <div>
-                <strong className="block text-base text-[#0F172A]">Konuma göre keşfet</strong>
-                <span className="text-sm text-[#64748B]">Yakınındaki güncel ilanları gör</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-2xl bg-[#F0FDF4] px-5 py-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#16A34A] shadow-sm">
-                <Clock3 size={24} />
-              </span>
-              <div>
-                <strong className="block text-base text-[#0F172A]">Dakikalar içinde yayınla</strong>
-                <span className="text-sm text-[#64748B]">Kolay adımlarla ilanını oluştur</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-2xl bg-[#EFF6FF] px-5 py-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#2563EB] shadow-sm">
-                <ShieldCheck size={24} />
-              </span>
-              <div>
-                <strong className="block text-base text-[#0F172A]">Güvenli iletişim</strong>
-                <span className="text-sm text-[#64748B]">Bilgilerin her zaman kontrolünde</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="page-container py-14 sm:py-18" aria-labelledby="smart-eye-title">
-          <div className="relative overflow-hidden rounded-[34px] border border-[#FED7AA] bg-[#0F172A] px-6 py-8 shadow-[0_28px_90px_rgba(15,23,42,0.20)] sm:px-10 sm:py-10 lg:px-12">
-            <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#F97316]/20 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[#3B82F6]/15 blur-3xl" />
-            <PawPrint className="pointer-events-none absolute -right-8 bottom-0 rotate-[-14deg] text-white/[0.035]" size={250} />
-
-            <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-[#FDBA74] backdrop-blur">
-                  <Sparkles size={16} />
-                  PATIMATI Akıllı Göz
-                </div>
-
-                <h2 id="smart-eye-title" className="mt-5 max-w-2xl text-3xl font-extrabold leading-tight text-white sm:text-4xl lg:text-[44px]">
-                  Bir fotoğraf yükle,
-                  <span className="text-[#FB923C]"> en benzer ilanları saniyeler içinde bul.</span>
-                </h2>
-
-                <p className="mt-5 max-w-xl text-base leading-7 text-[#CBD5E1] sm:text-lg">
-                  Yapay zekâ; tür, cins, tüy rengi, desen, tasma ve belirgin işaretleri analiz ederek kayıp ve bulunan ilanlarını benzerlik oranına göre sıralar.
-                </p>
-
-                <div className="mt-7 flex flex-wrap gap-3 text-sm text-[#E2E8F0]">
-                  {["Fotoğraftan analiz", "Akıllı eşleştirme", "Benzerlik yüzdesi"].map((feature) => (
-                    <span key={feature} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-4 py-2">
-                      <CheckCircle2 size={16} className="text-[#4ADE80]" />
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/ai-search"
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#F97316] px-6 py-4 font-bold text-white shadow-[0_14px_35px_rgba(249,115,22,0.32)] transition hover:-translate-y-0.5 hover:bg-[#EA580C]"
-                  >
-                    <Camera size={20} />
-                    Fotoğrafla eşleşme ara
-                    <ChevronRight size={19} />
-                  </Link>
-
-                  <Link
-                    href="/ai-search"
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 font-semibold text-white transition hover:bg-white/15"
-                  >
-                    <ScanSearch size={20} />
-                    Akıllı Göz'ü keşfet
-                  </Link>
-                </div>
-              </div>
-
-              <div className="relative mx-auto w-full max-w-[470px]">
-                <div className="rounded-[30px] border border-white/15 bg-white/[0.08] p-4 shadow-2xl backdrop-blur-xl sm:p-5">
-                  <div className="relative overflow-hidden rounded-[24px] bg-white">
-                    <img
-                      src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=90"
-                      alt="Yapay zekâ ile eşleştirilen örnek kedi"
-                      className="h-56 w-full object-cover sm:h-64"
-                    />
-
-                    <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-[#0F172A]/85 px-3 py-2 text-xs font-bold text-white backdrop-blur">
-                      <ScanSearch size={15} className="text-[#FB923C]" />
-                      Görsel analiz tamamlandı
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/60 bg-white/90 p-4 shadow-xl backdrop-blur">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B]">En güçlü eşleşme</span>
-                          <strong className="mt-1 block text-lg text-[#0F172A]">Luna · British Shorthair</strong>
-                        </div>
-                        <span className="rounded-xl bg-[#DCFCE7] px-3 py-2 text-lg font-extrabold text-[#15803D]">%98</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-3 gap-3">
-                    {[['Tür', 'Kedi'], ['Renk', 'Gri'], ['Tasma', 'Var']].map(([label, value]) => (
-                      <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-3 text-center">
-                        <span className="block text-xs text-[#94A3B8]">{label}</span>
-                        <strong className="mt-1 block text-sm text-white">{value}</strong>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="absolute -left-4 top-16 hidden rounded-2xl border border-white/20 bg-white px-4 py-3 shadow-xl sm:block">
-                  <span className="text-xs font-semibold text-[#64748B]">2. eşleşme</span>
-                  <strong className="block text-[#0F172A]">%91 benzer</strong>
-                </div>
-
-                <div className="absolute -right-3 bottom-16 hidden rounded-2xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-3 shadow-xl sm:block">
-                  <span className="text-xs font-semibold text-[#C2410C]">12 özellik</span>
-                  <strong className="block text-[#7C2D12]">AI tarafından incelendi</strong>
                 </div>
               </div>
             </div>
@@ -773,51 +639,54 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="page-container py-14 sm:py-20">
-          <div className="overflow-hidden rounded-[32px] bg-[#0F172A] px-6 py-10 text-white shadow-[0_30px_80px_rgba(15,23,42,0.18)] sm:px-10 lg:px-14">
-            <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-[#FDBA74]">
-                  <PawPrint size={16} />
-                  PATIMATI nasıl çalışır?
+        <section className="ai-match-section">
+          <div className="page-container">
+            <div className="ai-match-card">
+              <div className="ai-match-card__content">
+                <span className="ai-match-card__eyebrow">
+                  <Sparkles size={16} />
+                  Yapay zekâ destekli arama
                 </span>
-                <h2 className="mt-5 max-w-xl text-3xl font-bold leading-tight sm:text-4xl">
-                  Üç basit adımda daha fazla kişiye ulaş.
-                </h2>
-                <p className="mt-4 max-w-xl text-base leading-7 text-[#CBD5E1]">
-                  İlanını oluştur, konumuyla birlikte yayınla ve topluluktan gelen
-                  bildirimleri tek yerden takip et.
+
+                <h2>Fotoğrafla benzer dostları bul.</h2>
+
+                <p>
+                  Kayıp veya bulduğun hayvanın fotoğrafını yükle. PATIMATI,
+                  mevcut ilanları karşılaştırarak en benzer sonuçları senin için
+                  sıralasın.
                 </p>
+
+                <div className="ai-match-card__features">
+                  <span>Tür ve cins tahmini</span>
+                  <span>Görsel benzerlik analizi</span>
+                  <span>Benzer ilan sonuçları</span>
+                </div>
+
+                <Link href="/ai-match" className="ai-match-card__button">
+                  <Camera size={20} />
+                  Fotoğrafla ara
+                  <ChevronRight size={18} />
+                </Link>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                  { number: "01", title: "İlanını paylaş", text: "Fotoğraf ve temel bilgileri ekle.", icon: CirclePlus },
-                  { number: "02", title: "Çevrene ulaş", text: "Konuma göre ilgili kişilere görün.", icon: LocateFixed },
-                  { number: "03", title: "Güvenle iletişim kur", text: "Mesajları platform içinden yönet.", icon: MessageCircle },
-                ].map((step) => {
-                  const StepIcon = step.icon;
+              <div className="ai-match-card__visual" aria-hidden="true">
+                <div className="ai-match-photo ai-match-photo--back">
+                  <img
+                    src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=700&q=85"
+                    alt=""
+                  />
+                </div>
 
-                  return (
-                    <article
-                      key={step.number}
-                      className="group rounded-3xl border border-white/10 bg-white/[0.06] p-5 transition duration-300 hover:-translate-y-1 hover:bg-white/[0.10]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F97316] text-white">
-                          <StepIcon size={21} />
-                        </span>
-                        <span className="text-sm font-bold text-white/35">{step.number}</span>
-                      </div>
-                      <h3 className="mt-6 text-lg font-semibold">{step.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">{step.text}</p>
-                      <div className="mt-5 flex items-center gap-2 text-sm font-medium text-[#FDBA74]">
-                        <CheckCircle2 size={16} />
-                        Hızlı ve kolay
-                      </div>
-                    </article>
-                  );
-                })}
+                <div className="ai-match-photo ai-match-photo--front">
+                  <img
+                    src="https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=700&q=85"
+                    alt=""
+                  />
+                  <span className="ai-match-score">
+                    <Sparkles size={15} />
+                    %94 eşleşme
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -999,40 +868,73 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <nav className="mobile-bottom-nav" aria-label="Mobil navigasyon">
-        <Link href="/" className="mobile-bottom-nav__item active">
-          <PawPrint size={23} />
-          <span>Ana Sayfa</span>
-        </Link>
 
-        <Link href="/listings" className="mobile-bottom-nav__item">
-          <Search size={23} />
-          <span>İlanlar</span>
-        </Link>
+      <div
+        className={`filter-drawer-overlay ${isFilterOpen ? "is-open" : ""}`}
+        aria-hidden={!isFilterOpen}
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setIsFilterOpen(false);
+        }}
+      >
+        <aside className="filter-drawer" role="dialog" aria-modal="true" aria-label="İlan filtreleri">
+          <div className="filter-drawer__header">
+            <div>
+              <span>Arama seçenekleri</span>
+              <h2>Filtreler</h2>
+            </div>
+            <button type="button" className="filter-drawer__close" aria-label="Filtre panelini kapat" onClick={() => setIsFilterOpen(false)}>
+              <X size={22} />
+            </button>
+          </div>
 
-        <button
-          type="button"
-          className="mobile-bottom-nav__add"
-          aria-label="Yeni ilan oluştur"
-          onClick={() => requireAuth("/add-listing")}
-        >
-          <CirclePlus size={28} />
-        </button>
+          <div className="filter-drawer__body">
+            <section className="filter-group">
+              <div className="filter-group__heading">
+                <h3>Mesafe</h3>
+                <strong>{maxDistance} km</strong>
+              </div>
+              <input className="filter-range" type="range" min="1" max="25" value={maxDistance} onChange={(event) => setMaxDistance(Number(event.target.value))} />
+              <div className="filter-range__labels"><span>1 km</span><span>25 km</span></div>
+            </section>
 
-        <Link href="/map" className="mobile-bottom-nav__item">
-          <MapPin size={23} />
-          <span>Harita</span>
-        </Link>
+            <section className="filter-group">
+              <h3>Hayvan türü</h3>
+              <div className="filter-chip-grid">
+                {["Kedi", "Köpek", "Kuş", "Diğer"].map((animal) => (
+                  <button key={animal} type="button" className={selectedAnimals.includes(animal) ? "is-selected" : ""} onClick={() => toggleAnimalFilter(animal)}>
+                    {animal}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-        <button
-          type="button"
-          className="mobile-bottom-nav__item"
-          onClick={() => requireAuth("/profile")}
-        >
-          <UserRound size={23} />
-          <span>Profil</span>
-        </button>
-      </nav>
+            <section className="filter-group">
+              <h3>İlan türü</h3>
+              <div className="filter-checkbox-list">
+                {([ ["lost", "Kayıp"], ["found", "Bulunan"], ["adoption", "Sahiplendirme"] ] as const).map(([type, label]) => (
+                  <label key={type}>
+                    <input type="checkbox" checked={selectedListingTypes.includes(type)} onChange={() => toggleListingTypeFilter(type)} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="filter-group">
+              <label className="filter-switch-row">
+                <div><strong>Sadece öne çıkanlar</strong><span>Öne çıkarılmış ilanları göster</span></div>
+                <input type="checkbox" checked={onlyFeatured} onChange={(event) => setOnlyFeatured(event.target.checked)} />
+              </label>
+            </section>
+          </div>
+
+          <div className="filter-drawer__footer">
+            <button type="button" className="filter-clear-button" onClick={clearAdvancedFilters}>Temizle</button>
+            <button type="button" className="filter-apply-button" onClick={() => setIsFilterOpen(false)}>{filteredListings.length} sonucu göster</button>
+          </div>
+        </aside>
+      </div>
+
     </div>
   );
 }
