@@ -13,6 +13,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import NotFound from "./pages/NotFound";
+import Adoption from "./pages/Adoption";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
       <Route path="/chat" component={ChatPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/pet/:id" component={PetDetailPage} />
+      <Route path="/adoption" component={Adoption} />
 
       <Route component={NotFound} />
     </Switch>
