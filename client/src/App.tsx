@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
 import AdoptionDetailPage from "./pages/AdoptionDetailPage";
+import FavoritesPage from "./pages/FavoritesPage";
 
 function App() {
   return (
@@ -42,6 +43,8 @@ function App() {
       <Route path="/adoption" component={Adoption} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/adoption/:id" component={AdoptionDetailPage} />
+      <Route path="/favorites" component={FavoritesPage} />
+      
       
 
       <Route component={NotFound} />
