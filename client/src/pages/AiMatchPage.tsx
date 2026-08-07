@@ -4,6 +4,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from "react";
+import { useLocation } from "wouter";
 import {
   ArrowRight,
   Camera,
@@ -41,6 +42,7 @@ const SUPPORTED_IMAGE_TYPES = [
 
 export default function AiMatchPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [, navigate] = useLocation();
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [listingType, setListingType] =
@@ -289,36 +291,43 @@ export default function AiMatchPage() {
         ),
       });
 
+      // Şimdilik backend yerine sahte analiz süresi
       await new Promise((resolve) =>
-        setTimeout(resolve, 1000),
+        setTimeout(resolve, 1500),
       );
 
-      alert(
-        `${selectedImages.length} fotoğraf ile yapay zekâ eşleştirme işlemi başlatıldı.`,
-      );
+      // Sonuç sayfasına yönlendir
+      navigate("/ai-match/results");
 
       /*
-      Backend hazır olduğunda üstteki bekleme ve alert kısmını silip
-      aşağıdaki yapıyı kullanabilirsin:
+        BACKEND HAZIR OLDUĞUNDA YUKARIDAKİ
+        setTimeout ve navigate kısmını kaldırıp
+        aşağıdaki yapıyı kullanabilirsin:
 
-      const response = await fetch("/api/ai-match", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          "Eşleştirme işlemi gerçekleştirilemedi.",
+        const response = await fetch(
+          "http://localhost:8080/api/ai-match",
+          {
+            method: "POST",
+            body: formData,
+          },
         );
-      }
 
-      const result = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            "Eşleştirme işlemi gerçekleştirilemedi.",
+          );
+        }
 
-      console.log("Eşleşme sonuçları:", result);
+        const result = await response.json();
 
-      navigate("/ai-match/results", {
-        state: result,
-      });
+        console.log("Eşleşme sonuçları:", result);
+
+        sessionStorage.setItem(
+          "aiMatchResults",
+          JSON.stringify(result),
+        );
+
+        navigate("/ai-match/results");
       */
     } catch (error) {
       setErrorMessage(

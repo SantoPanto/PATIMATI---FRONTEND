@@ -13,6 +13,7 @@ import {
   Syringe,
   UserRound,
 } from "lucide-react";
+
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/adoption.css";
@@ -150,10 +151,18 @@ export default function Adoption() {
     return adoptionPets.filter((pet) => {
       const matchesSearch =
         !normalizedSearch ||
-        pet.name.toLocaleLowerCase("tr-TR").includes(normalizedSearch) ||
-        pet.breed.toLocaleLowerCase("tr-TR").includes(normalizedSearch) ||
-        pet.city.toLocaleLowerCase("tr-TR").includes(normalizedSearch) ||
-        pet.district.toLocaleLowerCase("tr-TR").includes(normalizedSearch);
+        pet.name
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        pet.breed
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        pet.city
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        pet.district
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch);
 
       const matchesSpecies =
         species === "Tümü" || pet.species === species;
@@ -204,13 +213,16 @@ export default function Adoption() {
               </p>
 
               <div className="adoption-hero__actions">
-                <a href="#adoption-list" className="pm-button pm-button--primary">
+                <a
+                  href="#adoption-list"
+                  className="pm-button pm-button--primary"
+                >
                   <PawPrint size={19} />
                   Dostları İncele
                 </a>
 
                 <Link
-                  href="/add-listing?type=adoption"
+                  href="/adoption/create"
                   className="pm-button pm-button--secondary"
                 >
                   <Plus size={19} />
@@ -236,7 +248,10 @@ export default function Adoption() {
               </div>
             </div>
 
-            <div className="adoption-hero__visual" aria-hidden="true">
+            <div
+              className="adoption-hero__visual"
+              aria-hidden="true"
+            >
               <div className="adoption-hero__image">
                 <img
                   src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1100&q=85"
@@ -264,8 +279,12 @@ export default function Adoption() {
         >
           <div className="adoption-section-heading">
             <div>
-              <span className="pm-eyebrow">Sahiplendirme ilanları</span>
+              <span className="pm-eyebrow">
+                Sahiplendirme ilanları
+              </span>
+
               <h2>Yeni dostunla tanış</h2>
+
               <p>
                 Filtreleri kullanarak sana en uygun dostlarımızı
                 kolayca bulabilirsin.
@@ -273,7 +292,7 @@ export default function Adoption() {
             </div>
 
             <Link
-              href="/add-listing?type=adoption"
+              href="/adoption/create"
               className="pm-button pm-button--primary adoption-section-heading__button"
             >
               <Plus size={19} />
@@ -288,7 +307,9 @@ export default function Adoption() {
               <input
                 type="search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) =>
+                  setSearchTerm(event.target.value)
+                }
                 placeholder="İsim, cins veya konum ara"
                 aria-label="Sahiplendirme ilanlarında ara"
               />
@@ -297,9 +318,12 @@ export default function Adoption() {
             <div className="adoption-filter__selects">
               <label>
                 <span>Tür</span>
+
                 <select
                   value={species}
-                  onChange={(event) => setSpecies(event.target.value)}
+                  onChange={(event) =>
+                    setSpecies(event.target.value)
+                  }
                 >
                   <option value="Tümü">Tüm türler</option>
                   <option value="Kedi">Kedi</option>
@@ -309,14 +333,20 @@ export default function Adoption() {
 
               <label>
                 <span>Şehir</span>
+
                 <select
                   value={city}
-                  onChange={(event) => setCity(event.target.value)}
+                  onChange={(event) =>
+                    setCity(event.target.value)
+                  }
                 >
                   <option value="Tümü">Tüm şehirler</option>
 
                   {cities.map((cityName) => (
-                    <option key={cityName} value={cityName}>
+                    <option
+                      key={cityName}
+                      value={cityName}
+                    >
                       {cityName}
                     </option>
                   ))}
@@ -325,9 +355,12 @@ export default function Adoption() {
 
               <label>
                 <span>Cinsiyet</span>
+
                 <select
                   value={gender}
-                  onChange={(event) => setGender(event.target.value)}
+                  onChange={(event) =>
+                    setGender(event.target.value)
+                  }
                 >
                   <option value="Tümü">Tümü</option>
                   <option value="Dişi">Dişi</option>
@@ -338,7 +371,8 @@ export default function Adoption() {
 
             <div className="adoption-filter__bottom">
               <span>
-                <strong>{filteredPets.length}</strong> ilan bulundu
+                <strong>{filteredPets.length}</strong> ilan
+                bulundu
               </span>
 
               <button
@@ -354,9 +388,15 @@ export default function Adoption() {
           {filteredPets.length > 0 ? (
             <div className="adoption-grid">
               {filteredPets.map((pet) => (
-                <article key={pet.id} className="adoption-card pm-card">
+                <article
+                  key={pet.id}
+                  className="adoption-card pm-card"
+                >
                   <div className="adoption-card__image">
-                    <img src={pet.image} alt={`${pet.name} isimli ${pet.species}`} />
+                    <img
+                      src={pet.image}
+                      alt={`${pet.name} isimli ${pet.species}`}
+                    />
 
                     <span className="adoption-card__type">
                       <PawPrint size={15} />
@@ -410,7 +450,10 @@ export default function Adoption() {
                         }
                       >
                         <Syringe size={15} />
-                        {pet.vaccinated ? "Aşıları tam" : "Aşı bilgisi yok"}
+
+                        {pet.vaccinated
+                          ? "Aşıları tam"
+                          : "Aşı bilgisi yok"}
                       </span>
 
                       {pet.neutered && (
@@ -472,7 +515,9 @@ export default function Adoption() {
             <div className="adoption-safety__content">
               <span>Güvenli sahiplendirme</span>
 
-              <h2>Dostlarımızın güvenliği her şeyden önemli</h2>
+              <h2>
+                Dostlarımızın güvenliği her şeyden önemli
+              </h2>
 
               <p>
                 Hayvan sahiplenirken karşı tarafla mutlaka görüş,
@@ -481,7 +526,10 @@ export default function Adoption() {
               </p>
             </div>
 
-            <Link href="/safety" className="pm-button pm-button--secondary">
+            <Link
+              href="/safety"
+              className="pm-button pm-button--secondary"
+            >
               Güvenlik Rehberi
             </Link>
           </section>

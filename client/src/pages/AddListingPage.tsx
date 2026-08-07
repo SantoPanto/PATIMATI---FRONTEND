@@ -1,3 +1,3 @@
 export default function AddListingPage() {
-  return <h1>Ýlan Oluþtur</h1>
+  return <h1>ï¿½lan Oluï¿½tur</h1>
 }

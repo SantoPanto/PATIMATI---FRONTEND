@@ -93,9 +93,14 @@ export default function HomePage() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedAnimals, setSelectedAnimals] = useState<string[]>([]);
-  const [selectedListingTypes, setSelectedListingTypes] = useState<ListingType[]>([]);
+  const [selectedListingTypes, setSelectedListingTypes] = useState<
+    ListingType[]
+  >([]);
   const [maxDistance, setMaxDistance] = useState(25);
   const [onlyFeatured, setOnlyFeatured] = useState(false);
+
+  const [currentLocation, setCurrentLocation] = useState("Bursa");
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
 
   const { isAuthenticated, isAuthLoading } = useAuth();
 
@@ -103,7 +108,9 @@ export default function HomePage() {
     if (!isFilterOpen) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsFilterOpen(false);
+      if (event.key === "Escape") {
+        setIsFilterOpen(false);
+      }
     };
 
     document.body.style.overflow = "hidden";
@@ -125,11 +132,13 @@ export default function HomePage() {
         selectedListingTypes.includes(listing.type);
 
       const matchesAnimal =
-        selectedAnimals.length === 0 || selectedAnimals.includes(listing.animal);
+        selectedAnimals.length === 0 ||
+        selectedAnimals.includes(listing.animal);
 
       const numericDistance = Number(
         listing.distance.replace(",", ".").replace(" km", ""),
       );
+
       const matchesDistance = numericDistance <= maxDistance;
       const matchesFeatured = !onlyFeatured || listing.featured === true;
 
@@ -170,16 +179,6 @@ export default function HomePage() {
     onlyFeatured,
   ]);
 
-  if (isAuthLoading) {
-    return (
-      <div className="home-page">
-        <div className="page-container" style={{ padding: "80px 24px" }}>
-          Oturum kontrol ediliyor...
-        </div>
-      </div>
-    );
-  }
-
   const requireAuth = (targetPath: string) => {
     if (isAuthenticated) {
       navigate(targetPath);
@@ -204,13 +203,6 @@ export default function HomePage() {
   };
 
   const handleGoogleLogin = () => {
-    /*
-      Spring Security OAuth2 endpoint.
-
-      Backend hazır olduğunda URL örneği:
-      http://localhost:8080/oauth2/authorization/google
-    */
-
     window.location.href =
       "http://localhost:8080/oauth2/authorization/google";
   };
@@ -244,6 +236,95 @@ export default function HomePage() {
     setMaxDistance(25);
     setOnlyFeatured(false);
   };
+
+  const handleChangeLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Tarayıcınız konum özelliğini desteklemiyor.");
+      return;
+    }
+
+    setIsLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=tr`,
+          );
+
+          if (!response.ok) {
+            throw new Error("Konum bilgisi alınamadı.");
+          }
+
+          const data = await response.json();
+
+          const city =
+            data.address?.province ||
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.municipality ||
+            data.address?.county ||
+            "Konumunuz";
+
+          setCurrentLocation(city);
+        } catch (error) {
+          console.error("Konum adı alınamadı:", error);
+
+          setCurrentLocation(
+            `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+          );
+        } finally {
+          setIsLocationLoading(false);
+        }
+      },
+      (error) => {
+        console.error("Konum alınamadı:", error);
+
+        setIsLocationLoading(false);
+
+        if (error.code === error.PERMISSION_DENIED) {
+          alert(
+            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.",
+          );
+          return;
+        }
+
+        if (error.code === error.POSITION_UNAVAILABLE) {
+          alert("Konum bilgisi şu anda alınamıyor.");
+          return;
+        }
+
+        if (error.code === error.TIMEOUT) {
+          alert("Konum alınırken zaman aşımı oluştu.");
+          return;
+        }
+
+        alert("Konumunuz alınamadı. Lütfen tekrar deneyin.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
+      },
+    );
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div className="home-page">
+        <div
+          className="page-container"
+          style={{
+            padding: "80px 24px",
+          }}
+        >
+          Oturum kontrol ediliyor...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="home-page">
@@ -310,9 +391,22 @@ export default function HomePage() {
 
               <div className="hero-location">
                 <MapPin size={16} />
+
                 <span>Konumunuz:</span>
-                <strong>Bursa</strong>
-                <button type="button">Değiştir</button>
+
+                <strong>
+                  {isLocationLoading
+                    ? "Konum alınıyor..."
+                    : currentLocation}
+                </strong>
+
+                <button
+                  type="button"
+                  onClick={handleChangeLocation}
+                  disabled={isLocationLoading}
+                >
+                  {isLocationLoading ? "Bekleyin" : "Değiştir"}
+                </button>
               </div>
             </div>
 
@@ -367,6 +461,7 @@ export default function HomePage() {
         <section className="page-container quick-actions-section">
           <div className="section-heading section-heading--center">
             <span className="section-eyebrow">Hızlı başlangıç</span>
+
             <h2>Nasıl yardımcı olabiliriz?</h2>
 
             <p>
@@ -386,7 +481,10 @@ export default function HomePage() {
               </div>
 
               <div className="quick-action-card__content">
-                <span className="quick-action-card__label">Kayıp ilanı</span>
+                <span className="quick-action-card__label">
+                  Kayıp ilanı
+                </span>
+
                 <h3>Dostumu kaybettim</h3>
 
                 <p>
@@ -409,7 +507,7 @@ export default function HomePage() {
             <button
               type="button"
               className="quick-action-card quick-action-card--found"
-              onClick={() => requireAuth("/add-listing?type=found")}
+              onClick={() => requireAuth("/found/create")}
             >
               <div className="quick-action-card__icon">
                 <CirclePlus size={28} />
@@ -442,7 +540,9 @@ export default function HomePage() {
             <button
               type="button"
               className="quick-action-card quick-action-card--adoption"
-              onClick={() => requireAuth("/add-listing?type=adoption")}
+              onClick={() =>
+                requireAuth("/add-listing?type=adoption")
+              }
             >
               <div className="quick-action-card__icon">
                 <Heart size={28} />
@@ -530,7 +630,9 @@ export default function HomePage() {
                 type="button"
                 role="tab"
                 aria-selected={activeFilter === "adoption"}
-                className={activeFilter === "adoption" ? "active" : ""}
+                className={
+                  activeFilter === "adoption" ? "active" : ""
+                }
                 onClick={() => setActiveFilter("adoption")}
               >
                 Sahiplendirme
@@ -543,12 +645,18 @@ export default function HomePage() {
                   const isFavorite = favoriteIds.includes(listing.id);
 
                   return (
-                    <article className="pet-listing-card" key={listing.id}>
+                    <article
+                      className="pet-listing-card"
+                      key={listing.id}
+                    >
                       <Link
                         href={`/pet/${listing.id}`}
                         className="pet-listing-card__image"
                       >
-                        <img src={listing.image} alt={listing.name} />
+                        <img
+                          src={listing.image}
+                          alt={listing.name}
+                        />
 
                         <span
                           className={`listing-status listing-status--${listing.type}`}
@@ -567,9 +675,13 @@ export default function HomePage() {
                       <button
                         type="button"
                         className={`favorite-button ${
-                          isFavorite ? "favorite-button--active" : ""
+                          isFavorite
+                            ? "favorite-button--active"
+                            : ""
                         }`}
-                        onClick={() => toggleFavorite(listing.id)}
+                        onClick={() =>
+                          toggleFavorite(listing.id)
+                        }
                         aria-label={
                           isFavorite
                             ? `${listing.name} ilanını favorilerden çıkar`
@@ -578,7 +690,9 @@ export default function HomePage() {
                       >
                         <Heart
                           size={20}
-                          fill={isFavorite ? "currentColor" : "none"}
+                          fill={
+                            isFavorite ? "currentColor" : "none"
+                          }
                         />
                       </button>
 
@@ -622,7 +736,8 @@ export default function HomePage() {
                 <h3>Aramana uygun ilan bulunamadı</h3>
 
                 <p>
-                  Farklı bir isim, konum veya hayvan türü aramayı dene.
+                  Farklı bir isim, konum veya hayvan türü aramayı
+                  dene.
                 </p>
 
                 <button
@@ -651,9 +766,9 @@ export default function HomePage() {
                 <h2>Fotoğrafla benzer dostları bul.</h2>
 
                 <p>
-                  Kayıp veya bulduğun hayvanın fotoğrafını yükle. PATIMATI,
-                  mevcut ilanları karşılaştırarak en benzer sonuçları senin için
-                  sıralasın.
+                  Kayıp veya bulduğun hayvanın fotoğrafını yükle.
+                  PATIMATI, mevcut ilanları karşılaştırarak en benzer
+                  sonuçları senin için sıralasın.
                 </p>
 
                 <div className="ai-match-card__features">
@@ -662,14 +777,20 @@ export default function HomePage() {
                   <span>Benzer ilan sonuçları</span>
                 </div>
 
-                <Link href="/ai-match" className="ai-match-card__button">
+                <Link
+                  href="/ai-match"
+                  className="ai-match-card__button"
+                >
                   <Camera size={20} />
                   Fotoğrafla ara
                   <ChevronRight size={18} />
                 </Link>
               </div>
 
-              <div className="ai-match-card__visual" aria-hidden="true">
+              <div
+                className="ai-match-card__visual"
+                aria-hidden="true"
+              >
                 <div className="ai-match-photo ai-match-photo--back">
                   <img
                     src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=700&q=85"
@@ -682,6 +803,7 @@ export default function HomePage() {
                     src="https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=700&q=85"
                     alt=""
                   />
+
                   <span className="ai-match-score">
                     <Sparkles size={15} />
                     %94 eşleşme
@@ -704,9 +826,9 @@ export default function HomePage() {
               <h2>İletişim bilgilerin senin kontrolünde.</h2>
 
               <p>
-                İlan sahipleriyle PATIMATI mesajlaşma sistemi üzerinden
-                iletişime geçebilirsin. Telefon numarası gibi hassas bilgiler
-                otomatik olarak filtrelenir.
+                İlan sahipleriyle PATIMATI mesajlaşma sistemi
+                üzerinden iletişime geçebilirsin. Telefon numarası
+                gibi hassas bilgiler otomatik olarak filtrelenir.
               </p>
             </div>
 
@@ -721,13 +843,16 @@ export default function HomePage() {
           <section className="page-container login-options-section">
             <div className="login-options-card">
               <div className="login-options-card__content">
-                <span className="section-eyebrow">PATIMATI hesabı</span>
+                <span className="section-eyebrow">
+                  PATIMATI hesabı
+                </span>
 
                 <h2>Daha fazla özellik için giriş yap</h2>
 
                 <p>
-                  İlan oluşturmak, mesajlaşmak, favori eklemek, bölgesel
-                  bildirim almak ve ilanlarını yönetmek için hesabına giriş yap.
+                  İlan oluşturmak, mesajlaşmak, favori eklemek,
+                  bölgesel bildirim almak ve ilanlarını yönetmek için
+                  hesabına giriş yap.
                 </p>
               </div>
 
@@ -741,18 +866,23 @@ export default function HomePage() {
                   Google ile giriş yap
                 </button>
 
-                <Link href="/login" className="email-login-button">
+                <Link
+                  href="/login"
+                  className="email-login-button"
+                >
                   E-posta ile giriş yap
                 </Link>
 
-                <Link href="/register" className="create-account-link">
+                <Link
+                  href="/register"
+                  className="create-account-link"
+                >
                   Hesabın yok mu? Kayıt ol
                 </Link>
               </div>
             </div>
           </section>
         )}
-
       </main>
 
       <footer className="border-t border-[#E2E8F0] bg-white">
@@ -769,13 +899,15 @@ export default function HomePage() {
                 </span>
 
                 <span className="text-xl font-bold text-[#0F172A]">
-                  PATI<span className="text-[#F97316]">MATI</span>
+                  PATI
+                  <span className="text-[#F97316]">MATI</span>
                 </span>
               </Link>
 
               <p className="mt-4 max-w-sm text-sm leading-6 text-[#64748B]">
-                Kayıp, bulunan ve sahiplendirilecek hayvanları güvenli iletişim
-                ile doğru kişilere ulaştıran topluluk platformu.
+                Kayıp, bulunan ve sahiplendirilecek hayvanları
+                güvenli iletişim ile doğru kişilere ulaştıran
+                topluluk platformu.
               </p>
             </div>
 
@@ -784,7 +916,10 @@ export default function HomePage() {
                 Keşfet
               </h3>
 
-              <nav className="mt-4 flex flex-col gap-3" aria-label="Footer keşfet">
+              <nav
+                className="mt-4 flex flex-col gap-3"
+                aria-label="Footer keşfet"
+              >
                 <Link
                   href="/listings"
                   className="text-sm text-[#64748B] transition hover:text-[#F97316]"
@@ -813,7 +948,10 @@ export default function HomePage() {
                 PATIMATI
               </h3>
 
-              <nav className="mt-4 flex flex-col gap-3" aria-label="Footer kurumsal">
+              <nav
+                className="mt-4 flex flex-col gap-3"
+                aria-label="Footer kurumsal"
+              >
                 <Link
                   href="/safety"
                   className="text-sm text-[#64748B] transition hover:text-[#F97316]"
@@ -842,7 +980,10 @@ export default function HomePage() {
                 Yasal
               </h3>
 
-              <nav className="mt-4 flex flex-col gap-3" aria-label="Footer yasal">
+              <nav
+                className="mt-4 flex flex-col gap-3"
+                aria-label="Footer yasal"
+              >
                 <Link
                   href="/privacy"
                   className="text-sm text-[#64748B] transition hover:text-[#F97316]"
@@ -862,27 +1003,40 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-col gap-3 border-t border-[#E2E8F0] pt-6 text-sm text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
             <p>© 2026 PATIMATI. Tüm hakları saklıdır.</p>
-
             <p>Minik dostlarımız için birlikte.</p>
           </div>
         </div>
       </footer>
 
-
       <div
-        className={`filter-drawer-overlay ${isFilterOpen ? "is-open" : ""}`}
+        className={`filter-drawer-overlay ${
+          isFilterOpen ? "is-open" : ""
+        }`}
         aria-hidden={!isFilterOpen}
         onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setIsFilterOpen(false);
+          if (event.target === event.currentTarget) {
+            setIsFilterOpen(false);
+          }
         }}
       >
-        <aside className="filter-drawer" role="dialog" aria-modal="true" aria-label="İlan filtreleri">
+        <aside
+          className="filter-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="İlan filtreleri"
+        >
           <div className="filter-drawer__header">
             <div>
               <span>Arama seçenekleri</span>
               <h2>Filtreler</h2>
             </div>
-            <button type="button" className="filter-drawer__close" aria-label="Filtre panelini kapat" onClick={() => setIsFilterOpen(false)}>
+
+            <button
+              type="button"
+              className="filter-drawer__close"
+              aria-label="Filtre panelini kapat"
+              onClick={() => setIsFilterOpen(false)}
+            >
               <X size={22} />
             </button>
           </div>
@@ -893,27 +1047,69 @@ export default function HomePage() {
                 <h3>Mesafe</h3>
                 <strong>{maxDistance} km</strong>
               </div>
-              <input className="filter-range" type="range" min="1" max="25" value={maxDistance} onChange={(event) => setMaxDistance(Number(event.target.value))} />
-              <div className="filter-range__labels"><span>1 km</span><span>25 km</span></div>
+
+              <input
+                className="filter-range"
+                type="range"
+                min="1"
+                max="25"
+                value={maxDistance}
+                onChange={(event) =>
+                  setMaxDistance(Number(event.target.value))
+                }
+              />
+
+              <div className="filter-range__labels">
+                <span>1 km</span>
+                <span>25 km</span>
+              </div>
             </section>
 
             <section className="filter-group">
               <h3>Hayvan türü</h3>
+
               <div className="filter-chip-grid">
-                {["Kedi", "Köpek", "Kuş", "Diğer"].map((animal) => (
-                  <button key={animal} type="button" className={selectedAnimals.includes(animal) ? "is-selected" : ""} onClick={() => toggleAnimalFilter(animal)}>
-                    {animal}
-                  </button>
-                ))}
+                {["Kedi", "Köpek", "Kuş", "Diğer"].map(
+                  (animal) => (
+                    <button
+                      key={animal}
+                      type="button"
+                      className={
+                        selectedAnimals.includes(animal)
+                          ? "is-selected"
+                          : ""
+                      }
+                      onClick={() =>
+                        toggleAnimalFilter(animal)
+                      }
+                    >
+                      {animal}
+                    </button>
+                  ),
+                )}
               </div>
             </section>
 
             <section className="filter-group">
               <h3>İlan türü</h3>
+
               <div className="filter-checkbox-list">
-                {([ ["lost", "Kayıp"], ["found", "Bulunan"], ["adoption", "Sahiplendirme"] ] as const).map(([type, label]) => (
+                {(
+                  [
+                    ["lost", "Kayıp"],
+                    ["found", "Bulunan"],
+                    ["adoption", "Sahiplendirme"],
+                  ] as const
+                ).map(([type, label]) => (
                   <label key={type}>
-                    <input type="checkbox" checked={selectedListingTypes.includes(type)} onChange={() => toggleListingTypeFilter(type)} />
+                    <input
+                      type="checkbox"
+                      checked={selectedListingTypes.includes(type)}
+                      onChange={() =>
+                        toggleListingTypeFilter(type)
+                      }
+                    />
+
                     <span>{label}</span>
                   </label>
                 ))}
@@ -922,19 +1118,41 @@ export default function HomePage() {
 
             <section className="filter-group">
               <label className="filter-switch-row">
-                <div><strong>Sadece öne çıkanlar</strong><span>Öne çıkarılmış ilanları göster</span></div>
-                <input type="checkbox" checked={onlyFeatured} onChange={(event) => setOnlyFeatured(event.target.checked)} />
+                <div>
+                  <strong>Sadece öne çıkanlar</strong>
+                  <span>Öne çıkarılmış ilanları göster</span>
+                </div>
+
+                <input
+                  type="checkbox"
+                  checked={onlyFeatured}
+                  onChange={(event) =>
+                    setOnlyFeatured(event.target.checked)
+                  }
+                />
               </label>
             </section>
           </div>
 
           <div className="filter-drawer__footer">
-            <button type="button" className="filter-clear-button" onClick={clearAdvancedFilters}>Temizle</button>
-            <button type="button" className="filter-apply-button" onClick={() => setIsFilterOpen(false)}>{filteredListings.length} sonucu göster</button>
+            <button
+              type="button"
+              className="filter-clear-button"
+              onClick={clearAdvancedFilters}
+            >
+              Temizle
+            </button>
+
+            <button
+              type="button"
+              className="filter-apply-button"
+              onClick={() => setIsFilterOpen(false)}
+            >
+              {filteredListings.length} sonucu göster
+            </button>
           </div>
         </aside>
       </div>
-
     </div>
   );
 }
