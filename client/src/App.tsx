@@ -17,6 +17,7 @@ import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
 import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import AiMatchPage from "./pages/AiMatchPage";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/adoption/:id" component={AdoptionDetailPage} />
       <Route path="/favorites" component={FavoritesPage} />
+      <Route path="/ai-match" component={AiMatchPage} />
       
       
 
