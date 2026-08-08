@@ -19,3 +19,37 @@
 .upload { display: grid; min-height: 190px; place-items: center; align-content: center; gap: 7px; padding: 18px; border: 2px dashed #b89670; border-radius: 21px; color: #865a31; background: #fffaf3; text-align: center; } .upload input { display: none; } .upload strong { font-size: 1.12rem; } .upload span { color: #806653; font-size: .83rem; } .form-card { margin: 18px 0; padding: 17px 15px; border: 1px solid #eee2d3; border-radius: 23px; background: #fff; } .form-card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 17px; font-size: 1.15rem; } .form-card h2 svg { color: #b0753b; } .form-row { display: grid; grid-template-columns: 88px 1fr; gap: 10px; align-items: center; margin: 12px 0; font-size: .88rem; font-weight: 750; } .form-row select, textarea { width: 100%; border: 1px solid #e4dbd1; border-radius: 14px; outline: none; color: #4a2d16; background: #fffdfb; } .form-row select { height: 48px; padding: 0 11px; } .segments { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; } .segments button { display: flex; min-height: 50px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #eee2d3; border-radius: 14px; color: #796e64; background: #fffdfa; font-size: .77rem; font-weight: 800; } .segments button.active { border-color: #ed850c; color: #dd7205; background: #fff8ed; } .block-label { margin: 10px 0 16px; } .block-label .input svg { color: #ed850c; } textarea { min-height: 114px; padding: 12px; resize: vertical; } .form-card .input { margin-top: 7px; }
 .profile { padding: 25px 18px; border: 1px solid #eee2d3; border-radius: 25px; background: linear-gradient(140deg, #fff, #fff7e9); text-align: center; } .profile > span { display: grid; width: 85px; height: 85px; margin: 0 auto 12px; place-items: center; border: 5px solid #fff; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #f0a218, #b85d20); box-shadow: 0 8px 20px #8c571e2b; } .profile h2 { margin: 0; font-size: 1.5rem; } .profile p { margin: 5px 0 0; color: #958b82; } .profile > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 23px; } .profile b { padding: 10px 4px; border-radius: 14px; background: #fffafd; font-size: 1.05rem; } .profile small { display: block; margin-top: 3px; color: #958b82; font-size: .68rem; font-weight: 650; } .profile + a { margin-top: 20px; }.empty { display: grid; min-height: 100vh; place-items: center; align-content: center; gap: 12px; padding: 30px; text-align: center; }.empty svg { color: #ed850c; }.empty h1, .empty p { margin: 0; }.empty p { color: #806653; }
 @media (min-width: 640px) { .app-shell { min-height: calc(100vh - 40px); margin-top: 20px; margin-bottom: 20px; border-radius: 32px; } .bottom-nav { bottom: 20px; border-radius: 25px; } .auth-screen { min-height: calc(100vh - 40px); border-radius: 32px; } } @media (max-width: 370px) { .screen { padding-right: 15px; padding-left: 15px; } .mode-grid button { padding: 10px; font-size: .85rem; } .facts span { font-size: .64rem; } .form-row { grid-template-columns: 76px 1fr; } }
+
+.hero-card { display: grid; gap: 8px; padding: 18px; margin-bottom: 16px; border: 1px solid #eee2d3; border-radius: 24px; background: linear-gradient(135deg, #fff7e8, #fffdf9); }
+.hero-card h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.04em; }
+.hero-card p { margin: 0; color: #7a6754; line-height: 1.5; }
+.eyebrow { color: #d06b18; font-size: .74rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.card-stack { display: grid; gap: 12px; margin-top: 8px; }
+.content-card { display: grid; gap: 8px; padding: 15px; border: 1px solid #eee2d3; border-radius: 20px; background: #fff; box-shadow: 0 5px 14px #6942110b; }
+.content-card h3 { margin: 0; font-size: 1.08rem; letter-spacing: -.03em; }
+.content-card p { margin: 0; color: #7a6f64; font-size: .86rem; line-height: 1.45; }
+.content-card__top, .content-card__footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px; border-radius: 999px; background: #fff5e6; color: #b56e1c; font-size: .72rem; font-weight: 800; }
+.pill--warning { background: #fff1e6; color: #b7511c; }
+.muted { color: #8a8077; font-size: .76rem; }
+.text-link { display: inline-flex; align-items: center; gap: 4px; border: 0; color: #d06b18; background: transparent; font-weight: 800; }
+.dashboard-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard-link { align-items: center; justify-content: center; min-height: 74px; color: #4a2d16; font-weight: 800; text-align: center; }
+.dashboard-link svg { color: #de7a14; }
+.stats-grid { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 16px; }
+.stat-card { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #efe0cc; border-radius: 18px; background: #fff; }
+.stat-card strong { display: block; font-size: 1.05rem; }
+.stat-card p { margin: 2px 0 0; color: #7a6f64; font-size: .76rem; }
+.stat-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #f2a51a, #c9671b); }
+.section-heading { margin: 0 0 8px; font-size: 1.02rem; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgba(15, 23, 42, 0.45); }
+.modal-card { width: min(100%, 520px); overflow: hidden; border-radius: 24px; background: #fffdf9; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #eee2d3; }
+.modal-header h3 { margin: 4px 0 0; font-size: 1.12rem; }
+.modal-body { display: grid; gap: 12px; padding: 16px 18px 20px; }
+.info-banner { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; color: #9a4d10; background: #fff7e8; }
+.field { display: grid; gap: 8px; color: #4a2d16; font-size: .9rem; font-weight: 800; }
+.field input, .field textarea { width: 100%; border: 1px solid #eadcc9; border-radius: 14px; padding: 12px 14px; color: #4a2d16; background: #fff; }
+.field textarea { min-height: 100px; resize: vertical; }
+.success-message { margin: 0; color: #227a49; font-weight: 700; }
+@media (max-width: 640px) { .dashboard-grid, .stats-grid { grid-template-columns: 1fr; } }
