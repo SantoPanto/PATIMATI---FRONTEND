@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { CirclePlus, House, MapPinned, MessageCircle, PawPrint, UserRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
-export function TeamButton({ children, variant = "primary", full = false, type = "button", onClick }: { children: ReactNode; variant?: "primary" | "outline" | "quiet"; full?: boolean; type?: "button" | "submit"; onClick?: () => void }) {
-  return <button type={type} onClick={onClick} className={`button button--${variant}${full ? " button--full" : ""}`}>{children}</button>;
+export function TeamButton({ children, variant = "primary", full = false, type = "button", disabled = false, onClick }: { children: ReactNode; variant?: "primary" | "outline" | "quiet"; full?: boolean; type?: "button" | "submit"; disabled?: boolean; onClick?: () => void }) {
+  return <button type={type} disabled={disabled} onClick={onClick} className={`button button--${variant}${full ? " button--full" : ""}`}>{children}</button>;
 }
 
 function Nav() {
