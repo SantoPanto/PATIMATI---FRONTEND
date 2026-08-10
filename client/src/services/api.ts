@@ -1,5 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 export async function postListing(formData: FormData) {
   const response = await fetch(new URL("/listings", API_BASE_URL).toString(), {
     method: "POST",
