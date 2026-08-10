@@ -1,12 +1,25 @@
-import { Camera, MapPin, PawPrint, Search, Send, ShieldCheck } from "lucide-react";
+import {
+  Camera,
+  MapPin,
+  PawPrint,
+  Search,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
+
 import { useState } from "react";
-import { TeamBack, TeamButton, TeamShell } from "../components/TeamUI";
+
+import {
+  TeamBack,
+  TeamButton,
+  TeamShell,
+} from "../components/TeamUI";
+
 import { postListing } from "../services/api";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const AI_URL = "http://localhost:8000";
 
-interface AIAnalysisResponse {
+interface AIResult {
   embedding: number[];
   labels: string[];
   species: string;
@@ -20,62 +33,99 @@ interface AIAnalysisResponse {
 }
 
 export default function AddListingPage() {
-  const [status, setStatus] = useState("Sahiplendirme");
 
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoName, setPhotoName] = useState("");
+  const [status, setStatus] =
+    useState("Sahiplendirme");
 
-  const [type, setType] = useState("Kedi");
-  const [breed, setBreed] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("");
-  const [location, setLocation] = useState("");
-  const [description, setDescription] = useState("");
+  const [photo, setPhoto] =
+    useState<File | null>(null);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [photoName, setPhotoName] =
+    useState("");
 
-  const [analyzing, setAnalyzing] = useState(false);
-  const [aiData, setAiData] = useState<AIAnalysisResponse | null>(null);
+  const [type, setType] =
+    useState("Kedi");
 
-  const analyzeImage = async (
-    file: File
-  ): Promise<AIAnalysisResponse> => {
+  const [breed, setBreed] =
+    useState("");
+
+  const [age, setAge] =
+    useState("");
+
+  const [gender, setGender] =
+    useState("");
+
+  const [location, setLocation] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [loadingAI, setLoadingAI] =
+    useState(false);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [success, setSuccess] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [aiResult, setAiResult] =
+    useState<AIResult | null>(null);
+
+  async function analyzeImage(file: File) {
+
     const formData = new FormData();
+
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetch(
+      `${AI_URL}/analyze`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
-      throw new Error("AI analysis failed.");
+      throw new Error(
+        "AI couldn't analyze the image."
+      );
     }
 
     return await response.json();
-  };
 
-  const handleFileChange = async (
+  }
+
+  async function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
+  ) {
+
+    const file =
+      event.target.files?.[0];
 
     if (!file) return;
 
     setPhoto(file);
     setPhotoName(file.name);
 
+    setLoadingAI(true);
     setError("");
-    setAnalyzing(true);
 
     try {
-      const result = await analyzeImage(file);
 
-      setAiData(result);
+      const result: AIResult =
+        await analyzeImage(file);
 
-      switch (result.species.toLowerCase()) {
+      setAiResult(result);
+
+      switch (
+        result.species.toLowerCase()
+      ) {
+
         case "cat":
           setType("Kedi");
           break;
@@ -86,35 +136,48 @@ export default function AddListingPage() {
 
         default:
           setType("Diğer");
+
       }
 
       if (result.breed) {
         setBreed(result.breed);
       }
 
-      const autoDescription = [
-        result.species,
-        result.breed,
-        ...(result.colors || []),
-        result.pattern,
-      ]
-        .filter(Boolean)
-        .join(", ");
+      const generatedDescription =
+        [
+          result.species,
+          result.breed,
+          ...(result.colors ?? []),
+          result.pattern,
+        ]
+          .filter(Boolean)
+          .join(", ");
 
-      if (autoDescription.length > 0) {
-        setDescription(autoDescription);
+      if (generatedDescription) {
+        setDescription(
+          generatedDescription
+        );
       }
+
     } catch (err) {
+
       console.error(err);
-      setAiData(null);
-      setError("Fotoğraf analiz edilemedi.");
+
+      setError(
+        "AI analysis failed."
+      );
+
+      setAiResult(null);
+
     } finally {
-      setAnalyzing(false);
+
+      setLoadingAI(false);
+
     }
-  };
-    const handleSubmit = async (
+  async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
-  ) => {
+  ) {
+
     event.preventDefault();
 
     setError("");
@@ -133,111 +196,176 @@ export default function AddListingPage() {
     setSubmitting(true);
 
     try {
+
       const formData = new FormData();
 
-      // Basic listing information
-      formData.append("status", status);
-      formData.append("type", type);
-      formData.append("breed", breed);
-      formData.append("age", age);
-      formData.append("gender", gender);
-      formData.append("location", location);
-      formData.append("description", description);
+      // Basic information
 
-      formData.append("photo", photo);
+      formData.append(
+        "status",
+        status
+      );
+
+      formData.append(
+        "type",
+        type
+      );
+
+      formData.append(
+        "breed",
+        breed
+      );
+
+      formData.append(
+        "age",
+        age
+      );
+
+      formData.append(
+        "gender",
+        gender
+      );
+
+      formData.append(
+        "location",
+        location
+      );
+
+      formData.append(
+        "description",
+        description
+      );
+
+      formData.append(
+        "photo",
+        photo
+      );
 
       // AI metadata
-      if (aiData) {
+
+      if (aiResult) {
+
         formData.append(
           "embedding",
-          JSON.stringify(aiData.embedding)
+          JSON.stringify(
+            aiResult.embedding
+          )
         );
 
         formData.append(
           "labels",
-          JSON.stringify(aiData.labels)
+          JSON.stringify(
+            aiResult.labels
+          )
         );
 
         formData.append(
           "species",
-          aiData.species
+          aiResult.species
         );
 
         formData.append(
           "species_confidence",
-          aiData.species_confidence.toString()
+          aiResult.species_confidence.toString()
         );
 
         formData.append(
           "breed_confidence",
-          aiData.breed_confidence.toString()
+          aiResult.breed_confidence.toString()
         );
 
         formData.append(
           "colors",
-          JSON.stringify(aiData.colors)
+          JSON.stringify(
+            aiResult.colors
+          )
         );
 
         formData.append(
           "pattern",
-          aiData.pattern ?? ""
+          aiResult.pattern ?? ""
         );
 
         formData.append(
           "model_version",
-          aiData.model_version
+          aiResult.model_version
         );
 
         formData.append(
           "is_pet",
-          String(aiData.is_pet)
+          String(aiResult.is_pet)
         );
+
       }
 
-      await postListing(formData);
+      await postListing(
+        formData
+      );
 
       setSuccess(true);
 
-      // Reset everything
       setPhoto(null);
       setPhotoName("");
 
-      setStatus("Sahiplendirme");
+      setStatus(
+        "Sahiplendirme"
+      );
 
-      setType("Kedi");
+      setType(
+        "Kedi"
+      );
+
       setBreed("");
+
       setAge("");
+
       setGender("");
 
       setLocation("");
+
       setDescription("");
 
-      setAiData(null);
+      setAiResult(null);
 
-    } catch (err) {
+    }
+    catch (err) {
 
       setError(
+
         err instanceof Error
+
           ? err.message
+
           : "Gönderim sırasında hata oluştu."
+
       );
 
-    } finally {
+    }
+    finally {
 
       setSubmitting(false);
 
     }
-  };
+
+  }
 
   return (
+
     <TeamShell className="screen">
 
       <header className="center-header">
+
         <TeamBack href="/" />
-        <h1>Yeni İlan Ekle</h1>
+
+        <h1>
+          Yeni İlan Ekle
+        </h1>
+
       </header>
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={handleSubmit}
+      >
 
         <label
           className="upload"
@@ -251,118 +379,174 @@ export default function AddListingPage() {
             onChange={handleFileChange}
           />
 
-          <Camera size={50} />
+          <Camera
+            size={50}
+          />
 
           <strong>
-            {photoName || "Fotoğraf Ekle"}
+
+            {photoName ||
+
+              "Fotoğraf Ekle"}
+
           </strong>
 
           <span>
-            {analyzing
+
+            {loadingAI
+
               ? "🧠 AI fotoğrafı analiz ediyor..."
+
               : photoName
+
               ? "Fotoğraf seçildi"
+
               : "En az 1, en fazla 5"}
+
           </span>
 
         </label>
 
-        {aiData && (
-          <section className="form-card">
+        {
 
-            <h2>🤖 AI Analizi</h2>
+          aiResult && (
 
-            <p>
-              <strong>Tür:</strong> {aiData.species}
-            </p>
+            <section className="form-card">
 
-            <p>
-              <strong>Cins:</strong>{" "}
-              {aiData.breed ?? "Bilinmiyor"}
-            </p>
+              <h2>
 
-            <p>
-              <strong>Renkler:</strong>{" "}
-              {aiData.colors.join(", ")}
-            </p>
+                🤖 AI Analizi
 
-            <p>
-              <strong>Pattern:</strong>{" "}
-              {aiData.pattern ?? "-"}
-            </p>
+              </h2>
 
-            <p>
-              <strong>Güven:</strong>{" "}
-              {(aiData.species_confidence * 100).toFixed(1)}%
-            </p>
+              <p>
 
-          </section>
-        )}
+                <strong>
+
+                  Tür:
+
+                </strong>
+
+                {" "}
+
+                {aiResult.species}
+
+              </p>
+
+              <p>
+
+                <strong>
+
+                  Cins:
+
+                </strong>
+
+                {" "}
+
+                {aiResult.breed ??
+
+                  "Bilinmiyor"}
+
+              </p>
+
+              <p>
+
+                <strong>
+
+                  Güven:
+
+                </strong>
+
+                {" "}
+
+                {(
+                  aiResult.species_confidence *
+                  100
+                ).toFixed(1)}%
+
+              </p>
+
+            </section>
+
+          )
+
+        }
 
         <section className="form-card">
 
           <h2>
-            <PawPrint size={18} />
+
+            <PawPrint
+              size={18}
+            />
+
             {" "}
+
             Hayvan Bilgileri
+
           </h2>
                     <label className="form-row">
+
             <span>Tür</span>
 
             <select
               value={type}
-              onChange={(event) => setType(event.target.value)}
-              disabled={analyzing}
+              onChange={(e) => setType(e.target.value)}
+              disabled={loadingAI}
             >
               <option value="Kedi">Kedi</option>
               <option value="Köpek">Köpek</option>
               <option value="Diğer">Diğer</option>
             </select>
+
           </label>
 
           <label className="form-row">
+
             <span>Cins</span>
 
             <select
               value={breed}
-              onChange={(event) => setBreed(event.target.value)}
-              disabled={analyzing}
+              onChange={(e) => setBreed(e.target.value)}
+              disabled={loadingAI}
             >
               <option value="">Seçiniz</option>
-
               <option>Tekir</option>
               <option>Golden</option>
               <option>Melez</option>
             </select>
+
           </label>
 
           <label className="form-row">
+
             <span>Yaş</span>
 
             <select
               value={age}
-              onChange={(event) => setAge(event.target.value)}
+              onChange={(e) => setAge(e.target.value)}
             >
               <option value="">Seçiniz</option>
-
               <option>0-1 yaş</option>
               <option>1-3 yaş</option>
               <option>3+ yaş</option>
             </select>
+
           </label>
 
           <label className="form-row">
+
             <span>Cinsiyet</span>
 
             <select
               value={gender}
-              onChange={(event) => setGender(event.target.value)}
+              onChange={(e) => setGender(e.target.value)}
             >
               <option value="">Erkek / Dişi</option>
-
               <option>Erkek</option>
               <option>Dişi</option>
             </select>
+
           </label>
 
         </section>
@@ -370,9 +554,13 @@ export default function AddListingPage() {
         <section className="form-card">
 
           <h2>
+
             <ShieldCheck size={18} />
+
             {" "}
+
             Durum
+
           </h2>
 
           <div className="segments">
@@ -389,8 +577,11 @@ export default function AddListingPage() {
               }
             >
               <PawPrint size={16} />
+
               {" "}
+
               Sahiplendirme
+
             </button>
 
             <button
@@ -405,8 +596,11 @@ export default function AddListingPage() {
               }
             >
               <Search size={16} />
+
               {" "}
+
               Kayıp / Bulunan
+
             </button>
 
           </div>
@@ -426,12 +620,12 @@ export default function AddListingPage() {
 
               <input
                 id="listing-location"
-                required
                 value={location}
-                onChange={(event) =>
-                  setLocation(event.target.value)
+                onChange={(e) =>
+                  setLocation(e.target.value)
                 }
                 placeholder="Konum giriniz"
+                required
               />
 
               <MapPin size={18} />
@@ -449,11 +643,11 @@ export default function AddListingPage() {
 
             <textarea
               id="listing-description"
-              maxLength={1000}
               value={description}
-              onChange={(event) =>
-                setDescription(event.target.value)
+              onChange={(e) =>
+                setDescription(e.target.value)
               }
+              maxLength={1000}
               placeholder="Açıklama giriniz..."
             />
 
@@ -464,12 +658,17 @@ export default function AddListingPage() {
         <TeamButton
           type="submit"
           full
-          disabled={submitting || analyzing}
+          disabled={
+            submitting ||
+            loadingAI
+          }
         >
 
           <Send size={21} />
 
-          {analyzing
+          {" "}
+
+          {loadingAI
             ? "AI Analiz Ediyor..."
             : submitting
             ? "Gönderiliyor..."
@@ -478,19 +677,30 @@ export default function AddListingPage() {
         </TeamButton>
 
         {error && (
+
           <p className="form-error">
+
             {error}
+
           </p>
+
         )}
 
         {success && (
+
           <p className="success-message">
+
             İlan başarıyla gönderildi.
+
           </p>
+
         )}
 
       </form>
 
     </TeamShell>
+
   );
+
 }
+  }
