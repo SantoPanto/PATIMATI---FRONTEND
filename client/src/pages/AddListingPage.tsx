@@ -168,9 +168,14 @@ const AI_PATTERN_MAP: Record<string, CoatPattern> = {
   /*
    * AI "tabby" diyor ve bu kedilerde en sik gorulen desen; listede karsiligi
    * yoktu, o yuzden tekir kedilerde desen hic dolmuyordu.
-   * ⚠ STRIPED'a baglamak bir YAKLASTIRMA: tabby tam olarak "cizgili" demek
-   * degil, benekli/alacali alt turleri de var. Ayri bir TABBY secenegi
-   * eklemek daha dogru olabilir — karar sizin, PR'da soruldu.
+   *
+   * STRIPED'a baglamak bir yaklastirma (tabby tam olarak "cizgili" demek
+   * degil, benekli/alacali alt turleri de var). SORULDU VE KARARA BAGLANDI
+   * (SenaF116, 11.08): "tabby cizgili bir desen oldugu icin mevcut enum
+   * icinde en dogru karsiligi o. Ileride filtreleme veya veri modeli
+   * acisindan ihtiyac olursa ayri bir TABBY secenegi dusunulur."
+   * ⇒ Bu satir acik bir soru DEGIL; yeniden tartismaya acmadan once
+   *   yukaridaki gerekcenin gecerliligini yitirip yitirmedigine bak.
    */
   tabby: "STRIPED",
 };
