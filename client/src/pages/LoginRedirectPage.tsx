@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TeamShell, TeamBack } from "../components/TeamUI";
 
 export default function LoginRedirectPage() {

@@ -6,7 +6,6 @@ import {
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
-  CalendarDays,
   Camera,
   CheckCircle2,
   Heart,
