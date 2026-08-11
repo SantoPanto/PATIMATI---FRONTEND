@@ -1,0 +1,938 @@
+import {
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
+import { useLocation } from "wouter";
+import {
+  ArrowLeft,
+  Camera,
+  CheckCircle2,
+  Heart,
+  ImagePlus,
+  Info,
+  MapPin,
+  PawPrint,
+  ShieldCheck,
+  Upload,
+  X,
+} from "lucide-react";
+
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+
+type Gender = "female" | "male" | "unknown";
+
+type SelectedImage = {
+  id: string;
+  file: File;
+  preview: string;
+};
+
+const MAX_IMAGES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const SUPPORTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+
+export default function AdoptionCreatePage() {
+  const [, navigate] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [images, setImages] = useState<SelectedImage[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [form, setForm] = useState({
+    name: "",
+    species: "",
+    breed: "",
+    gender: "unknown" as Gender,
+    age: "",
+    color: "",
+    city: "",
+    district: "",
+    title: "",
+    description: "",
+    vaccinated: false,
+    neutered: false,
+    healthInfo: "",
+    adoptionConditions: "",
+    acceptResponsibility: false,
+  });
+
+  const updateForm = <
+    K extends keyof typeof form,
+  >(
+    key: K,
+    value: (typeof form)[K],
+  ) => {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
+  const createImageId = (file: File) => {
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
+      return crypto.randomUUID();
+    }
+
+    return `${file.name}-${file.size}-${Date.now()}-${Math.random()}`;
+  };
+
+  const openFilePicker = () => {
+    setErrorMessage("");
+
+    if (images.length >= MAX_IMAGES) {
+      setErrorMessage(
+        `En fazla ${MAX_IMAGES} fotoğraf yükleyebilirsiniz.`,
+      );
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleImages = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(
+      event.target.files ?? [],
+    );
+
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    setErrorMessage("");
+
+    const availableSlots =
+      MAX_IMAGES - images.length;
+
+    const validFiles: File[] = [];
+
+    for (const file of files) {
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        setErrorMessage(
+          "Yalnızca JPG, PNG veya WEBP formatında fotoğraf yükleyebilirsiniz.",
+        );
+        continue;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        setErrorMessage(
+          "Her fotoğraf en fazla 10 MB olabilir.",
+        );
+        continue;
+      }
+
+      const alreadyExists = images.some(
+        (image) =>
+          image.file.name === file.name &&
+          image.file.size === file.size &&
+          image.file.lastModified ===
+            file.lastModified,
+      );
+
+      if (alreadyExists) {
+        setErrorMessage(
+          `${file.name} zaten yüklenmiş.`,
+        );
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    const filesToAdd = validFiles.slice(
+      0,
+      availableSlots,
+    );
+
+    const newImages = filesToAdd.map((file) => ({
+      id: createImageId(file),
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setImages((current) => [
+      ...current,
+      ...newImages,
+    ]);
+  };
+
+  const removeImage = (imageId: string) => {
+    setImages((current) => {
+      const target = current.find(
+        (image) => image.id === imageId,
+      );
+
+      if (target) {
+        URL.revokeObjectURL(target.preview);
+      }
+
+      return current.filter(
+        (image) => image.id !== imageId,
+      );
+    });
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setErrorMessage(
+        "Tarayıcınız konum özelliğini desteklemiyor.",
+      );
+      return;
+    }
+
+    setErrorMessage("");
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&accept-language=tr`,
+          );
+
+          const data = await response.json();
+
+          updateForm(
+            "city",
+            data.address?.province ||
+              data.address?.city ||
+              "",
+          );
+
+          updateForm(
+            "district",
+            data.address?.town ||
+              data.address?.county ||
+              data.address?.municipality ||
+              "",
+          );
+        } catch {
+          setErrorMessage(
+            "Konum bilgisi şehir adına dönüştürülemedi.",
+          );
+        }
+      },
+      () => {
+        setErrorMessage(
+          "Konum alınamadı. Lütfen konum izni verdiğinizden emin olun.",
+        );
+      },
+    );
+  };
+
+  const validateForm = () => {
+    if (images.length === 0) {
+      return "En az 1 fotoğraf yüklemelisiniz.";
+    }
+
+    if (!form.name.trim()) {
+      return "Hayvanın adını girin.";
+    }
+
+    if (!form.species) {
+      return "Hayvan türünü seçin.";
+    }
+
+    if (!form.city.trim()) {
+      return "Şehir bilgisini girin.";
+    }
+
+    if (!form.title.trim()) {
+      return "İlan başlığını girin.";
+    }
+
+    if (!form.description.trim()) {
+      return "İlan açıklamasını girin.";
+    }
+
+    if (!form.acceptResponsibility) {
+      return "İlan bilgilerini doğru verdiğinizi onaylamalısınız.";
+    }
+
+    return "";
+  };
+
+  const handleSubmit = async () => {
+    setErrorMessage("");
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const formData = new FormData();
+
+    images.forEach((image) => {
+      formData.append("images", image.file);
+    });
+
+    formData.append("name", form.name);
+    formData.append("species", form.species);
+    formData.append("breed", form.breed);
+    formData.append("gender", form.gender);
+    formData.append("age", form.age);
+    formData.append("color", form.color);
+    formData.append("city", form.city);
+    formData.append("district", form.district);
+    formData.append("title", form.title);
+    formData.append(
+      "description",
+      form.description,
+    );
+    formData.append(
+      "vaccinated",
+      String(form.vaccinated),
+    );
+    formData.append(
+      "neutered",
+      String(form.neutered),
+    );
+    formData.append(
+      "healthInfo",
+      form.healthInfo,
+    );
+    formData.append(
+      "adoptionConditions",
+      form.adoptionConditions,
+    );
+
+    try {
+      /*
+        BACKEND ENDPOINT HAZIR OLUNCA:
+
+        const response = await fetch(
+          "http://localhost:8080/api/adoptions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: formData,
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Sahiplendirme ilanı oluşturulamadı.",
+          );
+        }
+
+        const result = await response.json();
+
+        navigate(`/adoption/${result.id}`);
+      */
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000),
+      );
+
+      navigate("/adoption");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "İlan oluşturulurken bir hata oluştu.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+      <Header />
+
+      <main>
+        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF]">
+          <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8">
+            <button
+              type="button"
+              onClick={() => navigate("/adoption")}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#F97316]"
+            >
+              <ArrowLeft size={18} />
+              Sahiplendirmeye dön
+            </button>
+
+            <div className="mt-7 max-w-3xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316]">
+                <Heart size={16} />
+                Yeni yuva bul
+              </span>
+
+              <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">
+                Sahiplendirme ilanı oluştur
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
+                Dostunun bilgilerini eksiksiz paylaş.
+                Doğru bilgiler, onun için güvenli ve uygun
+                bir yuva bulunmasını kolaylaştırır.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
+          <div className="space-y-7">
+            <FormCard
+              icon={<Camera size={21} />}
+              title="Fotoğraflar"
+              description="Dostunun net ve güncel fotoğraflarını ekle."
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                className="hidden"
+                onChange={handleImages}
+              />
+
+              {images.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={openFilePicker}
+                  className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#FB923C] hover:bg-[#FFF7ED]"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
+                    <ImagePlus size={30} />
+                  </div>
+
+                  <strong className="mt-4 text-lg">
+                    Fotoğraf yükle
+                  </strong>
+
+                  <span className="mt-2 text-sm text-[#64748B]">
+                    En fazla 5 fotoğraf · JPG, PNG veya WEBP
+                  </span>
+                </button>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {images.map((image, index) => (
+                      <div
+                        key={image.id}
+                        className="relative overflow-hidden rounded-2xl border border-[#E2E8F0]"
+                      >
+                        <img
+                          src={image.preview}
+                          alt={`Sahiplendirme fotoğrafı ${index + 1}`}
+                          className="h-40 w-full object-cover"
+                        />
+
+                        {index === 0 && (
+                          <span className="absolute bottom-2 left-2 rounded-full bg-[#0F172A]/80 px-3 py-1 text-xs font-bold text-white">
+                            Kapak
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeImage(image.id)
+                          }
+                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#0F172A]/75 text-white transition hover:bg-[#DC2626]"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {images.length < MAX_IMAGES && (
+                      <button
+                        type="button"
+                        onClick={openFilePicker}
+                        className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#F97316] hover:text-[#F97316]"
+                      >
+                        <Upload size={25} />
+                        <span className="mt-2 text-sm font-semibold">
+                          Fotoğraf ekle
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="mt-3 text-sm text-[#64748B]">
+                    {images.length}/{MAX_IMAGES} fotoğraf
+                    yüklendi.
+                  </p>
+                </>
+              )}
+            </FormCard>
+
+            <FormCard
+              icon={<PawPrint size={21} />}
+              title="Hayvan bilgileri"
+              description="Dostunu tanımamıza yardımcı olacak temel bilgileri gir."
+            >
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Adı" required>
+                  <input
+                    value={form.name}
+                    onChange={(e) =>
+                      updateForm("name", e.target.value)
+                    }
+                    placeholder="Örn. Pamuk"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Tür" required>
+                  <select
+                    value={form.species}
+                    onChange={(e) =>
+                      updateForm(
+                        "species",
+                        e.target.value,
+                      )
+                    }
+                    className={inputClass}
+                  >
+                    <option value="">Tür seçin</option>
+                    <option value="CAT">Kedi</option>
+                    <option value="DOG">Köpek</option>
+                    <option value="BIRD">Kuş</option>
+                    <option value="OTHER">
+                      Diğer
+                    </option>
+                  </select>
+                </Field>
+
+                <Field label="Irk">
+                  <input
+                    value={form.breed}
+                    onChange={(e) =>
+                      updateForm("breed", e.target.value)
+                    }
+                    placeholder="Örn. Tekir"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Yaş">
+                  <input
+                    value={form.age}
+                    onChange={(e) =>
+                      updateForm("age", e.target.value)
+                    }
+                    placeholder="Örn. 2 yaş"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Cinsiyet">
+                  <select
+                    value={form.gender}
+                    onChange={(e) =>
+                      updateForm(
+                        "gender",
+                        e.target.value as Gender,
+                      )
+                    }
+                    className={inputClass}
+                  >
+                    <option value="unknown">
+                      Bilinmiyor
+                    </option>
+                    <option value="female">
+                      Dişi
+                    </option>
+                    <option value="male">
+                      Erkek
+                    </option>
+                  </select>
+                </Field>
+
+                <Field label="Renk">
+                  <input
+                    value={form.color}
+                    onChange={(e) =>
+                      updateForm("color", e.target.value)
+                    }
+                    placeholder="Örn. Beyaz - turuncu"
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+            </FormCard>
+
+            <FormCard
+              icon={<ShieldCheck size={21} />}
+              title="Sağlık durumu"
+              description="Yeni sahibinin bilmesi gereken sağlık bilgilerini paylaş."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CheckBox
+                  checked={form.vaccinated}
+                  onChange={(value) =>
+                    updateForm("vaccinated", value)
+                  }
+                  title="Aşıları yapıldı"
+                  description="Temel aşıları güncel."
+                />
+
+                <CheckBox
+                  checked={form.neutered}
+                  onChange={(value) =>
+                    updateForm("neutered", value)
+                  }
+                  title="Kısırlaştırıldı"
+                  description="Kısırlaştırma işlemi yapıldı."
+                />
+              </div>
+
+              <Field label="Ek sağlık bilgileri">
+                <textarea
+                  value={form.healthInfo}
+                  onChange={(e) =>
+                    updateForm(
+                      "healthInfo",
+                      e.target.value,
+                    )
+                  }
+                  placeholder="Varsa kronik hastalık, ilaç kullanımı veya özel bakım ihtiyacını belirt."
+                  rows={4}
+                  className={inputClass}
+                />
+              </Field>
+            </FormCard>
+
+            <FormCard
+              icon={<MapPin size={21} />}
+              title="Konum"
+              description="Dostunun bulunduğu veya teslim edilebileceği bölgeyi belirt."
+            >
+              <div className="mb-5">
+                <button
+                  type="button"
+                  onClick={handleUseLocation}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-2.5 text-sm font-bold text-[#EA580C] transition hover:bg-[#FFEDD5]"
+                >
+                  <MapPin size={17} />
+                  Mevcut konumumu kullan
+                </button>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Şehir" required>
+                  <input
+                    value={form.city}
+                    onChange={(e) =>
+                      updateForm("city", e.target.value)
+                    }
+                    placeholder="Bursa"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="İlçe">
+                  <input
+                    value={form.district}
+                    onChange={(e) =>
+                      updateForm(
+                        "district",
+                        e.target.value,
+                      )
+                    }
+                    placeholder="Nilüfer"
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+            </FormCard>
+
+            <FormCard
+              icon={<Heart size={21} />}
+              title="İlan detayları"
+              description="Yeni yuva adaylarının görmesini istediğin bilgileri paylaş."
+            >
+              <Field label="İlan başlığı" required>
+                <input
+                  value={form.title}
+                  onChange={(e) =>
+                    updateForm("title", e.target.value)
+                  }
+                  placeholder="Örn. Pamuk için sevgi dolu bir yuva arıyoruz"
+                  className={inputClass}
+                />
+              </Field>
+
+              <Field label="Açıklama" required>
+                <textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    updateForm(
+                      "description",
+                      e.target.value,
+                    )
+                  }
+                  placeholder="Karakteri, alışkanlıkları, insanlarla ve diğer hayvanlarla ilişkisi hakkında bilgi ver."
+                  rows={6}
+                  className={inputClass}
+                />
+              </Field>
+
+              <Field label="Sahiplendirme koşulları">
+                <textarea
+                  value={form.adoptionConditions}
+                  onChange={(e) =>
+                    updateForm(
+                      "adoptionConditions",
+                      e.target.value,
+                    )
+                  }
+                  placeholder="Varsa sahiplendirme için önem verdiğin şartları belirt."
+                  rows={4}
+                  className={inputClass}
+                />
+              </Field>
+            </FormCard>
+
+            {errorMessage && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C]"
+              >
+                {errorMessage}
+              </div>
+            )}
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+              <input
+                type="checkbox"
+                checked={form.acceptResponsibility}
+                onChange={(e) =>
+                  updateForm(
+                    "acceptResponsibility",
+                    e.target.checked,
+                  )
+                }
+                className="mt-1 h-4 w-4 accent-[#F97316]"
+              />
+
+              <div>
+                <strong className="text-sm text-[#0F172A]">
+                  Bilgilerin doğruluğunu onaylıyorum.
+                </strong>
+
+                <p className="mt-1 text-sm leading-6 text-[#64748B]">
+                  İlanda verdiğim bilgilerin doğru olduğunu
+                  ve sahiplendirme sürecinde hayvanın
+                  güvenliğini önceliklendireceğimi kabul
+                  ediyorum.
+                </p>
+              </div>
+            </label>
+
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F97316] px-6 py-4 font-bold text-white shadow-lg shadow-orange-500/20 transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:bg-[#CBD5E1]"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  İlan hazırlanıyor...
+                </>
+              ) : (
+                <>
+                  <Heart size={20} />
+                  Sahiplendirme ilanını yayınla
+                </>
+              )}
+            </button>
+          </div>
+
+          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#F97316]">
+                <Info size={22} />
+              </div>
+
+              <h2 className="mt-5 text-lg font-bold">
+                İyi bir ilan için
+              </h2>
+
+              <div className="mt-5 space-y-4">
+                <Tip>
+                  Güncel ve net fotoğraflar kullan.
+                </Tip>
+
+                <Tip>
+                  Karakter özelliklerini açıkça belirt.
+                </Tip>
+
+                <Tip>
+                  Sağlık durumunu eksiksiz paylaş.
+                </Tip>
+
+                <Tip>
+                  Teslim edilebilecek konumu doğru gir.
+                </Tip>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[#BBF7D0] bg-[#F0FDF4] p-6">
+              <ShieldCheck
+                size={25}
+                className="text-[#16A34A]"
+              />
+
+              <h3 className="mt-4 font-bold text-[#166534]">
+                Güvenli sahiplendirme
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#15803D]">
+                Sahiplenecek kişiyle görüşmeden ve uygun
+                koşulları doğrulamadan hayvanı teslim etme.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+const inputClass =
+  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]/40";
+
+type FormCardProps = {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+};
+
+function FormCard({
+  icon,
+  title,
+  description,
+  children,
+}: FormCardProps) {
+  return (
+    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7">
+      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+          {icon}
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold">
+            {title}
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-[#64748B]">
+            {description}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-5">{children}</div>
+    </section>
+  );
+}
+
+type FieldProps = {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+};
+
+function Field({
+  label,
+  required,
+  children,
+}: FieldProps) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-[#334155]">
+        {label}
+
+        {required && (
+          <span className="ml-1 text-[#F97316]">
+            *
+          </span>
+        )}
+      </span>
+
+      {children}
+    </label>
+  );
+}
+
+type CheckBoxProps = {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  description: string;
+};
+
+function CheckBox({
+  checked,
+  onChange,
+  title,
+  description,
+}: CheckBoxProps) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition hover:border-[#FDBA74]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) =>
+          onChange(event.target.checked)
+        }
+        className="mt-1 h-4 w-4 accent-[#F97316]"
+      />
+
+      <div>
+        <strong className="text-sm">
+          {title}
+        </strong>
+
+        <p className="mt-1 text-xs leading-5 text-[#64748B]">
+          {description}
+        </p>
+      </div>
+    </label>
+  );
+}
+
+function Tip({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 text-sm text-[#475569]">
+      <CheckCircle2
+        size={18}
+        className="mt-0.5 shrink-0 text-[#22C55E]"
+      />
+
+      <span>{children}</span>
+    </div>
+  );
+}
