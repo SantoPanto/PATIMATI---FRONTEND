@@ -20,8 +20,25 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import {
+  API_BASE_URL,
+  getStoredToken,
+} from "../services/auth";
 
 type Gender = "female" | "male" | "unknown";
+
+/* Backend enum'u: UNKNOWN | BABY | YOUNG | ADULT */
+type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT";
+
+/*
+ * Sayfa cinsiyeti kucuk harfle tutuyor, backend PetGender enum'u BUYUK
+ * harf bekliyor. Esleme tek yerde dursun diye burada.
+ */
+const CINSIYET_KARSILIGI: Record<Gender, string> = {
+  unknown: "UNKNOWN",
+  female: "FEMALE",
+  male: "MALE",
+};
 
 type SelectedImage = {
   id: string;
@@ -52,10 +69,22 @@ export default function AdoptionCreatePage() {
     species: "",
     breed: "",
     gender: "unknown" as Gender,
-    age: "",
+    /*
+     * Backend yasi SERBEST METIN degil AgeGroup enum'u olarak tutuyor
+     * (UNKNOWN | BABY | YOUNG | ADULT) ve @NotNull. Alan bu yuzden
+     * metin kutusundan acilir listeye cevrildi.
+     */
+    ageGroup: "UNKNOWN" as AgeGroup,
     color: "",
     city: "",
     district: "",
+    /*
+     * AdoptionAdCreateRequest latitude/longitude'u @NotNull istiyor.
+     * Konum zaten aliniyordu ama yalniz sehir/ilce metnine cevrilip
+     * atiliyordu; artik saklaniyor.
+     */
+    latitude: "",
+    longitude: "",
     title: "",
     description: "",
     vaccinated: false,
@@ -199,6 +228,20 @@ export default function AdoptionCreatePage() {
 
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
+        /*
+         * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
+         * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
+         */
+        updateForm(
+          "latitude",
+          String(coords.latitude),
+        );
+
+        updateForm(
+          "longitude",
+          String(coords.longitude),
+        );
+
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&accept-language=tr`,
@@ -247,8 +290,21 @@ export default function AdoptionCreatePage() {
       return "Hayvan türünü seçin.";
     }
 
+    /* Backend AdoptionAdCreateRequest'te breed @NotBlank */
+    if (!form.breed.trim()) {
+      return "Irk/cins bilgisini girin.";
+    }
+
     if (!form.city.trim()) {
       return "Şehir bilgisini girin.";
+    }
+
+    /*
+     * Backend konumu zorunlu tutuyor ve eslestirme mesafeye bakiyor.
+     * Sehir/ilce metni koordinat yerine gecmez.
+     */
+    if (!form.latitude || !form.longitude) {
+      return '"Mevcut konumumu kullan" ile ilanın konumunu ekleyin.';
     }
 
     if (!form.title.trim()) {
@@ -278,72 +334,132 @@ export default function AdoptionCreatePage() {
 
     setIsSubmitting(true);
 
+    /*
+     * AdoptionAdCreateRequest'te karsiligi OLMAYAN alanlar:
+     * name / city / district / vaccinated / neutered / healthInfo /
+     * adoptionConditions. Bunlari gondermek yerine metin alanlarina
+     * katiyoruz ki kullanicinin girdigi bilgi kaybolmasin.
+     */
+    const saglikSatiri = [
+      form.vaccinated ? "Aşıları tam" : "",
+      form.neutered ? "Kısırlaştırılmış" : "",
+      form.healthInfo.trim(),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    const aciklama = [
+      form.description.trim(),
+      form.name.trim() ? `Adı: ${form.name.trim()}` : "",
+      [form.city.trim(), form.district.trim()]
+        .filter(Boolean)
+        .join(" / ")
+        ? `Konum: ${[form.city.trim(), form.district.trim()]
+            .filter(Boolean)
+            .join(" / ")}`
+        : "",
+      saglikSatiri ? `Sağlık: ${saglikSatiri}` : "",
+      form.adoptionConditions.trim()
+        ? `Sahiplendirme şartları: ${form.adoptionConditions.trim()}`
+        : "",
+      form.color.trim() ? `Renk: ${form.color.trim()}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const ad = {
+      title: form.title.trim().slice(0, 150),
+      description: aciklama,
+      species: form.species,
+      breed: form.breed.trim(),
+      gender: CINSIYET_KARSILIGI[form.gender],
+      ageGroup: form.ageGroup,
+      /*
+       * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
+       * metin var. Enum'a cevrilemedigi icin renk aciklamada kaliyor.
+       */
+      colors: [],
+      /*
+       * coatPattern ve eyeColor DTO'da istege bagli gorunuyor ama
+       * ads tablosunda NOT NULL ve AdoptionServiceImpl bunlari null
+       * kontrolu yapmadan geciriyor (createAdoptionAd). Gonderilmezse
+       * backend 500 donuyor -- olculdu:
+       *   gonderilmeyince -> 500 "null value in column coat_pattern"
+       *   UNKNOWN verilince -> 201
+       * Backend duzelene kadar acikca UNKNOWN gonderiliyor.
+       */
+      coatPattern: "UNKNOWN",
+      eyeColor: "UNKNOWN",
+      latitude: Number(form.latitude),
+      longitude: Number(form.longitude),
+    };
+
+    /*
+     * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor
+     * (images required=true). Kalip AddListingPage'den.
+     */
     const formData = new FormData();
+
+    formData.append(
+      "ad",
+      new Blob([JSON.stringify(ad)], {
+        type: "application/json",
+      }),
+    );
 
     images.forEach((image) => {
       formData.append("images", image.file);
     });
 
-    formData.append("name", form.name);
-    formData.append("species", form.species);
-    formData.append("breed", form.breed);
-    formData.append("gender", form.gender);
-    formData.append("age", form.age);
-    formData.append("color", form.color);
-    formData.append("city", form.city);
-    formData.append("district", form.district);
-    formData.append("title", form.title);
-    formData.append(
-      "description",
-      form.description,
-    );
-    formData.append(
-      "vaccinated",
-      String(form.vaccinated),
-    );
-    formData.append(
-      "neutered",
-      String(form.neutered),
-    );
-    formData.append(
-      "healthInfo",
-      form.healthInfo,
-    );
-    formData.append(
-      "adoptionConditions",
-      form.adoptionConditions,
-    );
-
     try {
-      /*
-        BACKEND ENDPOINT HAZIR OLUNCA:
+      const token = getStoredToken();
 
-        const response = await fetch(
-          "http://localhost:8080/api/adoptions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: formData,
-          },
+      if (!token) {
+        throw new Error(
+          "İlan açmak için giriş yapmalısınız.",
         );
+      }
 
-        if (!response.ok) {
-          throw new Error(
-            "Sahiplendirme ilanı oluşturulamadı.",
-          );
-        }
+      const response = await fetch(
+        `${API_BASE_URL}/api/adoptions`,
+        {
+          method: "POST",
+          body: formData,
 
-        const result = await response.json();
-
-        navigate(`/adoption/${result.id}`);
-      */
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1000),
+          /*
+           * Content-Type BILEREK verilmiyor: multipart sinir (boundary)
+           * degerini tarayici uretmeli.
+           */
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
+      const govde = await response.text();
+
+      let sonuc: { id?: number; message?: string; error?: string } | null =
+        null;
+
+      try {
+        sonuc = govde ? JSON.parse(govde) : null;
+      } catch {
+        sonuc = null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          sonuc?.message ||
+            sonuc?.error ||
+            `Sahiplendirme ilanı oluşturulamadı (${response.status}).`,
+        );
+      }
+
+      /*
+       * /adoption/:id su an sahte veriyle calisan bir sayfa; oraya
+       * yonlendirmek kullaniciyi baskasinin ilanina goturur.
+       * Sahiplendirme listesine donuluyor.
+       */
       navigate("/adoption");
     } catch (error) {
       setErrorMessage(
@@ -507,17 +623,19 @@ export default function AdoptionCreatePage() {
                     }
                     className={inputClass}
                   >
+                    {/*
+                      Yalniz CAT ve DOG: backend Species enum'unda
+                      BIRD/OTHER YOK ve AdoptionAdCreateRequest bunu
+                      ayrica dogruluyor (@AssertTrue "Tür kedi (CAT)
+                      veya köpek (DOG) olmalıdır").
+                    */}
                     <option value="">Tür seçin</option>
                     <option value="CAT">Kedi</option>
                     <option value="DOG">Köpek</option>
-                    <option value="BIRD">Kuş</option>
-                    <option value="OTHER">
-                      Diğer
-                    </option>
                   </select>
                 </Field>
 
-                <Field label="Irk">
+                <Field label="Irk" required>
                   <input
                     value={form.breed}
                     onChange={(e) =>
@@ -528,15 +646,37 @@ export default function AdoptionCreatePage() {
                   />
                 </Field>
 
-                <Field label="Yaş">
-                  <input
-                    value={form.age}
+                {/*
+                  Serbest metin ("2 yaş") yerine acilir liste: backend
+                  yasi AgeGroup enum'u olarak tutuyor.
+                */}
+                <Field label="Yaş grubu">
+                  <select
+                    value={form.ageGroup}
                     onChange={(e) =>
-                      updateForm("age", e.target.value)
+                      updateForm(
+                        "ageGroup",
+                        e.target.value as AgeGroup,
+                      )
                     }
-                    placeholder="Örn. 2 yaş"
                     className={inputClass}
-                  />
+                  >
+                    <option value="UNKNOWN">
+                      Bilinmiyor
+                    </option>
+
+                    <option value="BABY">
+                      Yavru
+                    </option>
+
+                    <option value="YOUNG">
+                      Genç
+                    </option>
+
+                    <option value="ADULT">
+                      Yetişkin
+                    </option>
+                  </select>
                 </Field>
 
                 <Field label="Cinsiyet">
