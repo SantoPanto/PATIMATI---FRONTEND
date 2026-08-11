@@ -1,23 +1,34 @@
 import {
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
+import { useLocation } from "wouter";
+import {
+  ArrowLeft,
   Camera,
   CheckCircle2,
+  ChevronRight,
+  Info,
   Loader2,
   MapPin,
   PawPrint,
+  Search,
   Send,
   ShieldCheck,
   Sparkles,
+  Upload,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { API_BASE_URL } from "../services/api";
 
-const AI_BASE_URL =
-  import.meta.env.VITE_AI_BASE_URL || "http://localhost:8000";
-
-const MAX_PHOTOS = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
 type AdType = "LOST" | "FOUND" | "ADOPTION";
 type Species = "CAT" | "DOG";
@@ -64,51 +75,43 @@ type EyeColor =
   | "HETEROCHROMIA"
   | "OTHER";
 
-/*
- * This is exactly the JSON structure expected by
- * Spring Boot AdCreateRequest.
- *
- * AI-specific fields are intentionally NOT included here.
- */
-interface AdCreateRequest {
-  title: string;
-  description: string;
-  adType: AdType;
-  species: Species;
-  breed: string;
-  colors: PetColor[];
-  gender: PetGender;
-  ageGroup: AgeGroup;
-  coatPattern: CoatPattern;
-  collarStatus: PresenceStatus;
-  collarColor: PetColor | null;
-  collarTagText: string;
-  eyeColor: EyeColor;
-  earTagStatus: PresenceStatus;
-  earNotchStatus: PresenceStatus;
-  microchipNumber: string;
-  lostDate: string | null;
-  distinctiveMarks: string;
-  latitude: number;
-  longitude: number;
-}
+type SelectedImage = {
+  id: string;
+  file: File;
+  preview: string;
+};
 
-/*
- * This matches the actual FastAPI /analyze response
- * from app/main.py.
- */
-interface AIAnalysis {
-  embedding: number[];
-  labels: string[];
-  species: string;
-  species_confidence: number;
-  is_pet: boolean;
-  breed: string | null;
-  breed_confidence: number;
-  pattern: string | null;
-  colors: string[];
-  model_version: string;
-}
+type AiAnalysis = {
+  embedding?: number[];
+  labels?: string[];
+  species?: string;
+  species_confidence?: number;
+  is_pet?: boolean;
+  breed?: string | null;
+  breed_confidence?: number;
+  pattern?: string | null;
+  colors?: string[];
+  model_version?: string;
+};
+
+type AdResponse = {
+  id: number;
+  title?: string;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+
+const MAX_IMAGES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const SUPPORTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
 
 const COLOR_LABELS: Record<PetColor, string> = {
   BLACK: "Siyah",
@@ -122,126 +125,59 @@ const COLOR_LABELS: Record<PetColor, string> = {
   OTHER: "Diğer",
 };
 
-const normalizeValue = (
-  value: string | null | undefined
-): string => {
-  return (value || "")
-    .trim()
-    .toUpperCase()
-    .replace(/İ/g, "I")
-    .replace(/Ğ/g, "G")
-    .replace(/Ü/g, "U")
-    .replace(/Ş/g, "S")
-    .replace(/Ö/g, "O")
-    .replace(/Ç/g, "C")
-    .replace(/[\s-]+/g, "_");
+const SPECIES_LABELS: Record<Species, string> = {
+  CAT: "Kedi",
+  DOG: "Köpek",
 };
 
-function convertAISpecies(
-  value: string
-): Species | null {
-  const normalized = normalizeValue(value);
+const AI_COLOR_MAP: Record<string, PetColor> = {
+  black: "BLACK",
+  white: "WHITE",
+  gray: "GRAY",
+  grey: "GRAY",
+  brown: "BROWN",
+  orange: "ORANGE",
+  cream: "CREAM",
+  golden: "GOLDEN",
+  beige: "BEIGE",
+};
 
-  if (
-    normalized === "CAT" ||
-    normalized === "KEDI"
-  ) {
-    return "CAT";
-  }
+const AI_PATTERN_MAP: Record<string, CoatPattern> = {
+  solid: "SOLID",
+  striped: "STRIPED",
+  spotted: "SPOTTED",
+  patched: "PATCHED",
+  calico: "CALICO",
+  tortoiseshell: "TORTOISESHELL",
+};
 
-  if (
-    normalized === "DOG" ||
-    normalized === "KOPEK"
-  ) {
-    return "DOG";
-  }
-
-  return null;
-}
-
-function convertAIColor(
-  value: string
-): PetColor | null {
-  const normalized = normalizeValue(value);
-
-  const aliases: Record<string, PetColor> = {
-    BLACK: "BLACK",
-    SIYAH: "BLACK",
-
-    WHITE: "WHITE",
-    BEYAZ: "WHITE",
-
-    GRAY: "GRAY",
-    GREY: "GRAY",
-    GRI: "GRAY",
-
-    BROWN: "BROWN",
-    KAHVERENGI: "BROWN",
-
-    ORANGE: "ORANGE",
-    TURUNCU: "ORANGE",
-
-    CREAM: "CREAM",
-    KREM: "CREAM",
-
-    GOLDEN: "GOLDEN",
-    ALTIN: "GOLDEN",
-
-    BEIGE: "BEIGE",
-    BEJ: "BEIGE",
-
-    OTHER: "OTHER",
-    DIGER: "OTHER",
-  };
-
-  return aliases[normalized] ?? null;
-}
-
-function convertAIPattern(
-  value: string | null
-): CoatPattern {
-  const normalized = normalizeValue(value);
-
-  const aliases: Record<string, CoatPattern> = {
-    SOLID: "SOLID",
-
-    STRIPED: "STRIPED",
-    TABBY: "STRIPED",
-    CIZGILI: "STRIPED",
-
-    SPOTTED: "SPOTTED",
-    SPOTLU: "SPOTTED",
-
-    PATCHED: "PATCHED",
-
-    CALICO: "CALICO",
-
-    TORTOISESHELL: "TORTOISESHELL",
-    TORTOISE_SHELL: "TORTOISESHELL",
-
-    OTHER: "OTHER",
-  };
-
-  return aliases[normalized] ?? "UNKNOWN";
-}
+/* -------------------------------------------------------------------------- */
+/* Component                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export default function AddListingPage() {
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [, navigate] = useLocation();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /* ------------------------------ Images -------------------------------- */
+
+  const [images, setImages] = useState<SelectedImage[]>([]);
+
+  /* ------------------------------ Listing ------------------------------- */
+
+  const [adType, setAdType] = useState<AdType>("LOST");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const [adType, setAdType] =
-    useState<AdType>("ADOPTION");
+  /* ------------------------------ Animal -------------------------------- */
 
-  const [species, setSpecies] =
-    useState<Species>("CAT");
+  const [species, setSpecies] = useState<Species>("CAT");
 
   const [breed, setBreed] = useState("");
 
-  const [colors, setColors] =
-    useState<PetColor[]>([]);
+  const [colors, setColors] = useState<PetColor[]>([]);
 
   const [gender, setGender] =
     useState<PetGender>("UNKNOWN");
@@ -252,6 +188,11 @@ export default function AddListingPage() {
   const [coatPattern, setCoatPattern] =
     useState<CoatPattern>("UNKNOWN");
 
+  const [eyeColor, setEyeColor] =
+    useState<EyeColor>("UNKNOWN");
+
+  /* ------------------------------ Collar -------------------------------- */
+
   const [collarStatus, setCollarStatus] =
     useState<PresenceStatus>("UNKNOWN");
 
@@ -261,8 +202,7 @@ export default function AddListingPage() {
   const [collarTagText, setCollarTagText] =
     useState("");
 
-  const [eyeColor, setEyeColor] =
-    useState<EyeColor>("UNKNOWN");
+  /* ------------------------------ Ear / chip ---------------------------- */
 
   const [earTagStatus, setEarTagStatus] =
     useState<PresenceStatus>("UNKNOWN");
@@ -273,502 +213,433 @@ export default function AddListingPage() {
   const [microchipNumber, setMicrochipNumber] =
     useState("");
 
-  const [lostDate, setLostDate] =
-    useState("");
+  /* ------------------------------ Lost info ----------------------------- */
+
+  const [lostDate, setLostDate] = useState("");
 
   const [distinctiveMarks, setDistinctiveMarks] =
     useState("");
 
-  const [latitude, setLatitude] =
+  /* ------------------------------ Location ------------------------------ */
+
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
+
+  /* ------------------------------ UI state ------------------------------ */
+
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
+
+  const [isAnalyzing, setIsAnalyzing] =
+    useState(false);
+
+  const [analysisMessage, setAnalysisMessage] =
     useState("");
 
-  const [longitude, setLongitude] =
+  const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [aiAnalysis, setAiAnalysis] =
-    useState<AIAnalysis | null>(null);
+  /* ---------------------------------------------------------------------- */
+  /* Helpers                                                                */
+  /* ---------------------------------------------------------------------- */
 
-  const [analyzing, setAnalyzing] =
-    useState(false);
+  const createImageId = (file: File) => {
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
+      return crypto.randomUUID();
+    }
 
-  const [submitting, setSubmitting] =
-    useState(false);
-
-  const [error, setError] = useState("");
-
-  const [success, setSuccess] =
-    useState(false);
-
-  const fileInputRef =
-    useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    return () => {
-      previews.forEach((url) =>
-        URL.revokeObjectURL(url)
-      );
-    };
-  }, [previews]);
-
-  const resetMessages = () => {
-    setError("");
-    setSuccess(false);
+    return `${file.name}-${file.size}-${file.lastModified}-${Date.now()}`;
   };
 
-  const handlePhotoSelection = (
-    event: React.ChangeEvent<HTMLInputElement>
+  const openFilePicker = () => {
+    setErrorMessage("");
+
+    if (images.length >= MAX_IMAGES) {
+      setErrorMessage(
+        `En fazla ${MAX_IMAGES} fotoğraf yükleyebilirsiniz.`,
+      );
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleImages = (
+    event: ChangeEvent<HTMLInputElement>,
   ) => {
-    resetMessages();
-
-    const selected =
-      Array.from(event.target.files ?? []);
-
-    if (!selected.length) {
-      return;
-    }
-
-    const invalidType = selected.find(
-      (file) =>
-        !file.type.startsWith("image/")
+    const files = Array.from(
+      event.target.files ?? [],
     );
-
-    if (invalidType) {
-      setError(
-        "Sadece görüntü dosyaları yükleyebilirsiniz."
-      );
-      event.target.value = "";
-      return;
-    }
-
-    const tooLarge = selected.find(
-      (file) =>
-        file.size > MAX_FILE_SIZE
-    );
-
-    if (tooLarge) {
-      setError(
-        `"${tooLarge.name}" 10 MB'dan büyük.`
-      );
-      event.target.value = "";
-      return;
-    }
-
-    const remaining =
-      MAX_PHOTOS - photos.length;
-
-    if (remaining <= 0) {
-      setError(
-        `En fazla ${MAX_PHOTOS} fotoğraf yükleyebilirsiniz.`
-      );
-      event.target.value = "";
-      return;
-    }
-
-    const filesToAdd =
-      selected.slice(0, remaining);
-
-    const newPhotos = [
-      ...photos,
-      ...filesToAdd,
-    ];
-
-    const newPreviews =
-      newPhotos.map((file) =>
-        URL.createObjectURL(file)
-      );
-
-    previews.forEach((url) =>
-      URL.revokeObjectURL(url)
-    );
-
-    setPhotos(newPhotos);
-    setPreviews(newPreviews);
-
-    /*
-     * Changing the first image means the previous
-     * AI result may no longer describe the image.
-     */
-    setAiAnalysis(null);
-
-    if (
-      selected.length > remaining
-    ) {
-      setError(
-        `En fazla ${MAX_PHOTOS} fotoğraf yükleyebilirsiniz.`
-      );
-    }
 
     event.target.value = "";
-  };
 
-  const removePhoto = (index: number) => {
-    resetMessages();
-
-    const nextPhotos =
-      photos.filter(
-        (_, photoIndex) =>
-          photoIndex !== index
-      );
-
-    const nextPreviews =
-      nextPhotos.map((file) =>
-        URL.createObjectURL(file)
-      );
-
-    previews.forEach((url) =>
-      URL.revokeObjectURL(url)
-    );
-
-    setPhotos(nextPhotos);
-    setPreviews(nextPreviews);
-
-    /*
-     * If the first image was removed, the AI result
-     * is no longer guaranteed to describe the new
-     * first image.
-     */
-    if (index === 0) {
-      setAiAnalysis(null);
-    }
-  };
-    const analyzePhotoWithAI = async () => {
-    resetMessages();
-
-    if (!photos.length) {
-      setError(
-        "Önce en az bir fotoğraf yükleyin."
-      );
+    if (files.length === 0) {
       return;
     }
 
-    setAnalyzing(true);
+    setErrorMessage("");
 
-    try {
-      /*
-       * FastAPI /analyze currently accepts exactly
-       * one UploadFile named "file".
-       *
-       * Therefore we analyze the first selected
-       * image. All selected images will still be
-       * sent to Spring Boot when the listing is
-       * published.
-       */
-      const formData = new FormData();
+    const availableSlots =
+      MAX_IMAGES - images.length;
 
-      formData.append(
-        "file",
-        photos[0]
-      );
+    const validFiles: File[] = [];
 
-      const response = await fetch(
-        `${AI_BASE_URL}/analyze`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const data =
-        await response.json().catch(
-          () => null
+    for (const file of files) {
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        setErrorMessage(
+          "Yalnızca JPG, PNG veya WEBP formatında fotoğraf yükleyebilirsiniz.",
         );
-
-      if (!response.ok) {
-        throw new Error(
-          data?.detail ||
-            data?.message ||
-            "Fotoğraf AI tarafından analiz edilemedi."
-        );
+        continue;
       }
 
-      const result =
-        data as AIAnalysis;
-
-      setAiAnalysis(result);
-
-      /*
-       * The backend AdCreateRequest only accepts
-       * CAT or DOG. UNKNOWN must never be submitted.
-       */
-      const detectedSpecies =
-        convertAISpecies(
-          result.species
+      if (file.size > MAX_FILE_SIZE) {
+        setErrorMessage(
+          `${file.name} 10 MB'dan büyük. Her fotoğraf en fazla 10 MB olabilir.`,
         );
-
-      if (!result.is_pet) {
-        setError(
-          "AI bu fotoğrafta kedi veya köpek tespit edemedi. Lütfen hayvanın net göründüğü bir fotoğraf yükleyin."
-        );
+        continue;
       }
 
-      if (detectedSpecies) {
-        setSpecies(
-          detectedSpecies
+      const alreadyExists = images.some(
+        (image) =>
+          image.file.name === file.name &&
+          image.file.size === file.size &&
+          image.file.lastModified ===
+            file.lastModified,
+      );
+
+      if (alreadyExists) {
+        setErrorMessage(
+          `${file.name} zaten yüklenmiş.`,
         );
+        continue;
       }
 
-      /*
-       * AI breed is only a suggestion.
-       * The user can change it afterwards.
-       */
-      if (result.breed) {
-        setBreed(
-          result.breed
-        );
-      }
-
-      /*
-       * AI colors → backend PetColor enum.
-       * Unknown AI color values are simply ignored
-       * instead of sending invalid enum values.
-       */
-      const detectedColors =
-        Array.from(
-          new Set(
-            (result.colors || [])
-              .map(convertAIColor)
-              .filter(
-                (
-                  color
-                ): color is PetColor =>
-                  color !== null
-              )
-          )
-        );
-
-      setColors(
-        detectedColors
-      );
-
-      /*
-       * AI pattern → CoatPattern enum.
-       */
-      setCoatPattern(
-        convertAIPattern(
-          result.pattern
-        )
-      );
-
-      /*
-       * If the user hasn't entered a title yet,
-       * create a useful initial title.
-       */
-      if (!title.trim()) {
-        if (result.breed) {
-          setTitle(
-            `${result.breed} İlanı`
-          );
-        } else if (
-          detectedSpecies === "CAT"
-        ) {
-          setTitle(
-            "Kedi İlanı"
-          );
-        } else if (
-          detectedSpecies === "DOG"
-        ) {
-          setTitle(
-            "Köpek İlanı"
-          );
-        }
-      }
-    } catch (analysisError) {
-      console.error(
-        "AI analysis failed:",
-        analysisError
-      );
-
-      setAiAnalysis(null);
-
-      setError(
-        analysisError instanceof Error
-          ? analysisError.message
-          : "AI analizi sırasında bir hata oluştu."
-      );
-    } finally {
-      setAnalyzing(false);
+      validFiles.push(file);
     }
+
+    const filesToAdd = validFiles.slice(
+      0,
+      availableSlots,
+    );
+
+    if (
+      validFiles.length > availableSlots
+    ) {
+      setErrorMessage(
+        `En fazla ${MAX_IMAGES} fotoğraf yükleyebilirsiniz.`,
+      );
+    }
+
+    const newImages = filesToAdd.map((file) => ({
+      id: createImageId(file),
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setImages((current) => [
+      ...current,
+      ...newImages,
+    ]);
   };
 
+  const removeImage = (imageId: string) => {
+    setImages((current) => {
+      const target = current.find(
+        (image) => image.id === imageId,
+      );
+
+      if (target) {
+        URL.revokeObjectURL(target.preview);
+      }
+
+      return current.filter(
+        (image) => image.id !== imageId,
+      );
+    });
+  };
+
+  const toggleColor = (color: PetColor) => {
+    setColors((current) => {
+      if (current.includes(color)) {
+        return current.filter(
+          (item) => item !== color,
+        );
+      }
+
+      if (current.length >= 9) {
+        setErrorMessage(
+          "En fazla 9 renk seçebilirsiniz.",
+        );
+        return current;
+      }
+
+      return [...current, color];
+    });
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Geolocation                                                            */
+  /* ---------------------------------------------------------------------- */
+
   const getLocation = () => {
-    resetMessages();
+    setErrorMessage("");
 
     if (!navigator.geolocation) {
-      setError(
-        "Tarayıcınız konum bilgisini desteklemiyor."
+      setErrorMessage(
+        "Tarayıcınız konum özelliğini desteklemiyor.",
       );
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      ({ coords }) => {
         setLatitude(
-          position.coords.latitude.toFixed(
-            6
-          )
+          coords.latitude.toFixed(6),
         );
 
         setLongitude(
-          position.coords.longitude.toFixed(
-            6
-          )
+          coords.longitude.toFixed(6),
         );
       },
-      (locationError) => {
-        console.error(
-          "Geolocation error:",
-          locationError
-        );
-
-        setError(
-          "Konum alınamadı. Tarayıcıdan konum izni vermeniz gerekiyor."
+      () => {
+        setErrorMessage(
+          "Konum alınamadı. Lütfen tarayıcınızdan konum iznini etkinleştirin.",
         );
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 60000,
-      }
+      },
     );
   };
 
-  const toggleColor = (
-    color: PetColor
+  /* ---------------------------------------------------------------------- */
+  /* AI analysis                                                            */
+  /* ---------------------------------------------------------------------- */
+
+  const analyzeImage = async (file: File) => {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await fetch(
+      "http://localhost:8000/analyze",
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    const data = await response
+      .json()
+      .catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(
+        data?.detail ||
+          data?.message ||
+          "AI fotoğraf analizi başarısız oldu.",
+      );
+    }
+
+    return data as AiAnalysis;
+  };
+
+  const applyAiAnalysis = (
+    analysis: AiAnalysis,
   ) => {
-    setColors(
-      (currentColors) => {
-        if (
-          currentColors.includes(
-            color
+    if (
+      analysis.species === "cat" ||
+      analysis.species === "CAT"
+    ) {
+      setSpecies("CAT");
+    } else if (
+      analysis.species === "dog" ||
+      analysis.species === "DOG"
+    ) {
+      setSpecies("DOG");
+    }
+
+    if (
+      analysis.breed &&
+      analysis.breed.trim()
+    ) {
+      setBreed(analysis.breed);
+    }
+
+    if (
+      analysis.pattern &&
+      AI_PATTERN_MAP[
+        analysis.pattern.toLowerCase()
+      ]
+    ) {
+      setCoatPattern(
+        AI_PATTERN_MAP[
+          analysis.pattern.toLowerCase()
+        ],
+      );
+    }
+
+    if (
+      Array.isArray(analysis.colors)
+    ) {
+      const detectedColors =
+        analysis.colors
+          .map(
+            (color) =>
+              AI_COLOR_MAP[
+                String(color).toLowerCase()
+              ],
           )
-        ) {
-          return currentColors.filter(
-            (item) =>
-              item !== color
+          .filter(
+            (
+              color,
+            ): color is PetColor =>
+              Boolean(color),
           );
-        }
 
-        return [
-          ...currentColors,
-          color,
-        ];
+      if (detectedColors.length > 0) {
+        setColors([
+          ...new Set(detectedColors),
+        ]);
       }
-    );
+    }
   };
 
-  const validateCoordinates =
-    () => {
-      const lat =
-        Number(latitude);
-
-      const lng =
-        Number(longitude);
-
-      if (
-        !latitude.trim() ||
-        !longitude.trim()
-      ) {
-        setError(
-          "Konum bilgisi zorunludur."
-        );
-        return null;
-      }
-
-      if (
-        !Number.isFinite(lat) ||
-        lat < -90 ||
-        lat > 90
-      ) {
-        setError(
-          "Geçerli bir enlem değeri giriniz."
-        );
-        return null;
-      }
-
-      if (
-        !Number.isFinite(lng) ||
-        lng < -180 ||
-        lng > 180
-      ) {
-        setError(
-          "Geçerli bir boylam değeri giriniz."
-        );
-        return null;
-      }
-
-      return {
-        latitude: lat,
-        longitude: lng,
-      };
-    };
-
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
-
-    resetMessages();
-
-    if (!photos.length) {
-      setError(
-        "İlan için en az bir fotoğraf gereklidir."
+  const runAiAnalysis = async () => {
+    if (images.length === 0) {
+      setErrorMessage(
+        "AI analizi için önce en az bir fotoğraf yükleyin.",
       );
       return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setAnalysisMessage(
+      "Fotoğraf AI tarafından analiz ediliyor...",
+    );
+
+    try {
+      const analysis =
+        await analyzeImage(
+          images[0].file,
+        );
+
+      applyAiAnalysis(analysis);
+
+      if (analysis.is_pet === false) {
+        setAnalysisMessage(
+          "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
+        );
+      } else {
+        setAnalysisMessage(
+          "AI analizi tamamlandı. Tespit edilen bilgiler forma aktarıldı.",
+        );
+      }
+    } catch (error) {
+      setAnalysisMessage("");
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "AI analizi sırasında hata oluştu.",
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+    /* ---------------------------------------------------------------------- */
+  /* Validation                                                             */
+  /* ---------------------------------------------------------------------- */
+
+  const validateForm = () => {
+    if (images.length === 0) {
+      return "En az bir fotoğraf yüklemelisiniz.";
     }
 
     if (!title.trim()) {
-      setError(
-        "Başlık alanı zorunludur."
-      );
-      return;
+      return "İlan başlığı zorunludur.";
     }
 
-    /*
-     * Spring Boot validates species as CAT/DOG.
-     */
+    if (!description.trim()) {
+      return "Açıklama zorunludur.";
+    }
+
+    if (!species) {
+      return "Hayvan türünü seçiniz.";
+    }
+
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+
+    if (!latitude.trim() || !longitude.trim()) {
+      return "Konum bilgisi zorunludur.";
+    }
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      return "Geçerli bir enlem değeri giriniz.";
+    }
+
     if (
-      species !== "CAT" &&
-      species !== "DOG"
+      !Number.isFinite(lng) ||
+      lng < -180 ||
+      lng > 180
     ) {
-      setError(
-        "Lütfen kedi veya köpek seçiniz."
-      );
+      return "Geçerli bir boylam değeri giriniz.";
+    }
+
+    if (adType === "LOST" && !lostDate) {
+      return "Kayıp ilanı için kayıp tarihi zorunludur.";
+    }
+
+    return null;
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Create listing                                                         */
+  /* ---------------------------------------------------------------------- */
+
+  const submitListing = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    setErrorMessage("");
+    setAnalysisMessage("");
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setErrorMessage(validationError);
       return;
     }
 
-    if (
-      adType === "LOST" &&
-      !lostDate
-    ) {
-      setError(
-        "Kayıp ilanı için kayıp tarihi gereklidir."
-      );
-      return;
-    }
-
-    const coordinates =
-      validateCoordinates();
-
-    if (!coordinates) {
-      return;
-    }
-
-    setSubmitting(true);
+    setIsSubmitting(true);
 
     try {
-      const ad: AdCreateRequest = {
-        title:
-          title.trim(),
+      /*
+       * This object follows AdCreateRequest from Spring Boot.
+       *
+       * IMPORTANT:
+       * AI fields such as embedding, labels, model_version,
+       * ai_species, etc. are NOT sent here because Spring's
+       * AdCreateRequest does not accept them.
+       */
+      const ad = {
+        title: title.trim(),
 
-        description:
-          description.trim(),
+        description: description.trim(),
 
         adType,
 
         species,
 
-        breed:
-          breed.trim(),
+        breed: breed.trim(),
 
         colors,
 
@@ -804,142 +675,132 @@ export default function AddListingPage() {
         distinctiveMarks:
           distinctiveMarks.trim(),
 
-        latitude:
-          coordinates.latitude,
+        latitude: Number(latitude),
 
-        longitude:
-          coordinates.longitude,
+        longitude: Number(longitude),
       };
 
       /*
-       * IMPORTANT:
-       *
        * Spring Boot expects:
        *
-       * @RequestPart("ad")
-       * @RequestPart("images")
+       * @RequestPart("ad") AdCreateRequest
+       * @RequestPart("images") List<MultipartFile>
        *
-       * Therefore "ad" must be a JSON Blob and
-       * every image must use the "images" field.
+       * Therefore the JSON must be sent as a Blob.
        */
-      const formData =
-        new FormData();
+      const formData = new FormData();
 
       formData.append(
         "ad",
         new Blob(
-          [
-            JSON.stringify(
-              ad
-            ),
-          ],
+          [JSON.stringify(ad)],
           {
-            type:
-              "application/json",
-          }
-        )
+            type: "application/json",
+          },
+        ),
       );
 
-      photos.forEach(
-        (photo) => {
-          formData.append(
-            "images",
-            photo
-          );
-        }
-      );
-
-      const response =
-        await fetch(
-          `${API_BASE_URL}/api/ads`,
-          {
-            method: "POST",
-            body: formData,
-            credentials:
-              "include",
-          }
+      images.forEach((image) => {
+        formData.append(
+          "images",
+          image.file,
         );
+      });
 
-      const responseData =
-        await response
-          .json()
-          .catch(
-            () => null
-          );
+      const response = await fetch(
+        `${API_BASE_URL}/api/ads`,
+        {
+          method: "POST",
+          body: formData,
+
+          /*
+           * Keep cookies/session information if the
+           * Spring Security configuration uses cookies.
+           */
+          credentials: "include",
+        },
+      );
+
+      const responseText =
+        await response.text();
+
+      let responseData: AdResponse | null =
+        null;
+
+      try {
+        responseData =
+          responseText
+            ? JSON.parse(responseText)
+            : null;
+      } catch {
+        responseData = null;
+      }
 
       if (!response.ok) {
-        const backendMessage =
-          responseData?.message ||
-          responseData?.error ||
-          responseData?.detail;
+        const backendError =
+          responseData &&
+          typeof responseData === "object"
+            ? (
+                responseData as AdResponse & {
+                  message?: string;
+                  error?: string;
+                }
+              ).message ||
+              (
+                responseData as AdResponse & {
+                  message?: string;
+                  error?: string;
+                }
+              ).error
+            : null;
 
         throw new Error(
-          backendMessage ||
-            "İlan oluşturulamadı."
+          backendError ||
+            responseText ||
+            `İlan oluşturulamadı. HTTP ${response.status}`,
         );
       }
 
-      /*
-       * Backend returns 201 Created with AdResponse.
-       */
       console.log(
-        "Created listing:",
-        responseData
+        "PatiMati listing created:",
+        responseData,
       );
-
-      setSuccess(true);
 
       /*
-       * Reset the form after successful creation.
+       * Release preview object URLs.
        */
-      previews.forEach((url) =>
-        URL.revokeObjectURL(url)
-      );
+      images.forEach((image) => {
+        URL.revokeObjectURL(
+          image.preview,
+        );
+      });
 
-      setPhotos([]);
-      setPreviews([]);
+      /*
+       * Reset everything after successful
+       * Spring Boot response.
+       */
+      setImages([]);
 
       setTitle("");
       setDescription("");
 
-      setAdType(
-        "ADOPTION"
-      );
+      setAdType("LOST");
 
       setSpecies("CAT");
       setBreed("");
       setColors([]);
 
-      setGender(
-        "UNKNOWN"
-      );
+      setGender("UNKNOWN");
+      setAgeGroup("UNKNOWN");
+      setCoatPattern("UNKNOWN");
+      setEyeColor("UNKNOWN");
 
-      setAgeGroup(
-        "UNKNOWN"
-      );
-
-      setCoatPattern(
-        "UNKNOWN"
-      );
-
-      setCollarStatus(
-        "UNKNOWN"
-      );
-
+      setCollarStatus("UNKNOWN");
       setCollarColor(null);
       setCollarTagText("");
 
-      setEyeColor(
-        "UNKNOWN"
-      );
-
-      setEarTagStatus(
-        "UNKNOWN"
-      );
-
-      setEarNotchStatus(
-        "UNKNOWN"
-      );
+      setEarTagStatus("UNKNOWN");
+      setEarNotchStatus("UNKNOWN");
 
       setMicrochipNumber("");
       setLostDate("");
@@ -948,714 +809,783 @@ export default function AddListingPage() {
       setLatitude("");
       setLongitude("");
 
-      setAiAnalysis(null);
-
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
-      }
-    } catch (submissionError) {
-      console.error(
-        "Listing creation failed:",
-        submissionError
+      setAnalysisMessage(
+        "İlan başarıyla oluşturuldu.",
       );
 
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "İlan gönderilirken bir hata oluştu."
+      /*
+       * Give the user a moment to see the
+       * success message before returning.
+       */
+      window.setTimeout(() => {
+        navigate("/");
+      }, 1200);
+    } catch (error) {
+      console.error(
+        "Create listing error:",
+        error,
+      );
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "İlan oluşturulurken bir hata oluştu.",
       );
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  const canAnalyze =
-    photos.length > 0 &&
-    !analyzing &&
-    !submitting;
+  /* ---------------------------------------------------------------------- */
+  /* Render helpers                                                         */
+  /* ---------------------------------------------------------------------- */
 
-  const canSubmit =
-    photos.length > 0 &&
-    !submitting &&
-    !analyzing;
+  const today =
+    new Date()
+      .toISOString()
+      .split("T")[0];
+
+  const inputClass =
+    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10";
+
+  const labelClass =
+    "mb-2 block text-sm font-semibold text-gray-700";
+
+  const cardClass =
+    "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6";
+
+  const disabled =
+    isSubmitting || isAnalyzing;
+
+  /* ---------------------------------------------------------------------- */
+  /* JSX                                                                    */
+  /* ---------------------------------------------------------------------- */
 
   return (
-    <TeamShell
-      className="screen"
-    >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          marginBottom: "20px",
-        }}
-      >
-        <TeamBack href="/" />
+    <div className="min-h-screen bg-[#faf9ff] text-gray-900">
+      <Header />
 
-        <div>
-          <h1
-            style={{
-              margin: 0,
-            }}
-          >
-            Yeni İlan Ekle
-          </h1>
+      <main className="mx-auto w-full max-w-4xl px-4 pb-24 pt-6 sm:px-6">
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-gray-900"
+        >
+          <ArrowLeft size={18} />
+          Geri
+        </button>
 
-          <p
-            style={{
-              margin:
-                "4px 0 0",
-              opacity: 0.7,
-            }}
-          >
-            Fotoğraf yükleyin,
-            AI bilgileri
-            otomatik doldursun.
-          </p>
+        {/* Page heading */}
+        <div className="mb-7">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7c5cff]/10 text-[#7c5cff]">
+              <PawPrint size={25} />
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Yeni İlan Ekle
+              </h1>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Fotoğraf yükleyin, AI hayvan bilgilerini
+                otomatik doldursun.
+              </p>
+            </div>
+          </div>
         </div>
-      </header>
 
-      <form
-        onSubmit={
-          handleSubmit
-        }
-      >
-        <section className="form-card">
-          <h2>
-            <Camera size={18} />
-            {" "}
-            Fotoğraflar
-          </h2>
+        <form
+          onSubmit={submitListing}
+          className="space-y-5"
+        >
+          {/* ---------------------------------------------------------------- */}
+          {/* PHOTOS                                                           */}
+          {/* ---------------------------------------------------------------- */}
 
-          <label
-            className="upload"
-            htmlFor="listing-photos"
-          >
+          <section className={cardClass}>
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-bold">
+                  <Camera
+                    size={20}
+                    className="text-[#7c5cff]"
+                  />
+                  Fotoğraflar
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  En fazla {MAX_IMAGES} fotoğraf
+                  yükleyebilirsiniz.
+                </p>
+              </div>
+
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                {images.length}/{MAX_IMAGES}
+              </span>
+            </div>
+
             <input
-              ref={
-                fileInputRef
-              }
-              id="listing-photos"
+              ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
-              onChange={
-                handlePhotoSelection
-              }
-              disabled={
-                photos.length >=
-                  MAX_PHOTOS ||
-                analyzing ||
-                submitting
-              }
+              className="hidden"
+              onChange={handleImages}
             />
 
-            <Camera
-              size={48}
-            />
-
-            <strong>
-              Fotoğraf Ekle
-            </strong>
-
-            <span>
-              {photos.length ===
-              0
-                ? "1-5 fotoğraf seçebilirsiniz"
-                : `${photos.length}/${MAX_PHOTOS} fotoğraf seçildi`}
-            </span>
-          </label>
-
-          {previews.length >
-            0 && (
-            <div
-              style={{
-                display:
-                  "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fill, minmax(110px, 1fr))",
-                gap: "10px",
-                marginTop:
-                  "16px",
-              }}
-            >
-              {previews.map(
-                (
-                  preview,
-                  index
-                ) => (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+              {images.map(
+                (image, index) => (
                   <div
-                    key={
-                      preview
-                    }
-                    style={{
-                      position:
-                        "relative",
-                    }}
+                    key={image.id}
+                    className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100"
                   >
                     <img
-                      src={
-                        preview
-                      }
-                      alt={`İlan fotoğrafı ${
-                        index +
-                        1
+                      src={image.preview}
+                      alt={`Hayvan fotoğrafı ${
+                        index + 1
                       }`}
-                      style={{
-                        display:
-                          "block",
-                        width:
-                          "100%",
-                        aspectRatio:
-                          "1",
-                        objectFit:
-                          "cover",
-                        borderRadius:
-                          "12px",
-                      }}
+                      className="h-full w-full object-cover"
                     />
+
+                    {index === 0 && (
+                      <div className="absolute bottom-2 left-2 rounded-lg bg-black/65 px-2 py-1 text-[10px] font-semibold text-white">
+                        AI fotoğrafı
+                      </div>
+                    )}
 
                     <button
                       type="button"
                       onClick={() =>
-                        removePhoto(
-                          index
+                        removeImage(
+                          image.id,
                         )
                       }
-                      disabled={
-                        analyzing ||
-                        submitting
-                      }
+                      disabled={disabled}
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label="Fotoğrafı kaldır"
-                      style={{
-                        position:
-                          "absolute",
-                        top:
-                          "6px",
-                        right:
-                          "6px",
-                        width:
-                          "30px",
-                        height:
-                          "30px",
-                        padding: 0,
-                        border:
-                          "none",
-                        borderRadius:
-                          "50%",
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
-                        justifyContent:
-                          "center",
-                        cursor:
-                          "pointer",
-                      }}
                     >
-                      <X
-                        size={
-                          16
-                        }
-                      />
+                      <X size={15} />
                     </button>
-
-                    {index ===
-                      0 && (
-                      <span
-                        style={{
-                          position:
-                            "absolute",
-                          left:
-                            "6px",
-                          bottom:
-                            "6px",
-                          padding:
-                            "4px 7px",
-                          borderRadius:
-                            "6px",
-                          background:
-                            "rgba(0,0,0,.65)",
-                          color:
-                            "white",
-                          fontSize:
-                            "11px",
-                        }}
-                      >
-                        AI fotoğrafı
-                      </span>
-                    )}
                   </div>
-                )
+                ),
               )}
-            </div>
-          )}
 
-          {photos.length >
-            0 && (
-            <div
-              style={{
-                marginTop:
-                  "16px",
-              }}
-            >
-              <TeamButton
-                type="button"
-                variant="outline"
-                full
-                disabled={
-                  !canAnalyze
-                }
-                onClick={
-                  analyzePhotoWithAI
-                }
-              >
-                {analyzing ? (
-                  <>
-                    <Loader2
-                      size={
-                        18
-                      }
-                      className="spin"
-                    />
-                    {" "}
-                    AI analiz ediyor...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles
-                      size={
-                        18
-                      }
-                    />
-                    {" "}
-                    Fotoğrafı AI ile Analiz Et
-                  </>
-                )}
-              </TeamButton>
-            </div>
-          )}
-
-          <p
-            style={{
-              marginTop:
-                "10px",
-              fontSize:
-                "13px",
-              opacity:
-                0.65,
-            }}
-          >
-            AI şu anda ilk
-            seçtiğiniz fotoğrafı
-            analiz eder. Tüm
-            fotoğraflar ilan
-            oluşturulurken
-            sunucuya gönderilir.
-          </p>
-        </section>
-
-        {aiAnalysis && (
-          <section className="form-card">
-            <h2>
-              <Sparkles
-                size={18}
-              />
-              {" "}
-              AI Analizi
-            </h2>
-
-            <div
-              style={{
-                display:
-                  "flex",
-                alignItems:
-                  "center",
-                gap: "8px",
-                marginBottom:
-                  "12px",
-              }}
-            >
-              <CheckCircle2
-                size={20}
-              />
-
-              <strong>
-                Fotoğraf analiz
-                edildi
-              </strong>
-            </div>
-
-            <div
-              style={{
-                display:
-                  "grid",
-                gap: "8px",
-              }}
-            >
-              <p>
-                <strong>
-                  Tür:
-                </strong>{" "}
-                {convertAISpecies(
-                  aiAnalysis.species
-                ) ===
-                "CAT"
-                  ? "Kedi"
-                  : convertAISpecies(
-                      aiAnalysis.species
-                    ) ===
-                    "DOG"
-                  ? "Köpek"
-                  : aiAnalysis.species}
-              </p>
-
-              {aiAnalysis.breed && (
-                <p>
-                  <strong>
-                    Cins:
-                  </strong>{" "}
-                  {
-                    aiAnalysis.breed
+              {images.length <
+                MAX_IMAGES && (
+                <button
+                  type="button"
+                  onClick={
+                    openFilePicker
                   }
-                </p>
-              )}
+                  disabled={disabled}
+                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 text-gray-500 transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/5 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Upload size={24} />
 
-              {aiAnalysis.colors
-                .length >
-                0 && (
-                <p>
-                  <strong>
-                    Renk:
-                  </strong>{" "}
-                  {aiAnalysis.colors.join(
-                    ", "
-                  )}
-                </p>
-              )}
-
-              {aiAnalysis.pattern && (
-                <p>
-                  <strong>
-                    Desen:
-                  </strong>{" "}
-                  {
-                    aiAnalysis.pattern
-                  }
-                </p>
-              )}
-
-              <p>
-                <strong>
-                  Tür güveni:
-                </strong>{" "}
-                {(
-                  aiAnalysis.species_confidence *
-                  100
-                ).toFixed(
-                  1
-                )}
-                %
-              </p>
-
-              {aiAnalysis.breed && (
-                <p>
-                  <strong>
-                    Cins güveni:
-                  </strong>{" "}
-                  {(
-                    aiAnalysis.breed_confidence *
-                    100
-                  ).toFixed(
-                    1
-                  )}
-                  %
-                </p>
+                  <span className="text-xs font-semibold">
+                    Fotoğraf Ekle
+                  </span>
+                </button>
               )}
             </div>
 
-            {!aiAnalysis.is_pet && (
-              <p className="form-error">
-                AI bu fotoğrafta
-                kedi veya köpek
-                tespit edemedi.
-              </p>
+            {images.length > 0 && (
+              <div className="mt-5 rounded-2xl bg-[#7c5cff]/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Sparkles
+                    size={20}
+                    className="mt-0.5 shrink-0 text-[#7c5cff]"
+                  />
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-gray-800">
+                      AI ile otomatik doldur
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      İlk fotoğrafınız analiz edilir ve
+                      tür, cins, renk ve desen gibi bilgiler
+                      forma otomatik aktarılır.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={
+                        runAiAnalysis
+                      }
+                      disabled={
+                        disabled
+                      }
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6d4ff0] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2
+                            size={17}
+                            className="animate-spin"
+                          />
+                          AI analiz ediyor...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles
+                            size={17}
+                          />
+                          Fotoğrafı Analiz Et
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
-            <p
-              style={{
-                marginBottom: 0,
-                fontSize:
-                  "12px",
-                opacity:
-                  0.6,
-              }}
-            >
-              AI tarafından
-              doldurulan alanları
-              aşağıdaki formdan
-              değiştirebilirsiniz.
-            </p>
+            {analysisMessage && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl bg-green-50 p-4 text-sm text-green-800">
+                <CheckCircle2
+                  size={19}
+                  className="mt-0.5 shrink-0"
+                />
+
+                <span>
+                  {analysisMessage}
+                </span>
+              </div>
+            )}
           </section>
-        )}
 
-        <section className="form-card">
-          <h2>
-            <PawPrint
-              size={18}
-            />
-            {" "}
-            İlan Bilgileri
-          </h2>
-                    <label className="block-label">
-            Başlık
-            <div className="input">
-              <input
-                value={title}
-                onChange={(event) =>
-                  setTitle(event.target.value)
-                }
-                maxLength={150}
-                required
-                placeholder="İlan başlığı"
+          {/* ---------------------------------------------------------------- */}
+          {/* LISTING TYPE                                                     */}
+          {/* ---------------------------------------------------------------- */}
+
+          <section className={cardClass}>
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+              <ShieldCheck
+                size={20}
+                className="text-[#7c5cff]"
               />
-            </div>
-          </label>
+              İlan Türü
+            </h2>
 
-          <label className="block-label">
-            Açıklama
-            <textarea
-              value={description}
-              onChange={(event) =>
-                setDescription(event.target.value)
-              }
-              maxLength={3000}
-              placeholder="Hayvan hakkında bilgi veriniz..."
-              rows={5}
-            />
-          </label>
-        </section>
-
-        <section className="form-card">
-          <h2>
-            <ShieldCheck size={18} /> İlan Türü
-          </h2>
-
-          <div className="segments">
-            <button
-              type="button"
-              className={
-                adType === "ADOPTION" ? "active" : ""
-              }
-              onClick={() => setAdType("ADOPTION")}
-            >
-              <PawPrint size={16} />
-              Sahiplendirme
-            </button>
-
-            <button
-              type="button"
-              className={
-                adType === "LOST" ? "active" : ""
-              }
-              onClick={() => setAdType("LOST")}
-            >
-              Kayıp
-            </button>
-
-            <button
-              type="button"
-              className={
-                adType === "FOUND" ? "active" : ""
-              }
-              onClick={() => setAdType("FOUND")}
-            >
-              Bulundu
-            </button>
-          </div>
-        </section>
-
-        <section className="form-card">
-          <h2>
-            <PawPrint size={18} /> Hayvan Bilgileri
-          </h2>
-
-          <label className="form-row">
-            <span>Tür</span>
-
-            <select
-              value={species}
-              onChange={(event) =>
-                setSpecies(
-                  event.target.value as Species
-                )
-              }
-            >
-              <option value="CAT">Kedi</option>
-              <option value="DOG">Köpek</option>
-            </select>
-          </label>
-
-          <label className="form-row">
-            <span>Cins</span>
-
-            <input
-              value={breed}
-              onChange={(event) =>
-                setBreed(event.target.value)
-              }
-              maxLength={100}
-              placeholder="Örn. Tekir, Golden..."
-            />
-          </label>
-
-          <label className="form-row">
-            <span>Cinsiyet</span>
-
-            <select
-              value={gender}
-              onChange={(event) =>
-                setGender(
-                  event.target.value as PetGender
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="FEMALE">Dişi</option>
-              <option value="MALE">Erkek</option>
-            </select>
-          </label>
-
-          <label className="form-row">
-            <span>Yaş Grubu</span>
-
-            <select
-              value={ageGroup}
-              onChange={(event) =>
-                setAgeGroup(
-                  event.target.value as AgeGroup
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="BABY">Yavru</option>
-              <option value="YOUNG">Genç</option>
-              <option value="ADULT">Yetişkin</option>
-              <option value="SENIOR">Yaşlı</option>
-            </select>
-          </label>
-
-          <label className="form-row">
-            <span>Tüy Deseni</span>
-
-            <select
-              value={coatPattern}
-              onChange={(event) =>
-                setCoatPattern(
-                  event.target.value as CoatPattern
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="SOLID">Düz</option>
-              <option value="STRIPED">Çizgili</option>
-              <option value="SPOTTED">Benekli</option>
-              <option value="PATCHED">Parçalı</option>
-              <option value="CALICO">Calico</option>
-              <option value="TORTOISESHELL">
-                Kaplumbağa kabuğu
-              </option>
-              <option value="OTHER">Diğer</option>
-            </select>
-          </label>
-
-          <div className="block-label">
-            <span>Renkler</span>
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-                marginTop: "8px",
-              }}
-            >
-              {(
-                Object.keys(
-                  COLOR_LABELS
-                ) as PetColor[]
-              ).map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() =>
-                    toggleColor(color)
-                  }
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setAdType(
+                    "LOST",
+                  )
+                }
+                disabled={disabled}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  adType === "LOST"
+                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <Search
+                  size={21}
                   className={
-                    colors.includes(color)
-                      ? "active"
-                      : ""
+                    adType === "LOST"
+                      ? "text-[#7c5cff]"
+                      : "text-gray-500"
                   }
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid currentColor",
-                    cursor: "pointer",
-                  }}
-                >
-                  {COLOR_LABELS[color]}
-                </button>
-              ))}
+                />
+
+                <p className="mt-2 font-bold">
+                  Kayıp
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  Kaybolan hayvanı bildir
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setAdType(
+                    "FOUND",
+                  )
+                }
+                disabled={disabled}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  adType === "FOUND"
+                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <MapPin
+                  size={21}
+                  className={
+                    adType === "FOUND"
+                      ? "text-[#7c5cff]"
+                      : "text-gray-500"
+                  }
+                />
+
+                <p className="mt-2 font-bold">
+                  Bulundu
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  Bulduğunuz hayvanı bildir
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setAdType(
+                    "ADOPTION",
+                  )
+                }
+                disabled={disabled}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  adType === "ADOPTION"
+                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <PawPrint
+                  size={21}
+                  className={
+                    adType === "ADOPTION"
+                      ? "text-[#7c5cff]"
+                      : "text-gray-500"
+                  }
+                />
+
+                <p className="mt-2 font-bold">
+                  Sahiplendirme
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  Yeni bir yuva bul
+                </p>
+              </button>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="form-card">
-          <h2>Ek Bilgiler</h2>
+          {/* ---------------------------------------------------------------- */}
+          {/* BASIC INFORMATION                                                */}
+          {/* ---------------------------------------------------------------- */}
 
-          <label className="form-row">
-            <span>Tasma</span>
+          <section className={cardClass}>
+            <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
+              <PawPrint
+                size={20}
+                className="text-[#7c5cff]"
+              />
+              Temel Bilgiler
+            </h2>
 
-            <select
-              value={collarStatus}
-              onChange={(event) =>
-                setCollarStatus(
-                  event.target.value as PresenceStatus
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="YES">Var</option>
-              <option value="NO">Yok</option>
-            </select>
-          </label>
+            <div className="space-y-5">
+              <div>
+                <label
+                  htmlFor="listing-title"
+                  className={labelClass}
+                >
+                  İlan Başlığı
+                </label>
 
-          {collarStatus === "YES" && (
-            <>
-              <label className="form-row">
-                <span>Tasma Rengi</span>
+                <input
+                  id="listing-title"
+                  value={title}
+                  onChange={(event) =>
+                    setTitle(
+                      event.target.value,
+                    )
+                  }
+                  maxLength={150}
+                  required
+                  disabled={disabled}
+                  placeholder="Örn. Bursa'da kayıp tekir kedi"
+                  className={inputClass}
+                />
+
+                <p className="mt-1 text-right text-xs text-gray-400">
+                  {title.length}/150
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="listing-description"
+                  className={labelClass}
+                >
+                  Açıklama
+                </label>
+
+                <textarea
+                  id="listing-description"
+                  value={description}
+                  onChange={(event) =>
+                    setDescription(
+                      event.target.value,
+                    )
+                  }
+                  maxLength={3000}
+                  rows={5}
+                  disabled={disabled}
+                  placeholder="Hayvan hakkında mümkün olduğunca fazla bilgi verin..."
+                  className={`${inputClass} resize-none`}
+                />
+
+                <p className="mt-1 text-right text-xs text-gray-400">
+                  {description.length}/3000
+                </p>
+              </div>
+            </div>
+          </section>
+                    {/* ---------------------------------------------------------------- */}
+          {/* ANIMAL INFORMATION                                               */}
+          {/* ---------------------------------------------------------------- */}
+
+          <section className={cardClass}>
+            <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
+              <PawPrint
+                size={20}
+                className="text-[#7c5cff]"
+              />
+              Hayvan Bilgileri
+            </h2>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {/* Species */}
+              <div>
+                <label
+                  htmlFor="species"
+                  className={labelClass}
+                >
+                  Tür
+                </label>
 
                 <select
+                  id="species"
+                  value={species}
+                  onChange={(event) =>
+                    setSpecies(
+                      event.target.value as Species,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="CAT">
+                    Kedi
+                  </option>
+                  <option value="DOG">
+                    Köpek
+                  </option>
+                </select>
+              </div>
+
+              {/* Breed */}
+              <div>
+                <label
+                  htmlFor="breed"
+                  className={labelClass}
+                >
+                  Cins
+                </label>
+
+                <input
+                  id="breed"
+                  value={breed}
+                  onChange={(event) =>
+                    setBreed(
+                      event.target.value,
+                    )
+                  }
+                  maxLength={100}
+                  disabled={disabled}
+                  placeholder="AI tarafından otomatik doldurulur"
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label
+                  htmlFor="gender"
+                  className={labelClass}
+                >
+                  Cinsiyet
+                </label>
+
+                <select
+                  id="gender"
+                  value={gender}
+                  onChange={(event) =>
+                    setGender(
+                      event.target.value as PetGender,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="FEMALE">
+                    Dişi
+                  </option>
+                  <option value="MALE">
+                    Erkek
+                  </option>
+                </select>
+              </div>
+
+              {/* Age */}
+              <div>
+                <label
+                  htmlFor="age-group"
+                  className={labelClass}
+                >
+                  Yaş Grubu
+                </label>
+
+                <select
+                  id="age-group"
+                  value={ageGroup}
+                  onChange={(event) =>
+                    setAgeGroup(
+                      event.target.value as AgeGroup,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="BABY">
+                    Yavru
+                  </option>
+                  <option value="YOUNG">
+                    Genç
+                  </option>
+                  <option value="ADULT">
+                    Yetişkin
+                  </option>
+                  <option value="SENIOR">
+                    Yaşlı
+                  </option>
+                </select>
+              </div>
+
+              {/* Coat pattern */}
+              <div>
+                <label
+                  htmlFor="coat-pattern"
+                  className={labelClass}
+                >
+                  Tüy Deseni
+                </label>
+
+                <select
+                  id="coat-pattern"
+                  value={coatPattern}
+                  onChange={(event) =>
+                    setCoatPattern(
+                      event.target.value as CoatPattern,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="SOLID">
+                    Düz
+                  </option>
+                  <option value="STRIPED">
+                    Çizgili
+                  </option>
+                  <option value="SPOTTED">
+                    Benekli
+                  </option>
+                  <option value="PATCHED">
+                    Parçalı
+                  </option>
+                  <option value="CALICO">
+                    Calico
+                  </option>
+                  <option value="TORTOISESHELL">
+                    Kaplumbağa kabuğu
+                  </option>
+                  <option value="OTHER">
+                    Diğer
+                  </option>
+                </select>
+              </div>
+
+              {/* Eye color */}
+              <div>
+                <label
+                  htmlFor="eye-color"
+                  className={labelClass}
+                >
+                  Göz Rengi
+                </label>
+
+                <select
+                  id="eye-color"
+                  value={eyeColor}
+                  onChange={(event) =>
+                    setEyeColor(
+                      event.target.value as EyeColor,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="BROWN">
+                    Kahverengi
+                  </option>
+                  <option value="BLUE">
+                    Mavi
+                  </option>
+                  <option value="GREEN">
+                    Yeşil
+                  </option>
+                  <option value="AMBER">
+                    Kehribar
+                  </option>
+                  <option value="HAZEL">
+                    Ela
+                  </option>
+                  <option value="HETEROCHROMIA">
+                    Heterokromi
+                  </option>
+                  <option value="OTHER">
+                    Diğer
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Colors */}
+            <div className="mt-5">
+              <p className={labelClass}>
+                Renkler
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {(
+                  Object.keys(
+                    COLOR_LABELS,
+                  ) as PetColor[]
+                ).map((color) => {
+                  const selected =
+                    colors.includes(color);
+
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() =>
+                        toggleColor(
+                          color,
+                        )
+                      }
+                      className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                        selected
+                          ? "border-[#7c5cff] bg-[#7c5cff] text-white"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-[#7c5cff]/50"
+                      } disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      {COLOR_LABELS[color]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="mt-2 text-xs text-gray-400">
+                En fazla 9 renk seçebilirsiniz.
+              </p>
+            </div>
+          </section>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* ADDITIONAL INFORMATION                                            */}
+          {/* ---------------------------------------------------------------- */}
+
+          <section className={cardClass}>
+            <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
+              <Info
+                size={20}
+                className="text-[#7c5cff]"
+              />
+              Ek Bilgiler
+            </h2>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {/* Collar */}
+              <div>
+                <label
+                  htmlFor="collar-status"
+                  className={labelClass}
+                >
+                  Tasma
+                </label>
+
+                <select
+                  id="collar-status"
+                  value={collarStatus}
+                  onChange={(event) =>
+                    setCollarStatus(
+                      event.target.value as PresenceStatus,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="YES">
+                    Var
+                  </option>
+                  <option value="NO">
+                    Yok
+                  </option>
+                </select>
+              </div>
+
+              {/* Collar color */}
+              <div>
+                <label
+                  htmlFor="collar-color"
+                  className={labelClass}
+                >
+                  Tasma Rengi
+                </label>
+
+                <select
+                  id="collar-color"
                   value={collarColor ?? ""}
                   onChange={(event) =>
                     setCollarColor(
                       event.target.value
                         ? (event.target.value as PetColor)
-                        : null
+                        : null,
                     )
                   }
+                  disabled={
+                    disabled ||
+                    collarStatus !==
+                      "YES"
+                  }
+                  className={inputClass}
                 >
                   <option value="">
                     Belirtilmemiş
@@ -1663,274 +1593,342 @@ export default function AddListingPage() {
 
                   {(
                     Object.keys(
-                      COLOR_LABELS
+                      COLOR_LABELS,
                     ) as PetColor[]
                   ).map((color) => (
                     <option
                       key={color}
                       value={color}
                     >
-                      {COLOR_LABELS[color]}
+                      {
+                        COLOR_LABELS[
+                          color
+                        ]
+                      }
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <label className="form-row">
-                <span>Tasma Etiketi</span>
+              {/* Collar tag */}
+              <div>
+                <label
+                  htmlFor="collar-tag"
+                  className={labelClass}
+                >
+                  Tasma Etiketi
+                </label>
 
                 <input
+                  id="collar-tag"
                   value={collarTagText}
                   onChange={(event) =>
                     setCollarTagText(
-                      event.target.value
+                      event.target.value,
                     )
                   }
                   maxLength={255}
+                  disabled={
+                    disabled ||
+                    collarStatus !==
+                      "YES"
+                  }
                   placeholder="Etiket üzerindeki yazı"
+                  className={inputClass}
                 />
+              </div>
+
+              {/* Ear tag */}
+              <div>
+                <label
+                  htmlFor="ear-tag"
+                  className={labelClass}
+                >
+                  Kulak Küpesi
+                </label>
+
+                <select
+                  id="ear-tag"
+                  value={earTagStatus}
+                  onChange={(event) =>
+                    setEarTagStatus(
+                      event.target.value as PresenceStatus,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="YES">
+                    Var
+                  </option>
+                  <option value="NO">
+                    Yok
+                  </option>
+                </select>
+              </div>
+
+              {/* Ear notch */}
+              <div>
+                <label
+                  htmlFor="ear-notch"
+                  className={labelClass}
+                >
+                  Kulak Çentiği
+                </label>
+
+                <select
+                  id="ear-notch"
+                  value={earNotchStatus}
+                  onChange={(event) =>
+                    setEarNotchStatus(
+                      event.target.value as PresenceStatus,
+                    )
+                  }
+                  disabled={disabled}
+                  className={inputClass}
+                >
+                  <option value="UNKNOWN">
+                    Belirtilmemiş
+                  </option>
+                  <option value="YES">
+                    Var
+                  </option>
+                  <option value="NO">
+                    Yok
+                  </option>
+                </select>
+              </div>
+
+              {/* Microchip */}
+              <div>
+                <label
+                  htmlFor="microchip"
+                  className={labelClass}
+                >
+                  Mikroçip Numarası
+                </label>
+
+                <input
+                  id="microchip"
+                  value={microchipNumber}
+                  onChange={(event) =>
+                    setMicrochipNumber(
+                      event.target.value,
+                    )
+                  }
+                  maxLength={32}
+                  disabled={disabled}
+                  placeholder="Varsa mikroçip numarası"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <label
+                htmlFor="distinctive-marks"
+                className={labelClass}
+              >
+                Ayırt Edici Özellikler
               </label>
-            </>
-          )}
 
-          <label className="form-row">
-            <span>Göz Rengi</span>
-
-            <select
-              value={eyeColor}
-              onChange={(event) =>
-                setEyeColor(
-                  event.target.value as EyeColor
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="BROWN">Kahverengi</option>
-              <option value="BLUE">Mavi</option>
-              <option value="GREEN">Yeşil</option>
-              <option value="AMBER">Kehribar</option>
-              <option value="HAZEL">Ela</option>
-              <option value="HETEROCHROMIA">
-                Heterokromi
-              </option>
-              <option value="OTHER">Diğer</option>
-            </select>
-          </label>
-
-          <label className="form-row">
-            <span>Kulak Küpesi</span>
-
-            <select
-              value={earTagStatus}
-              onChange={(event) =>
-                setEarTagStatus(
-                  event.target.value as PresenceStatus
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="YES">Var</option>
-              <option value="NO">Yok</option>
-            </select>
-          </label>
-
-          <label className="form-row">
-            <span>Kulak Çentiği</span>
-
-            <select
-              value={earNotchStatus}
-              onChange={(event) =>
-                setEarNotchStatus(
-                  event.target.value as PresenceStatus
-                )
-              }
-            >
-              <option value="UNKNOWN">
-                Belirtilmemiş
-              </option>
-              <option value="YES">Var</option>
-              <option value="NO">Yok</option>
-            </select>
-          </label>
-
-          <label className="form-row">
-            <span>Mikroçip Numarası</span>
-
-            <input
-              value={microchipNumber}
-              onChange={(event) =>
-                setMicrochipNumber(
-                  event.target.value
-                )
-              }
-              maxLength={32}
-              placeholder="Varsa mikroçip numarası"
-            />
-          </label>
-
-          <label className="block-label">
-            Ayırt Edici Özellikler
-
-            <textarea
-              value={distinctiveMarks}
-              onChange={(event) =>
-                setDistinctiveMarks(
-                  event.target.value
-                )
-              }
-              maxLength={1000}
-              rows={4}
-              placeholder="Örn. sol kulağında çentik, boynunda beyaz leke..."
-            />
-          </label>
-        </section>
-
-        {adType === "LOST" && (
-          <section className="form-card">
-            <h2>Kayıp Bilgileri</h2>
-
-            <label className="form-row">
-              <span>Kayıp Tarihi</span>
-
-              <input
-                type="date"
-                value={lostDate}
-                max={
-                  new Date()
-                    .toISOString()
-                    .split("T")[0]
-                }
+              <textarea
+                id="distinctive-marks"
+                value={distinctiveMarks}
                 onChange={(event) =>
-                  setLostDate(
-                    event.target.value
+                  setDistinctiveMarks(
+                    event.target.value,
                   )
                 }
+                maxLength={1000}
+                rows={4}
+                disabled={disabled}
+                placeholder="Örn. sol kulağında çentik, boynunda beyaz leke..."
+                className={`${inputClass} resize-none`}
               />
-            </label>
+            </div>
           </section>
-        )}
 
-        <section className="form-card">
-          <h2>
-            <MapPin size={18} /> Konum
-          </h2>
+          {/* ---------------------------------------------------------------- */}
+          {/* LOST DATE                                                         */}
+          {/* ---------------------------------------------------------------- */}
 
-          <p
-            style={{
-              marginTop: 0,
-              opacity: 0.7,
-              fontSize: "13px",
-            }}
-          >
-            İlanın konumunu haritadan almak için
-            aşağıdaki butona basabilirsiniz.
-          </p>
+          {adType === "LOST" && (
+            <section className={cardClass}>
+              <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
+                <Search
+                  size={20}
+                  className="text-[#7c5cff]"
+                />
+                Kayıp Bilgileri
+              </h2>
 
-          <TeamButton
-            type="button"
-            variant="outline"
-            onClick={getLocation}
-            disabled={
-              submitting ||
-              analyzing
-            }
-          >
-            <MapPin size={18} />
-            Konumumu Al
-          </TeamButton>
+              <div>
+                <label
+                  htmlFor="lost-date"
+                  className={labelClass}
+                >
+                  Kayıp Tarihi
+                </label>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(2, minmax(0, 1fr))",
-              gap: "12px",
-              marginTop: "14px",
-            }}
-          >
-            <label className="form-row">
-              <span>Enlem</span>
-
-              <input
-                type="number"
-                step="any"
-                min="-90"
-                max="90"
-                value={latitude}
-                onChange={(event) =>
-                  setLatitude(
-                    event.target.value
-                  )
-                }
-                placeholder="40.195000"
-                required
-              />
-            </label>
-
-            <label className="form-row">
-              <span>Boylam</span>
-
-              <input
-                type="number"
-                step="any"
-                min="-180"
-                max="180"
-                value={longitude}
-                onChange={(event) =>
-                  setLongitude(
-                    event.target.value
-                  )
-                }
-                placeholder="29.060000"
-                required
-              />
-            </label>
-          </div>
-        </section>
-
-        {error && (
-          <p
-            className="form-error"
-            role="alert"
-          >
-            {error}
-          </p>
-        )}
-
-        {success && (
-          <p
-            className="success-message"
-            role="status"
-          >
-            İlan başarıyla oluşturuldu.
-          </p>
-        )}
-
-        <TeamButton
-          type="submit"
-          full
-          disabled={!canSubmit}
-        >
-          {submitting ? (
-            <>
-              <Loader2
-                size={20}
-                className="spin"
-              />
-              İlan oluşturuluyor...
-            </>
-          ) : (
-            <>
-              <Send size={20} />
-              İlanı Yayınla
-            </>
+                <input
+                  id="lost-date"
+                  type="date"
+                  value={lostDate}
+                  max={today}
+                  onChange={(event) =>
+                    setLostDate(
+                      event.target.value,
+                    )
+                  }
+                  disabled={disabled}
+                  required
+                  className={inputClass}
+                />
+              </div>
+            </section>
           )}
-        </TeamButton>
-      </form>
-    </TeamShell>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* LOCATION                                                          */}
+          {/* ---------------------------------------------------------------- */}
+
+          <section className={cardClass}>
+            <div className="mb-5">
+              <h2 className="flex items-center gap-2 text-lg font-bold">
+                <MapPin
+                  size={20}
+                  className="text-[#7c5cff]"
+                />
+                Konum
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                İlan için konum bilgisi zorunludur.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={getLocation}
+              disabled={disabled}
+              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:border-[#7c5cff]/50 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <MapPin size={18} />
+              Konumumu Al
+            </button>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="latitude"
+                  className={labelClass}
+                >
+                  Enlem
+                </label>
+
+                <input
+                  id="latitude"
+                  type="number"
+                  step="any"
+                  min="-90"
+                  max="90"
+                  value={latitude}
+                  onChange={(event) =>
+                    setLatitude(
+                      event.target.value,
+                    )
+                  }
+                  required
+                  disabled={disabled}
+                  placeholder="40.195000"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="longitude"
+                  className={labelClass}
+                >
+                  Boylam
+                </label>
+
+                <input
+                  id="longitude"
+                  type="number"
+                  step="any"
+                  min="-180"
+                  max="180"
+                  value={longitude}
+                  onChange={(event) =>
+                    setLongitude(
+                      event.target.value,
+                    )
+                  }
+                  required
+                  disabled={disabled}
+                  placeholder="29.060000"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* ERRORS                                                            */}
+          {/* ---------------------------------------------------------------- */}
+
+          {errorMessage && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+            >
+              <Info
+                size={19}
+                className="mt-0.5 shrink-0"
+              />
+
+              <span>
+                {errorMessage}
+              </span>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------------------- */}
+          {/* SUBMIT                                                            */}
+          {/* ---------------------------------------------------------------- */}
+
+          <button
+            type="submit"
+            disabled={disabled}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7c5cff] px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#6d4ff0] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2
+                  size={21}
+                  className="animate-spin"
+                />
+                İlan oluşturuluyor...
+              </>
+            ) : (
+              <>
+                <Send size={21} />
+                İlanı Yayınla
+                <ChevronRight
+                  size={19}
+                />
+              </>
+            )}
+          </button>
+        </form>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
