@@ -10,11 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import {
-  TeamBack,
-  TeamButton,
-  TeamShell,
-} from "../components/TeamUI";
+
 import { API_BASE_URL } from "../services/api";
 
 const AI_BASE_URL =
