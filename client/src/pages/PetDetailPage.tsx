@@ -1,3 +1,3 @@
 export default function PetDetailPage() {
-  return <h1>İlan Detayı</h1>
+  return <h1>Ä°lan DetayÄ±</h1>
 }

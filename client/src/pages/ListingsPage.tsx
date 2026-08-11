@@ -1,3 +1,3 @@
 export default function ListingsPage() {
-  return <h1>Ýlanlar</h1>
+  return <h1>Ä°lanlar</h1>
 }

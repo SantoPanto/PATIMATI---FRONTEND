@@ -1,3 +1,3 @@
 export default function NotFound() {
-  return <h1>Sayfa Bulunamadý</h1>
+  return <h1>Sayfa BulunamadÄ±</h1>
 }
