@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
+  Award,
   ChevronRight,
   Heart,
   LockKeyhole,
@@ -14,13 +15,17 @@ import {
   Phone,
   Save,
   Settings,
+  Shield,
   UserRound,
   X,
 } from "lucide-react";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import MapPicker from "../components/MapPicker";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
+import { updateProfile } from "../services/auth";
 import type { AuthUser } from "../services/auth";
 
 import "../styles/profile.css";
@@ -31,6 +36,8 @@ type EditableProfile = {
   email: string;
   phone: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 const emptyProfile: EditableProfile = {
@@ -39,35 +46,51 @@ const emptyProfile: EditableProfile = {
   email: "",
   phone: "",
   city: "",
+  latitude: undefined,
+  longitude: undefined,
 };
 
 function getInitials(user: AuthUser | null): string {
-  const fullName = [user?.firstName, user?.lastName]
+  if (!user) return "P";
+
+  const fullName = [user.firstName, user.lastName]
     .filter(Boolean)
     .join(" ");
 
-  if (fullName) {
+  if (fullName.trim()) {
     return fullName
-      .split(" ")
+      .trim()
+      .split(/\s+/)
       .slice(0, 2)
       .map((part) => part.charAt(0).toLocaleUpperCase("tr-TR"))
       .join("");
   }
 
-  return user?.email?.charAt(0).toLocaleUpperCase("tr-TR") || "P";
+  return user.email?.charAt(0).toLocaleUpperCase("tr-TR") || "P";
 }
 
-export default function ProfilePage() {
+function ProfileContent() {
   const [, navigate] = useLocation();
-  const { user, isAuthLoading, logout } = useAuth();
+  const { user, isAuthLoading, logout, refreshUser, updateUser } = useAuth();
 
   const initialProfile = useMemo<EditableProfile>(
     () => ({
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.email || "",
-      phone: typeof user?.phone === "string" ? user.phone : "",
+      firstName: user?.firstName ?? "",
+      lastName: user?.lastName ?? "",
+      email: user?.email ?? "",
+      phone:
+        (typeof user?.phone === "string" && user.phone) ||
+        (typeof user?.phoneNumber === "string" && user.phoneNumber) ||
+        "",
       city: typeof user?.city === "string" ? user.city : "",
+      latitude:
+        typeof user?.latitude === "number" && !isNaN(user.latitude)
+          ? user.latitude
+          : undefined,
+      longitude:
+        typeof user?.longitude === "number" && !isNaN(user.longitude)
+          ? user.longitude
+          : undefined,
     }),
     [user],
   );
@@ -83,7 +106,24 @@ export default function ProfilePage() {
     "PATIMATI Kullanıcısı";
 
   const openEditMode = () => {
-    setForm(initialProfile);
+    setForm({
+      firstName: user?.firstName ?? "",
+      lastName: user?.lastName ?? "",
+      email: user?.email ?? "",
+      phone:
+        (typeof user?.phone === "string" && user.phone) ||
+        (typeof user?.phoneNumber === "string" && user.phoneNumber) ||
+        "",
+      city: typeof user?.city === "string" ? user.city : "",
+      latitude:
+        typeof user?.latitude === "number" && !isNaN(user.latitude)
+          ? user.latitude
+          : undefined,
+      longitude:
+        typeof user?.longitude === "number" && !isNaN(user.longitude)
+          ? user.longitude
+          : undefined,
+    });
     setMessage("");
     setIsEditing(true);
   };
@@ -109,35 +149,29 @@ export default function ProfilePage() {
     setMessage("");
 
     try {
-      /*
-        Backend profil güncelleme endpoint'i hazır olduğunda
-        aşağıdaki kodu aktif edebilirsin:
+      const updatedUser = await updateProfile({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        city: form.city.trim(),
+        latitude:
+          typeof form.latitude === "number" && !isNaN(form.latitude)
+            ? form.latitude
+            : 0,
+        longitude:
+          typeof form.longitude === "number" && !isNaN(form.longitude)
+            ? form.longitude
+            : 0,
+      });
 
-        const token = localStorage.getItem("accessToken");
+      // Instantly update AuthContext React state and LocalStorage
+      updateUser(updatedUser);
 
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_API_BASE_URL ||
-            "http://localhost:8080"
-          }/api/users/me`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(form),
-          },
-        );
+      // Refresh in background if needed
+      await refreshUser().catch(() => null);
 
-        if (!response.ok) {
-          throw new Error("Profil güncellenemedi.");
-        }
-      */
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setMessage("Profil bilgilerin kaydedildi.");
+      setMessage("Profil bilgileriniz başarıyla güncellendi.");
       setIsEditing(false);
     } catch (error) {
       setMessage(
@@ -159,15 +193,13 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-[#F8FAFC]">
         <Header />
-
         <main className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
           <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
             <p className="text-base text-[#64748B]">
-              Profil yükleniyor...
+              Profil bilgileri yükleniyor...
             </p>
           </div>
         </main>
-
         <Footer />
       </div>
     );
@@ -188,8 +220,8 @@ export default function ProfilePage() {
           </h1>
 
           <p className="mt-2 text-base leading-6 text-[#64748B]">
-            Kişisel bilgilerini ve PATIMATI hesabını buradan
-            yönetebilirsin.
+            Kişisel bilgilerinizi ve PATIMATI hesabınızı buradan
+            yönetebilirsiniz.
           </p>
         </div>
 
@@ -209,10 +241,26 @@ export default function ProfilePage() {
                   {user?.email || "E-posta belirtilmemiş"}
                 </p>
 
-                <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#F0FDF4] px-3 py-1.5 text-sm font-medium text-[#15803D]">
-                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
-                  Aktif hesap
-                </span>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-3 py-1 text-xs font-medium text-[#15803D]">
+                    <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                    {user?.role === "ADMIN" ? "Yönetici" : "Kullanıcı"}
+                  </span>
+
+                  {typeof user?.lostBadgeLevel === "number" && user.lostBadgeLevel > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                      <Award size={13} />
+                      Kayıp Seviye {user.lostBadgeLevel}
+                    </span>
+                  )}
+
+                  {typeof user?.adoptionBadgeLevel === "number" && user.adoptionBadgeLevel > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                      <Shield size={13} />
+                      Sahiplendirme Seviye {user.adoptionBadgeLevel}
+                    </span>
+                  )}
+                </div>
 
                 <button
                   type="button"
@@ -229,21 +277,21 @@ export default function ProfilePage() {
               <ProfileMenuItem
                 icon={<PawPrint size={20} />}
                 label="İlanlarım"
-                description="Yayınladığın ilanları yönet"
+                description="Yayınladığınız ilanları yönetin"
                 onClick={() => navigate("/profile/listings")}
               />
 
               <ProfileMenuItem
                 icon={<Heart size={20} />}
                 label="Favorilerim"
-                description="Kaydettiğin ilanları görüntüle"
+                description="Kaydettiğiniz ilanları görüntüleyin"
                 onClick={() => navigate("/favorites")}
               />
 
               <ProfileMenuItem
                 icon={<MessageCircle size={20} />}
                 label="Mesajlarım"
-                description="İlan sahipleriyle konuşmaların"
+                description="İlan sahipleriyle konuşmalarınız"
                 onClick={() => navigate("/chat")}
               />
 
@@ -266,7 +314,7 @@ export default function ProfilePage() {
                   </h2>
 
                   <p className="mt-1 text-sm leading-5 text-[#64748B]">
-                    İletişim ve hesap bilgilerin.
+                    İletişim ve hesap bilgileriniz.
                   </p>
                 </div>
 
@@ -287,18 +335,14 @@ export default function ProfilePage() {
                   <ProfileInput
                     label="Ad"
                     value={form.firstName}
-                    onChange={(value) =>
-                      updateField("firstName", value)
-                    }
+                    onChange={(value) => updateField("firstName", value)}
                     autoComplete="given-name"
                   />
 
                   <ProfileInput
                     label="Soyad"
                     value={form.lastName}
-                    onChange={(value) =>
-                      updateField("lastName", value)
-                    }
+                    onChange={(value) => updateField("lastName", value)}
                     autoComplete="family-name"
                   />
 
@@ -306,9 +350,7 @@ export default function ProfilePage() {
                     label="E-posta"
                     type="email"
                     value={form.email}
-                    onChange={(value) =>
-                      updateField("email", value)
-                    }
+                    onChange={(value) => updateField("email", value)}
                     autoComplete="email"
                   />
 
@@ -316,9 +358,7 @@ export default function ProfilePage() {
                     label="Telefon"
                     type="tel"
                     value={form.phone}
-                    onChange={(value) =>
-                      updateField("phone", value)
-                    }
+                    onChange={(value) => updateField("phone", value)}
                     placeholder="05xx xxx xx xx"
                     autoComplete="tel"
                   />
@@ -327,11 +367,23 @@ export default function ProfilePage() {
                     <ProfileInput
                       label="Şehir"
                       value={form.city}
-                      onChange={(value) =>
-                        updateField("city", value)
-                      }
+                      onChange={(value) => updateField("city", value)}
                       placeholder="Örn. Kocaeli"
                       autoComplete="address-level2"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <MapPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      onChange={(lat, lng) => {
+                        setForm((current) => ({
+                          ...current,
+                          latitude: lat,
+                          longitude: lng,
+                        }));
+                      }}
                     />
                   </div>
 
@@ -387,9 +439,10 @@ export default function ProfilePage() {
                     icon={<Phone size={20} />}
                     label="Telefon"
                     value={
-                      typeof user?.phone === "string" && user.phone
-                        ? user.phone
-                        : "Belirtilmemiş"
+                      (typeof user?.phone === "string" && user.phone.trim()) ||
+                      (typeof user?.phoneNumber === "string" &&
+                        user.phoneNumber.trim()) ||
+                      "Belirtilmemiş"
                     }
                   />
 
@@ -402,6 +455,14 @@ export default function ProfilePage() {
                         : "Belirtilmemiş"
                     }
                   />
+
+                  <div className="sm:col-span-2 mt-2">
+                    <MapPicker
+                      latitude={user?.latitude}
+                      longitude={user?.longitude}
+                      readOnly
+                    />
+                  </div>
                 </div>
               )}
             </section>
@@ -412,7 +473,7 @@ export default function ProfilePage() {
               </h2>
 
               <p className="mt-1 text-sm leading-5 text-[#64748B]">
-                Şifreni ve oturum bilgilerini yönet.
+                Şifrenizi ve oturum bilgilerinizi yönetin.
               </p>
 
               <div className="mt-5 space-y-3">
@@ -431,7 +492,7 @@ export default function ProfilePage() {
                     </strong>
 
                     <span className="mt-1 block text-sm text-[#64748B]">
-                      Hesap şifreni güvenli şekilde yenile.
+                      Hesap şifrenizi güvenli şekilde yenileyin.
                     </span>
                   </span>
 
@@ -457,6 +518,14 @@ export default function ProfilePage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <ErrorBoundary title="Profil sayfası yüklenirken bir sorun oluştu.">
+      <ProfileContent />
+    </ErrorBoundary>
   );
 }
 
@@ -501,11 +570,7 @@ type InfoItemProps = {
   value: string;
 };
 
-function InfoItem({
-  icon,
-  label,
-  value,
-}: InfoItemProps) {
+function InfoItem({ icon, label, value }: InfoItemProps) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
       <span className="mt-0.5 shrink-0 text-[#64748B]">

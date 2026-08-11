@@ -24,76 +24,79 @@ import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 function App() {
   return (
-    <Switch>
-      {/* Ana Sayfa */}
-      <Route path="/" component={HomePage} />
+    <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
+      <Switch>
+        {/* Ana Sayfa */}
+        <Route path="/" component={HomePage} />
 
-      {/* Giriş / Kayıt */}
-      <Route path="/login" component={LoginPage} />
-      <Route path="/register" component={RegisterPage} />
+        {/* Giriş / Kayıt */}
+        <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
 
-      <Route
-        path="/forgot-password"
-        component={ForgotPasswordPage}
-      />
+        <Route
+          path="/forgot-password"
+          component={ForgotPasswordPage}
+        />
 
-      <Route
-        path="/change-password"
-        component={ChangePasswordPage}
-      />
+        <Route
+          path="/change-password"
+          component={ChangePasswordPage}
+        />
 
-      {/* İlanlar */}
-      <Route path="/listings" component={ListingsPage} />
-      <Route path="/add-listing" component={AddListingPage} />
-      <Route path="/pet/:id" component={PetDetailPage} />
+        {/* İlanlar */}
+        <Route path="/listings" component={ListingsPage} />
+        <Route path="/add-listing" component={AddListingPage} />
+        <Route path="/pet/:id" component={PetDetailPage} />
 
-      {/* Buldum İlanı */}
-      <Route
-        path="/found/create"
-        component={FoundPetCreatePage}
-      />
-      <Route path="/about" component={AboutPage} />
-<Route path="/safety" component={SafetyPage} />
+        {/* Buldum İlanı */}
+        <Route
+          path="/found/create"
+          component={FoundPetCreatePage}
+        />
+        <Route path="/about" component={AboutPage} />
+        <Route path="/safety" component={SafetyPage} />
 
-      {/* Harita / Mesaj */}
-      <Route path="/map" component={MapPage} />
-      <Route path="/chat" component={ChatPage} />
+        {/* Harita / Mesaj */}
+        <Route path="/map" component={MapPage} />
+        <Route path="/chat" component={ChatPage} />
 
-      {/* Kullanıcı */}
-      <Route path="/profile" component={ProfilePage} />
-      <Route path="/settings" component={SettingsPage} />
-      <Route path="/favorites" component={FavoritesPage} />
+        {/* Kullanıcı */}
+        <Route path="/profile" component={ProfilePage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route path="/favorites" component={FavoritesPage} />
 
-      {/* Sahiplendirme */}
-      <Route
-        path="/adoption/create"
-        component={AdoptionCreatePage}
-      />
+        {/* Sahiplendirme */}
+        <Route
+          path="/adoption/create"
+          component={AdoptionCreatePage}
+        />
 
-      <Route
-        path="/adoption/:id"
-        component={AdoptionDetailPage}
-      />
+        <Route
+          path="/adoption/:id"
+          component={AdoptionDetailPage}
+        />
 
-      <Route path="/adoption" component={Adoption} />
+        <Route path="/adoption" component={Adoption} />
 
-      {/* Yapay Zeka */}
-      <Route
-        path="/ai-match/results"
-        component={AiMatchResultsPage}
-      />
+        {/* Yapay Zeka */}
+        <Route
+          path="/ai-match/results"
+          component={AiMatchResultsPage}
+        />
 
-      <Route
-        path="/ai-match"
-        component={AiMatchPage}
-      />
+        <Route
+          path="/ai-match"
+          component={AiMatchPage}
+        />
 
-      {/* 404 */}
-      <Route component={NotFound} />
-    </Switch>
+        {/* 404 */}
+        <Route component={NotFound} />
+      </Switch>
+    </ErrorBoundary>
   );
 }
 

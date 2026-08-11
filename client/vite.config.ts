@@ -7,13 +7,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-
-  // Vite varsayilani 5173, ama backend'in CORS ayari yalnizca
-  // http://localhost:3000 ve http://localhost:4200 adreslerine izin veriyor
-  // (SecurityConfig.corsConfigurationSource). 5173'te acilirsa istek koda
-  // hic ulasmadan tarayici tarafindan engellenir ve sebebi ag sekmesinde
-  // "CORS" diye gorunur; kodda hicbir hata olmadigi icin bulmasi zordur.
-  // strictPort: port doluysa sessizce baska porta kaymasin, hata versin.
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'leaflet', 'react-leaflet'],
+  },
   server: {
     port: 3000,
     strictPort: true,

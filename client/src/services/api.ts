@@ -1,62 +1,50 @@
+import { getStoredToken } from "./auth";
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-type LoginData = {
-  email: string;
-  password: string;
+type RequestOptions = RequestInit & {
+  requiresAuth?: boolean;
 };
 
-type RegisterData = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone: string;
-};
-
-async function request<T>(
+export async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestOptions = {},
 ): Promise<T> {
+  const { requiresAuth = false, headers: customHeaders, ...restOptions } = options;
+
+  const headers: Record<string, string> = {
+    ...((restOptions.body && !(restOptions.body instanceof FormData))
+      ? { "Content-Type": "application/json" }
+      : {}),
+    ...(customHeaders as Record<string, string>),
+  };
+
+  const token = getStoredToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else if (requiresAuth) {
+    throw new Error("Bu işlem için giriş yapmalısınız (Token bulunamadı).");
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    ...restOptions,
+    headers,
   });
+
+  if (response.status === 204) {
+    return {} as T;
+  }
 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
     throw new Error(
-      data?.message || data?.error || "İşlem sırasında hata oluştu"
+      data?.message || data?.error || `İşlem sırasında bir hata oluştu (${response.status})`
     );
   }
 
-  return data;
-}
-
-export function login(data: LoginData) {
-  return request("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function register(data: RegisterData) {
-  return request("/api/auth/register", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function getCurrentUser(token: string) {
-  return request("/api/auth/me", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return data as T;
 }
 
 export { API_BASE_URL };
