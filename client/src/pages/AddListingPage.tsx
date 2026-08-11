@@ -91,7 +91,21 @@ type AiAnalysis = {
   breed?: string | null;
   breed_confidence?: number;
   pattern?: string | null;
-  colors?: string[];
+
+  /*
+   * DIKKAT: AI burada renk ADI degil, baskin renklerin RGB degerlerini
+   * donduruyor (orn. { r: 130, g: 130, b: 130, score: 0.8 }). Renklerin
+   * okunabilir adlari `labels` icinde "soft:color_gray" bicimindedir.
+   * Tip eskiden string[] yaziyordu; String(nesne) "[object Object]" verdigi
+   * icin hicbir renk eslesmiyordu.
+   */
+  colors?: Array<{
+    r: number;
+    g: number;
+    b: number;
+    score: number;
+  }>;
+
   model_version?: string;
 };
 
@@ -150,6 +164,15 @@ const AI_PATTERN_MAP: Record<string, CoatPattern> = {
   patched: "PATCHED",
   calico: "CALICO",
   tortoiseshell: "TORTOISESHELL",
+
+  /*
+   * AI "tabby" diyor ve bu kedilerde en sik gorulen desen; listede karsiligi
+   * yoktu, o yuzden tekir kedilerde desen hic dolmuyordu.
+   * ⚠ STRIPED'a baglamak bir YAKLASTIRMA: tabby tam olarak "cizgili" demek
+   * degil, benekli/alacali alt turleri de var. Ayri bir TABBY secenegi
+   * eklemek daha dogru olabilir — karar sizin, PR'da soruldu.
+   */
+  tabby: "STRIPED",
 };
 
 /* -------------------------------------------------------------------------- */
@@ -485,29 +508,37 @@ export default function AddListingPage() {
       );
     }
 
-    if (
-      Array.isArray(analysis.colors)
-    ) {
-      const detectedColors =
-        analysis.colors
-          .map(
-            (color) =>
-              AI_COLOR_MAP[
-                String(color).toLowerCase()
-              ],
-          )
-          .filter(
-            (
-              color,
-            ): color is PetColor =>
-              Boolean(color),
-          );
+    /*
+     * Renkler `colors` alanindan DEGIL `labels`tan okunuyor.
+     * `colors` baskin renklerin RGB degerlerini tasiyor; okunabilir adlar
+     * etiketlerde "soft:color_gray" bicimindedir. Eskiden RGB nesnesi
+     * String()'e verildigi icin "[object Object]" cikiyor ve hicbir renk
+     * eslesmiyordu.
+     */
+    const etiketten = (onek: string) =>
+      (analysis.labels ?? [])
+        .filter((etiket) =>
+          etiket.startsWith(onek),
+        )
+        .map((etiket) =>
+          etiket
+            .slice(onek.length)
+            .toLowerCase(),
+        );
 
-      if (detectedColors.length > 0) {
-        setColors([
-          ...new Set(detectedColors),
-        ]);
-      }
+    const detectedColors = etiketten(
+      "soft:color_",
+    )
+      .map((ad) => AI_COLOR_MAP[ad])
+      .filter(
+        (color): color is PetColor =>
+          Boolean(color),
+      );
+
+    if (detectedColors.length > 0) {
+      setColors([
+        ...new Set(detectedColors),
+      ]);
     }
   };
 
