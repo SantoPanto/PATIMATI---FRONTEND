@@ -22,6 +22,10 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import {
+  API_BASE_URL,
+  getStoredToken,
+} from "../services/auth";
 
 type SelectedImage = {
   id: string;
@@ -62,6 +66,13 @@ export default function FoundPetCreatePage() {
     city: "",
     district: "",
     locationDescription: "",
+    /*
+     * Backend AdCreateRequest latitude/longitude'u @NotNull istiyor.
+     * Konum zaten aliniyordu ama yalniz adres metnine cevrilip
+     * atiliyordu; artik saklaniyor.
+     */
+    latitude: "",
+    longitude: "",
     collarStatus: "UNKNOWN" as CollarStatus,
     collarColor: "",
     collarTagText: "",
@@ -203,6 +214,20 @@ export default function FoundPetCreatePage() {
 
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
+        /*
+         * Koordinati ONCE sakla: ilan icin zorunlu olan bu, adres
+         * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
+         */
+        updateForm(
+          "latitude",
+          String(coords.latitude),
+        );
+
+        updateForm(
+          "longitude",
+          String(coords.longitude),
+        );
+
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&accept-language=tr`,
@@ -279,6 +304,14 @@ export default function FoundPetCreatePage() {
       return "İlçe bilgisini girin.";
     }
 
+    /*
+     * Backend konumu zorunlu tutuyor ve eslestirme mesafeye bakiyor.
+     * Sehir/ilce metni koordinat yerine gecmez.
+     */
+    if (!form.latitude || !form.longitude) {
+      return '"Mevcut konumumu kullan" ile hayvanı bulduğunuz konumu ekleyin.';
+    }
+
     if (!form.description.trim()) {
       return "Hayvan hakkında kısa bir açıklama girin.";
     }
@@ -302,89 +335,142 @@ export default function FoundPetCreatePage() {
 
     setIsSubmitting(true);
 
+    /*
+     * Backend AdCreateRequest bekliyor. Sayfanin topladigi bazi alanlarin
+     * (city / district / locationDescription / condition / foundDate)
+     * backend'de karsiligi YOK; onlari gondermek yerine metin alanlarina
+     * katiyoruz ki kullanicinin yazdigi bilgi kaybolmasin.
+     *
+     * foundDate -> lostDate DEGIL: lostDate yalniz LOST ilanlar icin
+     * anlamli. Bulunma tarihi aciklamaya yaziliyor.
+     */
+    const konumSatiri = [
+      form.city.trim(),
+      form.district.trim(),
+      form.locationDescription.trim(),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+
+    const aciklama = [
+      form.description.trim(),
+      form.foundDate
+        ? `Bulunma tarihi: ${form.foundDate}`
+        : "",
+      konumSatiri ? `Bulunduğu yer: ${konumSatiri}` : "",
+      form.condition.trim()
+        ? `Genel durum: ${form.condition.trim()}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const baslik = `Bulundu: ${
+      form.breed.trim() ||
+      (form.species === "CAT" ? "Kedi" : "Köpek")
+    } — ${form.city.trim() || "konum belirtilmedi"}`;
+
+    const ad = {
+      /*
+       * title backend'de @NotBlank ama formda boyle bir alan yok;
+       * tur + konumdan turetiliyor (150 karakter siniri var).
+       */
+      title: baslik.slice(0, 150),
+      description: aciklama,
+      adType: "FOUND",
+      species: form.species,
+      breed: form.breed.trim(),
+      gender: form.gender,
+      /*
+       * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
+       * metin var. Serbest metin enum'a cevrilemedigi icin renk
+       * aciklamada kaliyor, kume bos gonderiliyor.
+       */
+      colors: [],
+      collarStatus: form.collarStatus,
+      collarTagText: form.collarTagText.trim(),
+      distinctiveMarks: [
+        form.distinctiveMarks.trim(),
+        form.color.trim() ? `Renk: ${form.color.trim()}` : "",
+        form.collarColor.trim()
+          ? `Tasma rengi: ${form.collarColor.trim()}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      latitude: Number(form.latitude),
+      longitude: Number(form.longitude),
+    };
+
+    /*
+     * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor,
+     * yani JSON bir Blob olarak gonderilmeli. Kalip AddListingPage'den
+     * (orada tarayicida uctan uca dogrulandi).
+     */
     const formData = new FormData();
+
+    formData.append(
+      "ad",
+      new Blob([JSON.stringify(ad)], {
+        type: "application/json",
+      }),
+    );
 
     images.forEach((image) => {
       formData.append("images", image.file);
     });
 
-    formData.append("adType", "FOUND");
-    formData.append("species", form.species);
-    formData.append("breed", form.breed);
-    formData.append("gender", form.gender);
-    formData.append("color", form.color);
-    formData.append("foundDate", form.foundDate);
-    formData.append("city", form.city);
-    formData.append("district", form.district);
-
-    formData.append(
-      "locationDescription",
-      form.locationDescription,
-    );
-
-    formData.append(
-      "collarStatus",
-      form.collarStatus,
-    );
-
-    formData.append(
-      "collarColor",
-      form.collarColor,
-    );
-
-    formData.append(
-      "collarTagText",
-      form.collarTagText,
-    );
-
-    formData.append(
-      "distinctiveMarks",
-      form.distinctiveMarks,
-    );
-
-    formData.append(
-      "condition",
-      form.condition,
-    );
-
-    formData.append(
-      "description",
-      form.description,
-    );
-
     try {
-      /*
-        BACKEND HAZIR OLUNCA:
+      const token = getStoredToken();
 
-        const response = await fetch(
-          "http://localhost:8080/api/ads",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem(
-                "token",
-              )}`,
-            },
-            body: formData,
-          },
+      if (!token) {
+        throw new Error(
+          "İlan açmak için giriş yapmalısınız.",
         );
+      }
 
-        if (!response.ok) {
-          throw new Error(
-            "Buldum ilanı oluşturulamadı.",
-          );
-        }
+      const response = await fetch(
+        `${API_BASE_URL}/api/ads`,
+        {
+          method: "POST",
+          body: formData,
 
-        const result = await response.json();
-
-        navigate(`/pet/${result.id}`);
-      */
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1200),
+          /*
+           * Content-Type BILEREK verilmiyor: multipart sinir (boundary)
+           * degerini tarayici uretmeli. Elle yazilirsa Spring parcalari
+           * ayristiramaz.
+           */
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
-      navigate("/listings");
+      const govde = await response.text();
+
+      let sonuc: { id?: number; message?: string; error?: string } | null =
+        null;
+
+      try {
+        sonuc = govde ? JSON.parse(govde) : null;
+      } catch {
+        sonuc = null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          sonuc?.message ||
+            sonuc?.error ||
+            `Buldum ilanı oluşturulamadı (${response.status}).`,
+        );
+      }
+
+      /*
+       * /pet/:id ve /listings su an ekrani olmayan iskelet sayfalar.
+       * Kullaniciyi bos bir sayfaya birakmamak icin ana sayfaya
+       * donuluyor -- AddListingPage de ayni sebeple boyle yapiyor.
+       */
+      navigate("/");
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -549,13 +635,16 @@ export default function FoundPetCreatePage() {
                     }
                     className={inputClass}
                   >
+                    {/*
+                      Yalniz CAT ve DOG: backend Species enum'unda
+                      BIRD/OTHER YOK ve AdCreateRequest bunu ayrica
+                      dogruluyor (@AssertTrue "Species must be CAT or
+                      DOG"). Secenek birakilirsa kullanici formu
+                      doldurup 400 aliyor.
+                    */}
                     <option value="">Tür seç</option>
                     <option value="CAT">Kedi</option>
                     <option value="DOG">Köpek</option>
-                    <option value="BIRD">Kuş</option>
-                    <option value="OTHER">
-                      Diğer
-                    </option>
                   </select>
                 </Field>
 
