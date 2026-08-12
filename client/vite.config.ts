@@ -7,12 +7,19 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+
+  define: {
+    global: 'globalThis',
+  },
+
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
+
   optimizeDeps: {
     include: ['react', 'react-dom', 'leaflet', 'react-leaflet'],
   },
+
   server: {
     port: 3000,
     strictPort: true,
