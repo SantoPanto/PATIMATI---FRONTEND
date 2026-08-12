@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -9,11 +9,13 @@ import AuthRequiredModal from "./Modal";
 type RequireAuthProps = {
   component: ComponentType;
   fallbackPath?: string;
+  mode?: "modal" | "redirect";
 };
 
 export default function RequireAuth({
   component: ProtectedComponent,
   fallbackPath = "/",
+  mode = "modal",
 }: RequireAuthProps) {
   const [, navigate] = useLocation();
   const { isAuthenticated, isAuthLoading } = useAuth();
@@ -32,6 +34,12 @@ export default function RequireAuth({
     );
   }, [navigate]);
 
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated && mode === "redirect") {
+      goToLogin();
+    }
+  }, [goToLogin, isAuthLoading, isAuthenticated, mode]);
+
   if (isAuthLoading) {
     return (
       <div
@@ -45,6 +53,17 @@ export default function RequireAuth({
 
   if (isAuthenticated) {
     return <ProtectedComponent />;
+  }
+
+  if (mode === "redirect") {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+        role="status"
+      >
+        Giriş sayfasına yönlendiriliyor...
+      </div>
+    );
   }
 
   return (
