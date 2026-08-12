@@ -1,32 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { TeamShell, TeamBack } from "../components/TeamUI";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  clearAuthStorage,
+  completeGoogleOAuthCallback,
+} from "../services/auth";
 
 export default function LoginRedirectPage() {
-  const [message, setMessage] = useState("Uygulanıyor...");
+  const [, navigate] = useLocation();
+  const { refreshUser } = useAuth();
+  const [message, setMessage] = useState("Giriş doğrulanıyor...");
+  const callbackHandled = useRef(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    const error = params.get("error");
+    const timeoutId = window.setTimeout(() => {
+      if (callbackHandled.current) return;
 
-    if (token) {
-      localStorage.setItem("token", token);
-      setMessage("Giriş yapıldı. Yönlendiriliyorsunuz...");
-      // remove token from URL to avoid leakage
-      const url = new URL(window.location.href);
-      url.searchParams.delete("token");
-      window.history.replaceState({}, document.title, url.toString());
+      callbackHandled.current = true;
+      const callbackResult = completeGoogleOAuthCallback();
 
-      // short delay so users can see message
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 800);
-    } else if (error) {
-      setMessage(`Giriş sırasında hata: ${error}`);
-    } else {
-      setMessage("Giriş bilgisi bulunamadı.");
-    }
-  }, []);
+      if (callbackResult.status === "none") {
+        setMessage("Giriş bilgisi bulunamadı.");
+        return;
+      }
+
+      if (callbackResult.status === "error") {
+        setMessage(callbackResult.message);
+        return;
+      }
+
+      const finishLogin = async () => {
+        const currentUser = await refreshUser();
+
+        if (!currentUser) {
+          clearAuthStorage();
+          setMessage("Kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.");
+          return;
+        }
+
+        setMessage("Giriş yapıldı. Yönlendiriliyorsunuz...");
+        navigate(callbackResult.redirectPath, { replace: true });
+      };
+
+      void finishLogin();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [navigate, refreshUser]);
 
   return (
     <TeamShell className="screen">

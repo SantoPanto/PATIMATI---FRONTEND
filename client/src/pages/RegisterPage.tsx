@@ -14,9 +14,9 @@ import {
 
 import { useAuth } from "../contexts/AuthContext";
 import {
-  API_BASE_URL,
   register,
   saveAuthResponse,
+  startGoogleOAuth,
 } from "../services/auth";
 
 export default function RegisterPage() {
@@ -182,8 +182,8 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = () => {
-    window.location.href =
-      `${API_BASE_URL}/oauth2/authorization/google`;
+    setErrorMessage("");
+    startGoogleOAuth({ redirectPath: "/", rememberMe: true });
   };
 
   return (

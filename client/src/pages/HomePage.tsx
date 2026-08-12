@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import { startGoogleOAuth } from "../services/auth";
 import Header from "../components/Header";
 import "../App.css";
 import {
@@ -180,18 +181,13 @@ export default function HomePage() {
   ]);
 
   const requireAuth = (targetPath: string) => {
-    if (isAuthenticated) {
-      navigate(targetPath);
-      return;
-    }
-
-    const redirectPath = encodeURIComponent(targetPath);
-    navigate(`/login?redirect=${redirectPath}`);
+    navigate(targetPath);
   };
 
   const toggleFavorite = (listingId: number) => {
     if (!isAuthenticated) {
-      requireAuth(`/pet/${listingId}`);
+      const redirectPath = encodeURIComponent(`/pet/${listingId}`);
+      navigate(`/login?redirect=${redirectPath}`);
       return;
     }
 
@@ -203,8 +199,7 @@ export default function HomePage() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href =
-      "http://localhost:8080/oauth2/authorization/google";
+    startGoogleOAuth({ redirectPath: "/", rememberMe: false });
   };
 
   const getListingStatus = (type: ListingType) => {

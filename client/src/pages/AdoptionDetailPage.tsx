@@ -466,7 +466,7 @@ export default function AdoptionDetailPage() {
 
               <button
                 type="button"
-                onClick={() => navigate("/messages")}
+                onClick={() => navigate("/chat")}
                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
               >
                 <MessageCircle size={19} />
