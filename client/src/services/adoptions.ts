@@ -100,3 +100,15 @@ export function getPublicAdoptions(params?: {
     method: "GET",
   });
 }
+
+/**
+ * Sahiplendirme detayları ortak public ilan detay adresinden gelir.
+ * GET /api/public/ads/{adId} (No Auth)
+ */
+export function getPublicAdoptionById(
+  adId: number,
+): Promise<AdResponse> {
+  return request<AdResponse>(`/api/public/ads/${adId}`, {
+    method: "GET",
+  });
+}

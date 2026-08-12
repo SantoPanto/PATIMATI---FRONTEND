@@ -22,6 +22,7 @@ export default function ChatDetailPage() {
   const { user } = useAuth();
 
   const userId = Number(params?.userId);
+  const hasValidUserId = Number.isFinite(userId);
   const currentUserId = Number(user?.id ?? user?.uid);
 
   const [messages, setMessages] = useState<MessageResponse[]>([]);
@@ -33,11 +34,7 @@ export default function ChatDetailPage() {
 
   // Load conversation history
   useEffect(() => {
-    if (!Number.isFinite(userId)) {
-      setError("Geçersiz kullanıcı.");
-      setLoading(false);
-      return;
-    }
+    if (!hasValidUserId) return;
 
     let cancelled = false;
 
@@ -83,11 +80,11 @@ export default function ChatDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [userId, currentUserId]);
+  }, [userId, currentUserId, hasValidUserId]);
 
   // Connect to STOMP WebSocket
   useEffect(() => {
-    if (!Number.isFinite(userId)) return;
+    if (!hasValidUserId) return;
 
     try {
       connectWebSocket((message) => {
@@ -136,7 +133,7 @@ export default function ChatDetailPage() {
     return () => {
       disconnectWebSocket();
     };
-  }, [userId, currentUserId]);
+  }, [userId, currentUserId, hasValidUserId]);
 
   // Scroll to newest message
   useEffect(() => {
@@ -191,7 +188,9 @@ export default function ChatDetailPage() {
       </header>
 
       <section className="chat-messages">
-        {loading ? (
+        {!hasValidUserId ? (
+          <p>Geçersiz kullanıcı.</p>
+        ) : loading ? (
           <p>Mesajlar yükleniyor...</p>
         ) : error ? (
           <p>{error}</p>

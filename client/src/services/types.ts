@@ -112,7 +112,12 @@ export type AuthResponse = {
 export type AdType = "LOST" | "FOUND" | "ADOPTION";
 export type Species = "CAT" | "DOG";
 export type Gender = "MALE" | "FEMALE" | "UNKNOWN";
-export type AgeGroup = "BABY" | "YOUNG" | "ADULT" | "SENIOR";
+export type AgeGroup =
+  | "BABY"
+  | "YOUNG"
+  | "ADULT"
+  | "SENIOR"
+  | "UNKNOWN";
 export type PetColor =
   | "WHITE"
   | "BLACK"
@@ -181,8 +186,8 @@ export type AdResponse = {
   lostDate?: string;
   distinctiveMarks?: string;
   photoUrls: string[];
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   ownerId: number;
   ownerDisplayName: string;
   active: boolean;

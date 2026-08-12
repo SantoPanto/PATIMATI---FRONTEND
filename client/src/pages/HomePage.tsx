@@ -2,6 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import { startGoogleOAuth } from "../services/auth";
+import { getPublicAds } from "../services/ads";
+import type { AdResponse } from "../services/types";
+import {
+  getAdDetailPath,
+  getAdImage,
+  getAdLocation,
+  getRelativeDate,
+  getSpeciesLabel,
+} from "../utils/adPresentation";
 import Header from "../components/Header";
 import "../App.css";
 import {
@@ -31,65 +40,32 @@ interface PetListing {
   date: string;
   type: ListingType;
   image: string;
+  detailPath: string;
   featured?: boolean;
 }
 
-const listings: PetListing[] = [
-  {
-    id: 1,
-    name: "Luna",
-    animal: "Kedi",
-    breed: "British Shorthair",
-    location: "Nilüfer, Bursa",
-    distance: "1,2 km",
-    date: "Bugün",
-    type: "lost",
-    featured: true,
-    image:
-      "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 2,
-    name: "İsmi bilinmiyor",
-    animal: "Köpek",
-    breed: "Golden Retriever",
-    location: "Osmangazi, Bursa",
-    distance: "2,8 km",
-    date: "2 saat önce",
-    type: "found",
-    image:
-      "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 3,
-    name: "Maviş",
-    animal: "Kuş",
-    breed: "Muhabbet Kuşu",
-    location: "Yıldırım, Bursa",
-    distance: "4,1 km",
-    date: "Dün",
-    type: "lost",
-    image:
-      "https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 4,
-    name: "Tarçın",
-    animal: "Kedi",
-    breed: "Tekir",
-    location: "Görükle, Bursa",
-    distance: "5,3 km",
-    date: "Dün",
-    type: "adoption",
-    image:
-      "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=900&q=85",
-  },
-];
+function toPetListing(ad: AdResponse): PetListing {
+  return {
+    id: ad.id,
+    name: ad.title,
+    animal: getSpeciesLabel(ad.species),
+    breed: ad.breed || "Cins belirtilmemiş",
+    location: getAdLocation(ad),
+    distance: "—",
+    date: getRelativeDate(ad.createdAt),
+    type: ad.adType.toLocaleLowerCase("tr-TR") as ListingType,
+    image: getAdImage(ad),
+    detailPath: getAdDetailPath(ad),
+  };
+}
 
 export default function HomePage() {
   const [, navigate] = useLocation();
 
   const [searchValue, setSearchValue] = useState("");
+  const [listings, setListings] = useState<PetListing[]>([]);
+  const [isListingsLoading, setIsListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -104,6 +80,42 @@ export default function HomePage() {
   const [isLocationLoading, setIsLocationLoading] = useState(false);
 
   const { isAuthenticated, isAuthLoading } = useAuth();
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadListings = async () => {
+      try {
+        setIsListingsLoading(true);
+        setListingsError("");
+        const page = await getPublicAds({ page: 0, size: 12 });
+
+        if (isActive) {
+          setListings(
+            page.content
+              .filter((ad) => ad.active)
+              .map(toPetListing),
+          );
+        }
+      } catch (error) {
+        if (isActive) {
+          setListingsError(
+            error instanceof Error
+              ? error.message
+              : "İlanlar yüklenemedi.",
+          );
+        }
+      } finally {
+        if (isActive) setIsListingsLoading(false);
+      }
+    };
+
+    void loadListings();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isFilterOpen) return;
@@ -140,7 +152,9 @@ export default function HomePage() {
         listing.distance.replace(",", ".").replace(" km", ""),
       );
 
-      const matchesDistance = numericDistance <= maxDistance;
+      const matchesDistance = Number.isFinite(numericDistance)
+        ? numericDistance <= maxDistance
+        : true;
       const matchesFeatured = !onlyFeatured || listing.featured === true;
 
       const normalizedSearch = searchValue
@@ -178,6 +192,7 @@ export default function HomePage() {
     selectedListingTypes,
     maxDistance,
     onlyFeatured,
+    listings,
   ]);
 
   const requireAuth = (targetPath: string) => {
@@ -186,7 +201,10 @@ export default function HomePage() {
 
   const toggleFavorite = (listingId: number) => {
     if (!isAuthenticated) {
-      const redirectPath = encodeURIComponent(`/pet/${listingId}`);
+      const detailPath =
+        listings.find((listing) => listing.id === listingId)?.detailPath ||
+        `/pet/${listingId}`;
+      const redirectPath = encodeURIComponent(detailPath);
       navigate(`/login?redirect=${redirectPath}`);
       return;
     }
@@ -634,7 +652,23 @@ export default function HomePage() {
               </button>
             </div>
 
-            {filteredListings.length > 0 ? (
+            {isListingsLoading ? (
+              <div className="empty-listings" role="status">
+                <span>
+                  <PawPrint size={28} />
+                </span>
+                <h3>İlanlar yükleniyor</h3>
+                <p>Sunucudaki güncel ilanlar getiriliyor...</p>
+              </div>
+            ) : listingsError ? (
+              <div className="empty-listings" role="alert">
+                <span>
+                  <Search size={28} />
+                </span>
+                <h3>İlanlar yüklenemedi</h3>
+                <p>{listingsError}</p>
+              </div>
+            ) : filteredListings.length > 0 ? (
               <div className="pet-listings-grid">
                 {filteredListings.map((listing) => {
                   const isFavorite = favoriteIds.includes(listing.id);
@@ -645,7 +679,7 @@ export default function HomePage() {
                       key={listing.id}
                     >
                       <Link
-                        href={`/pet/${listing.id}`}
+                        href={listing.detailPath}
                         className="pet-listing-card__image"
                       >
                         <img
@@ -711,7 +745,7 @@ export default function HomePage() {
                         </div>
 
                         <Link
-                          href={`/pet/${listing.id}`}
+                          href={listing.detailPath}
                           className="pet-listing-card__button"
                         >
                           İlanı incele

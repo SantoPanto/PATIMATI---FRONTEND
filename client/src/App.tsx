@@ -18,6 +18,7 @@ import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
 import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import MyListingsPage from "./pages/MyListingsPage";
 import AiMatchPage from "./pages/AiMatchPage";
 import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
@@ -26,7 +27,8 @@ import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
-//import ChatDetailPage from "./pages/ChatDetailPage";
+import RequireGuest from "./components/RequireGuest";
+import ChatDetailPage from "./pages/ChatDetailPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
@@ -55,6 +57,10 @@ function ProtectedChatPage() {
   return <RequireAuth component={ChatPage} fallbackPath="/" />;
 }
 
+function ProtectedChatDetailPage() {
+  return <RequireAuth component={ChatDetailPage} fallbackPath="/adoption" />;
+}
+
 function ProtectedAdoptionCreatePage() {
   return (
     <RequireAuth
@@ -62,6 +68,54 @@ function ProtectedAdoptionCreatePage() {
       fallbackPath="/adoption"
     />
   );
+}
+
+function ProtectedProfilePage() {
+  return <RequireAuth component={ProfilePage} mode="redirect" />;
+}
+
+function ProtectedMyListingsPage() {
+  return <RequireAuth component={MyListingsPage} mode="redirect" />;
+}
+
+function ProtectedSettingsPage() {
+  return <RequireAuth component={SettingsPage} mode="redirect" />;
+}
+
+function ProtectedFavoritesPage() {
+  return <RequireAuth component={FavoritesPage} mode="redirect" />;
+}
+
+function ProtectedChangePasswordPage() {
+  return <RequireAuth component={ChangePasswordPage} mode="redirect" />;
+}
+
+function ProtectedAdminDashboardPage() {
+  return <RequireAuth component={AdminDashboardPage} mode="redirect" />;
+}
+
+function ProtectedAdminComplaintsPage() {
+  return <RequireAuth component={AdminComplaintsPage} mode="redirect" />;
+}
+
+function ProtectedAdminListingsPage() {
+  return <RequireAuth component={AdminListingsPage} mode="redirect" />;
+}
+
+function ProtectedAdminUsersPage() {
+  return <RequireAuth component={AdminUsersPage} mode="redirect" />;
+}
+
+function GuestLoginPage() {
+  return <RequireGuest component={LoginPage} />;
+}
+
+function GuestRegisterPage() {
+  return <RequireGuest component={RegisterPage} />;
+}
+
+function GuestForgotPasswordPage() {
+  return <RequireGuest component={ForgotPasswordPage} />;
 }
 
 function App() {
@@ -72,17 +126,17 @@ function App() {
         <Route path="/" component={HomePage} />
 
         {/* Giriş / Kayıt */}
-        <Route path="/login" component={LoginPage} />
-        <Route path="/register" component={RegisterPage} />
+        <Route path="/login" component={GuestLoginPage} />
+        <Route path="/register" component={GuestRegisterPage} />
 
         <Route
           path="/forgot-password"
-          component={ForgotPasswordPage}
+          component={GuestForgotPasswordPage}
         />
 
         <Route
           path="/change-password"
-          component={ChangePasswordPage}
+          component={ProtectedChangePasswordPage}
         />
 
         {/* İlanlar */}
@@ -103,12 +157,14 @@ function App() {
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
+        <Route path="/chat/:userId" component={ProtectedChatDetailPage} />
         <Route path="/chat" component={ProtectedChatPage} />
 
         {/* Kullanıcı */}
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route path="/favorites" component={FavoritesPage} />
+        <Route path="/profile/listings" component={ProtectedMyListingsPage} />
+        <Route path="/profile" component={ProtectedProfilePage} />
+        <Route path="/settings" component={ProtectedSettingsPage} />
+        <Route path="/favorites" component={ProtectedFavoritesPage} />
         {/* Sahiplendirme */}
         <Route
           path="/adoption/create"
@@ -133,16 +189,16 @@ function App() {
           component={AiMatchPage}
         />
         {/* Admin */}
-        <Route path="/admin" component={AdminDashboardPage} />
+        <Route path="/admin" component={ProtectedAdminDashboardPage} />
         <Route
           path="/admin/complaints"
-          component={AdminComplaintsPage}
+          component={ProtectedAdminComplaintsPage}
         />
         <Route
           path="/admin/listings"
-          component={AdminListingsPage}
+          component={ProtectedAdminListingsPage}
         />
-        <Route path="/admin/users" component={AdminUsersPage} />
+        <Route path="/admin/users" component={ProtectedAdminUsersPage} />
 
         {/* Unauthorized */}
         <Route
