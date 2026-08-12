@@ -25,7 +25,7 @@ import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
 import ErrorBoundary from "./components/ErrorBoundary";
-import ChatDetailPage from "./pages/ChatDetailPage";
+//import ChatDetailPage from "./pages/ChatDetailPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
@@ -73,10 +73,10 @@ function App() {
         <Route path="/profile" component={ProfilePage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/favorites" component={FavoritesPage} />
-<Route
+        {/*<Route
     path="/chat/:userId"
     component={ChatDetailPage}
-/>
+*/>}
         {/* Sahiplendirme */}
         <Route
           path="/adoption/create"
