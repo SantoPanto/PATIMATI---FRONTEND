@@ -24,8 +24,7 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { API_BASE_URL } from "../services/api";
-import { getStoredToken } from "../services/auth";
+import { request } from "../services/api";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -745,71 +744,15 @@ export default function AddListingPage() {
       });
 
       /*
-       * Backend JWT ile korunuyor: JwtAuthFilter token'i
-       * "Authorization: Bearer ..." basligindan okuyor, cerezden DEGIL.
-       * Bu baslik olmadan istek 201 yerine 401 doner ve ilan hic olusmaz.
-       * Token'in nerede tutuldugunu tek yer bilsin diye auth.ts'teki
-       * getStoredToken kullaniliyor (localStorage/sessionStorage ayrimi orada).
+       * Merkezi API servisi JWT'yi Authorization başlığına otomatik ekler.
+       * FormData kullanıldığı için Content-Type başlığını tarayıcı boundary
+       * değeriyle birlikte kendisi oluşturur.
        */
-      const token = getStoredToken();
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/ads`,
-        {
-          method: "POST",
-          body: formData,
-
-          headers: token
-            ? { Authorization: `Bearer ${token}` }
-            : undefined,
-
-          /*
-           * Content-Type BILEREK verilmiyor: multipart/form-data'nin
-           * sinir (boundary) degerini tarayici kendisi uretmeli. Elle
-           * yazilirsa boundary eksik kalir ve Spring parcalari ayristiramaz.
-           */
-        },
-      );
-
-      const responseText =
-        await response.text();
-
-      let responseData: AdResponse | null =
-        null;
-
-      try {
-        responseData =
-          responseText
-            ? JSON.parse(responseText)
-            : null;
-      } catch {
-        responseData = null;
-      }
-
-      if (!response.ok) {
-        const backendError =
-          responseData &&
-          typeof responseData === "object"
-            ? (
-                responseData as AdResponse & {
-                  message?: string;
-                  error?: string;
-                }
-              ).message ||
-              (
-                responseData as AdResponse & {
-                  message?: string;
-                  error?: string;
-                }
-              ).error
-            : null;
-
-        throw new Error(
-          backendError ||
-            responseText ||
-            `İlan oluşturulamadı. HTTP ${response.status}`,
-        );
-      }
+      const responseData = await request<AdResponse>("/api/ads", {
+        method: "POST",
+        requiresAuth: true,
+        body: formData,
+      });
 
       console.log(
         "PatiMati listing created:",

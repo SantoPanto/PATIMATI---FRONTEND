@@ -1,46 +1,135 @@
-import { getStoredToken } from "./auth";
+import {
+  clearAuthStorage,
+  getStoredToken,
+} from "./authStorage";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:8080";
 
 type RequestOptions = RequestInit & {
   requiresAuth?: boolean;
 };
 
+export const AUTH_UNAUTHORIZED_EVENT =
+  "patimati:auth-unauthorized";
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly data: unknown;
+
+  constructor(
+    message: string,
+    status: number,
+    data: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
+function getErrorMessage(
+  data: unknown,
+  status: number,
+): string {
+  if (data && typeof data === "object") {
+    const errorData =
+      data as Record<string, unknown>;
+
+    const candidates = [
+      errorData.message,
+      errorData.detail,
+      errorData.error,
+      errorData.title,
+    ];
+
+    const message = candidates.find(
+      (candidate): candidate is string =>
+        typeof candidate === "string" &&
+        candidate.trim().length > 0,
+    );
+
+    if (message) {
+      return message;
+    }
+  }
+
+  return `İşlem sırasında bir hata oluştu (${status})`;
+}
+
+function notifyUnauthorized(): void {
+  clearAuthStorage();
+
+  window.dispatchEvent(
+    new Event(AUTH_UNAUTHORIZED_EVENT),
+  );
+}
+
 export async function request<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { requiresAuth = false, headers: customHeaders, ...restOptions } = options;
+  const {
+    requiresAuth = false,
+    headers: customHeaders,
+    ...restOptions
+  } = options;
 
-  const headers: Record<string, string> = {
-    ...((restOptions.body && !(restOptions.body instanceof FormData))
-      ? { "Content-Type": "application/json" }
-      : {}),
-    ...(customHeaders as Record<string, string>),
-  };
+  const headers = new Headers(customHeaders);
 
-  const token = getStoredToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  } else if (requiresAuth) {
-    throw new Error("Bu işlem için giriş yapmalısınız (Token bulunamadı).");
+  if (
+    restOptions.body &&
+    !(restOptions.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
+    headers.set(
+      "Content-Type",
+      "application/json",
+    );
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...restOptions,
-    headers,
-  });
+  const token = getStoredToken();
+
+  if (token) {
+    headers.set(
+      "Authorization",
+      `Bearer ${token}`,
+    );
+  } else if (requiresAuth) {
+    throw new ApiError(
+      "Bu işlem için giriş yapmalısınız.",
+      401,
+      null,
+    );
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}${endpoint}`,
+    {
+      ...restOptions,
+      headers,
+    },
+  );
 
   if (response.status === 204) {
     return {} as T;
   }
 
-  const data = await response.json().catch(() => null);
+  const data = await response
+    .json()
+    .catch(() => null);
 
   if (!response.ok) {
-    throw new Error(
-      data?.message || data?.error || `İşlem sırasında bir hata oluştu (${response.status})`
+    if (response.status === 401) {
+      notifyUnauthorized();
+    }
+
+    throw new ApiError(
+      getErrorMessage(data, response.status),
+      response.status,
+      data,
     );
   }
 

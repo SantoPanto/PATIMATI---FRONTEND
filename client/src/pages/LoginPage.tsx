@@ -1,8 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
-import { login, saveAuthResponse } from "../services/auth";
+import {
+  clearAuthStorage,
+  completeGoogleOAuthCallback,
+  login,
+  sanitizeRedirectPath,
+  saveAuthResponse,
+  startGoogleOAuth,
+} from "../services/auth";
 import {
   ArrowLeft,
   Eye,
@@ -21,12 +28,53 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const oauthCallbackHandled = useRef(false);
 
   const redirectPath = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("redirect") || "/";
+    return sanitizeRedirectPath(params.get("redirect"), "/");
   }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (oauthCallbackHandled.current) return;
+
+      const callbackResult = completeGoogleOAuthCallback();
+
+      if (callbackResult.status === "none") return;
+
+      oauthCallbackHandled.current = true;
+
+      if (callbackResult.status === "error") {
+        setErrorMessage(callbackResult.message);
+        return;
+      }
+
+      const finishGoogleLogin = async () => {
+        setIsOAuthLoading(true);
+        setErrorMessage("");
+
+        const currentUser = await refreshUser();
+
+        if (!currentUser) {
+          clearAuthStorage();
+          setErrorMessage(
+            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.",
+          );
+          setIsOAuthLoading(false);
+          return;
+        }
+
+        navigate(callbackResult.redirectPath, { replace: true });
+      };
+
+      void finishGoogleLogin();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [navigate, refreshUser]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -66,9 +114,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    setErrorMessage(
-      "Google ile giriş, backend tarafındaki Google API akışı netleşince bağlanacak.",
-    );
+    setErrorMessage("");
+    setIsOAuthLoading(true);
+    startGoogleOAuth({ redirectPath, rememberMe });
   };
 
   const handleGuestContinue = () => {
@@ -180,12 +228,15 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleGoogleLogin}
+              disabled={isLoading || isOAuthLoading}
               className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
             >
               <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-500 text-sm font-extrabold text-white">
                 G
               </span>
-              Google ile giriş yap
+              {isOAuthLoading
+                ? "Google hesabı doğrulanıyor..."
+                : "Google ile giriş yap"}
             </button>
 
             <div className="my-6 flex items-center gap-4">
@@ -284,7 +335,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isOAuthLoading}
                 className="flex h-12 w-full items-center justify-center rounded-xl bg-orange-500 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}

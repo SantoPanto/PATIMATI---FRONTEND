@@ -12,16 +12,19 @@ import {
   clearAuthStorage,
   getCurrentUser,
   getStoredToken,
+  getStoredUser,
   logoutRequest,
   normalizeUser,
+  saveStoredUser,
 } from "../services/auth";
 import type { AuthUser } from "../services/auth";
+import { AUTH_UNAUTHORIZED_EVENT } from "../services/api";
 
 type AuthContextType = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
   updateUser: (updatedUser: AuthUser) => void;
   logout: () => Promise<void>;
 };
@@ -29,17 +32,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function getInitialStoredUser(): AuthUser | null {
-  try {
-    const storedUserJson =
-      localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUserJson) {
-      const parsed = JSON.parse(storedUserJson);
-      return normalizeUser(parsed);
-    }
-  } catch {
-    // Graceful fallback on JSON parse error
-  }
-  return null;
+  if (!getStoredToken()) return null;
+  return normalizeUser(getStoredUser());
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -50,13 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalized = normalizeUser(updatedUser);
     setUser(normalized);
 
-    const isLocalStorage = Boolean(
-      localStorage.getItem("accessToken") || localStorage.getItem("token"),
-    );
-    const storage = isLocalStorage ? localStorage : sessionStorage;
-
     if (normalized) {
-      storage.setItem("user", JSON.stringify(normalized));
+      saveStoredUser(normalized);
     }
   }, []);
 
@@ -66,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) {
       setUser(null);
       setIsAuthLoading(false);
-      return;
+      return null;
     }
 
     try {
@@ -75,32 +64,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalized);
 
-      const storage =
-        localStorage.getItem("accessToken") || localStorage.getItem("token")
-          ? localStorage
-          : sessionStorage;
-
       if (normalized) {
-        storage.setItem("user", JSON.stringify(normalized));
+        saveStoredUser(normalized);
       }
+
+      return normalized;
     } catch (error) {
       console.error("Kullanıcı oturumu doğrulanamadı:", error);
-
-      if (
-        error instanceof Error &&
-        (error.message.includes("401") || error.message.includes("403"))
-      ) {
-        clearAuthStorage();
-        setUser(null);
-      }
+      setUser(null);
+      return null;
     } finally {
       setIsAuthLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void refreshUser();
+    const timeoutId = window.setTimeout(() => {
+      void refreshUser();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [refreshUser]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setIsAuthLoading(false);
+    };
+
+    window.addEventListener(
+      AUTH_UNAUTHORIZED_EVENT,
+      handleUnauthorized,
+    );
+
+    return () => {
+      window.removeEventListener(
+        AUTH_UNAUTHORIZED_EVENT,
+        handleUnauthorized,
+      );
+    };
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -116,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextType>(
     () => ({
       user,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user && getStoredToken()),
       isAuthLoading,
       refreshUser,
       updateUser,
@@ -132,6 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// AuthProvider ve useAuth aynı modülde tutulduğu için Fast Refresh uyarısını
+// yalnızca bu hook dışa aktarımı için kapatıyoruz.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
