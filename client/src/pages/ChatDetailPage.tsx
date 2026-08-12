@@ -3,7 +3,11 @@ import { useRoute } from "wouter";
 
 import { TeamBack, TeamShell } from "../components/TeamUI";
 
-import { getMessageHistory } from "../services/messages";
+import {
+  getMessageHistory,
+  markMessageAsRead,
+} from "../services/messages";
+
 import {
   connectWebSocket,
   disconnectWebSocket,
@@ -19,21 +23,38 @@ export default function ChatDetailPage() {
 
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadMessages() {
-      const page = await getMessageHistory(userId);
+      try {
+        const page = await getMessageHistory(userId);
 
-      setMessages(page.content.reverse());
+        const history = [...page.content].reverse();
+
+        setMessages(history);
+
+        history.forEach((message) => {
+          if (!message.isRead) {
+            markMessageAsRead(message.id).catch(console.error);
+          }
+        });
+      } catch (error) {
+        console.error("Mesajlar yüklenemedi:", error);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    loadMessages();
+    if (!isNaN(userId)) {
+      loadMessages();
+    }
   }, [userId]);
 
   useEffect(() => {
-    const client = connectWebSocket((message) => {
+    connectWebSocket((message) => {
       setMessages((prev) => [...prev, message]);
     });
 
@@ -49,47 +70,81 @@ export default function ChatDetailPage() {
   }, [messages]);
 
   function handleSend() {
-    if (!text.trim()) return;
+    const content = text.trim();
 
-    sendMessage(userId, text);
+    if (!content) return;
 
-    setText("");
+    try {
+      sendMessage(userId, content);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          senderId: 0,
+          senderName: "Ben",
+          recipientId: userId,
+          recipientName: "",
+          content,
+          timestamp: new Date().toISOString(),
+          isRead: false,
+        },
+      ]);
+
+      setText("");
+    } catch (error) {
+      console.error("Mesaj gönderilemedi:", error);
+    }
   }
 
   return (
-    <TeamShell>
-
+    <TeamShell className="screen">
       <header className="center-header">
         <TeamBack href="/chat" />
         <h1>Sohbet</h1>
       </header>
 
-      <div className="chat-messages">
+      <section className="chat-messages">
+        {loading ? (
+          <p>Mesajlar yükleniyor...</p>
+        ) : messages.length === 0 ? (
+          <p>Henüz mesaj bulunmuyor.</p>
+        ) : (
+          messages.map((message) => (
+            <div
+              key={message.id}
+              className="chat-message"
+            >
+              <strong>{message.senderName}</strong>
 
-        {messages.map((message) => (
-          <div key={message.id}>
-            {message.content}
-          </div>
-        ))}
+              <p>{message.content}</p>
+
+              <small>
+                {new Date(message.timestamp).toLocaleTimeString()}
+              </small>
+            </div>
+          ))
+        )}
 
         <div ref={bottomRef} />
-
-      </div>
+      </section>
 
       <footer className="chat-input">
-
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSend();
+            }
+          }}
           placeholder="Mesaj yaz..."
         />
 
         <button onClick={handleSend}>
           Gönder
         </button>
-
       </footer>
-
     </TeamShell>
   );
 }
