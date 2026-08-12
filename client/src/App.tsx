@@ -25,7 +25,7 @@ import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
 import ErrorBoundary from "./components/ErrorBoundary";
-
+import ChatDetailPage from "./pages/ChatDetailPage";
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
@@ -68,7 +68,10 @@ function App() {
         <Route path="/profile" component={ProfilePage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/favorites" component={FavoritesPage} />
-
+<Route
+    path="/chat/:userId"
+    component={ChatDetailPage}
+/>
         {/* Sahiplendirme */}
         <Route
           path="/adoption/create"
