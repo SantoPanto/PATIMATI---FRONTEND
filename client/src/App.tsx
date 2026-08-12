@@ -25,12 +25,45 @@ import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
 import ErrorBoundary from "./components/ErrorBoundary";
+import RequireAuth from "./components/RequireAuth";
 //import ChatDetailPage from "./pages/ChatDetailPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
+
+function ProtectedAddListingPage() {
+  return (
+    <RequireAuth
+      component={AddListingPage}
+      fallbackPath="/listings"
+    />
+  );
+}
+
+function ProtectedFoundPetCreatePage() {
+  return (
+    <RequireAuth
+      component={FoundPetCreatePage}
+      fallbackPath="/listings"
+    />
+  );
+}
+
+function ProtectedChatPage() {
+  return <RequireAuth component={ChatPage} fallbackPath="/" />;
+}
+
+function ProtectedAdoptionCreatePage() {
+  return (
+    <RequireAuth
+      component={AdoptionCreatePage}
+      fallbackPath="/adoption"
+    />
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
@@ -54,33 +87,32 @@ function App() {
 
         {/* İlanlar */}
         <Route path="/listings" component={ListingsPage} />
-        <Route path="/add-listing" component={AddListingPage} />
+        <Route
+          path="/add-listing"
+          component={ProtectedAddListingPage}
+        />
         <Route path="/pet/:id" component={PetDetailPage} />
 
         {/* Buldum İlanı */}
         <Route
           path="/found/create"
-          component={FoundPetCreatePage}
+          component={ProtectedFoundPetCreatePage}
         />
         <Route path="/about" component={AboutPage} />
         <Route path="/safety" component={SafetyPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
-        <Route path="/chat" component={ChatPage} />
+        <Route path="/chat" component={ProtectedChatPage} />
 
         {/* Kullanıcı */}
         <Route path="/profile" component={ProfilePage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/favorites" component={FavoritesPage} />
-        {/*<Route
-    path="/chat/:userId"
-    component={ChatDetailPage}
-*/>}
         {/* Sahiplendirme */}
         <Route
           path="/adoption/create"
-          component={AdoptionCreatePage}
+          component={ProtectedAdoptionCreatePage}
         />
 
         <Route
@@ -100,14 +132,23 @@ function App() {
           path="/ai-match"
           component={AiMatchPage}
         />
-{/* Admin */}
-<Route path="/admin" component={AdminDashboardPage} />
-<Route path="/admin/complaints" component={AdminComplaintsPage} />
-<Route path="/admin/listings" component={AdminListingsPage} />
-<Route path="/admin/users" component={AdminUsersPage} />
+        {/* Admin */}
+        <Route path="/admin" component={AdminDashboardPage} />
+        <Route
+          path="/admin/complaints"
+          component={AdminComplaintsPage}
+        />
+        <Route
+          path="/admin/listings"
+          component={AdminListingsPage}
+        />
+        <Route path="/admin/users" component={AdminUsersPage} />
 
-{/* Unauthorized */}
-<Route path="/unauthorized" component={UnauthorizedPage} />
+        {/* Unauthorized */}
+        <Route
+          path="/unauthorized"
+          component={UnauthorizedPage}
+        />
         {/* 404 */}
         <Route component={NotFound} />
       </Switch>
