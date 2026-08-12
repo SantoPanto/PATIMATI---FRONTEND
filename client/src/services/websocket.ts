@@ -1,5 +1,5 @@
 import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
+import SockJS from "sockjs-client/dist/sockjs.js";
 
 import { API_BASE_URL } from "./api";
 import { getStoredToken } from "./auth";
