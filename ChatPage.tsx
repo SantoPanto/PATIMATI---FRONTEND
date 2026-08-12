@@ -1,10 +1,26 @@
 import { MessageCirclePlus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { TeamLogo, TeamShell } from "../components/TeamUI";
-import { chatThreads } from "../data/mockData";
+import { useEffect } from "react";
+import { Link } from "wouter";
+import { getUserList } from "../services/auth";
+import type { UserResponseDTO } from "../services/types";
 
 export default function ChatPage() {
-  const [query, setQuery] = useState("");
+const [query, setQuery] = useState("");
+const [users, setUsers] = useState<UserResponseDTO[]>([]);
+ useEffect(() => {
+    async function loadUsers() {
+      try {
+        const data = await getUserList();
+        setUsers(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadUsers();
+  }, []);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
