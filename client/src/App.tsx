@@ -26,6 +26,11 @@ import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ChatDetailPage from "./pages/ChatDetailPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminComplaintsPage from "./pages/AdminComplaintsPage";
+import AdminListingsPage from "./pages/AdminListingsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
@@ -95,7 +100,14 @@ function App() {
           path="/ai-match"
           component={AiMatchPage}
         />
+{/* Admin */}
+<Route path="/admin" component={AdminDashboardPage} />
+<Route path="/admin/complaints" component={AdminComplaintsPage} />
+<Route path="/admin/listings" component={AdminListingsPage} />
+<Route path="/admin/users" component={AdminUsersPage} />
 
+{/* Unauthorized */}
+<Route path="/unauthorized" component={UnauthorizedPage} />
         {/* 404 */}
         <Route component={NotFound} />
       </Switch>
