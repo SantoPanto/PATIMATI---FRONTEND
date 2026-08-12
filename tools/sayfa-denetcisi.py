@@ -102,19 +102,84 @@ def rotalari_oku(app_tsx):
 # --------------------------------------------------------------------------
 
 URL_KALIBI = re.compile(r"""["'`]([^"'`]*?/(?:api|oauth2|analyze)[^"'`]*)["'`]""")
-# sablon degiskeni ${API_BASE_URL} olan yollari da yakalayabilmek icin
-# once ${...} ifadelerini temizleyecegiz.
+
+
+def sablon_yerine_koy(metin):
+    """`${...}` ifadelerini {p} ile degistirir; ic ice suslu parantezi sayar.
+
+    ONEMLI -- eskiden bu ifadeler SILINIYORDU. `${API_BASE_URL}/api/ads` icin
+    dogru sonuc veriyordu, ama parametre YOLUN ORTASINDA gecen adresleri
+    bozuyordu:
+        `/api/messages/${messageId}/read`  ->  /api/messages//read
+    Bu, backend sablonu `/api/messages/{messageId}/read` ile ESLESMIYOR; iki
+    mesaj ucu bu yuzden "hicbir sayfa cagirmiyor" gorunuyordu -- yanlis
+    sebeple dogru sonuc. Ucuncu mesaj ucu (`/api/messages/unread-count`) duz
+    dizgiyle yazildigi icin yakalaniyordu ve "cagriliyor" sanildi. Bu iki
+    kusur birbirini gizliyordu; ikisi birlikte duzeltilmeli.
+    """
+    sonuc = []
+    i, n = 0, len(metin)
+    while i < n:
+        if metin[i:i + 2] == "${":
+            derinlik, j = 1, i + 2
+            while j < n and derinlik:
+                if metin[j] == "{":
+                    derinlik += 1
+                elif metin[j] == "}":
+                    derinlik -= 1
+                j += 1
+            sonuc.append("{p}")
+            i = j
+            continue
+        sonuc.append(metin[i])
+        i += 1
+    return "".join(sonuc)
+
+
+def uc_topla(metin):
+    """(fiil, yol) ciftleri dondurur.
+
+    Fiil neden gerekli: denetci once yalniz YOLA bakiyordu. AddListingPage
+    `/api/ads`e POST atiyor diye ayni yoldaki **GET /api/ads** de "cagriliyor"
+    sayiliyordu -- oysa ilan listesini ceken tek bir sayfa yok (/listings
+    uc satirlik iskelet). Ayni yolda farkli fiil = farkli uc.
+
+    Fiil, adresten sonraki secenek nesnesinde aranir. Bulunamazsa GET'tir:
+    `fetch(url)` ve `request(endpoint)` (api.ts:31 restOptions'i oldugu gibi
+    fetch'e geciriyor) metot verilmediginde GET yapar.
+    """
+    temiz = sablon_yerine_koy(metin)
+    eslesmeler = list(URL_KALIBI.finditer(temiz))
+    bulunan = set()
+    for i, m in enumerate(eslesmeler):
+        y = m.group(1)
+        # Goreli ITHAL yolu adres degildir: import { API_BASE_URL } from
+        # "../services/api" -> icinde "/api" geciyor diye cagri sayiliyordu.
+        # Burada zararsizdi (tek basina "/api" hicbir uc degil) ama
+        # "../services/api/ads" gibi bir yol gercek bir uc uydururdu.
+        if y.startswith("."):
+            continue
+        # Yolun basindaki her seyi (host, ${API_BASE_URL} yerine gecen {p}) at.
+        bas = re.search(r"/(?:api|oauth2|analyze)", y)
+        if not bas:
+            continue
+        y = y[bas.start():].split("?")[0].rstrip("/")
+        # Bosluk iceren yakalama URL degil duz metindir ("GET /api/ads" gibi
+        # bir belge satiri). Cagri sayilmamali.
+        if not y.startswith("/") or re.search(r"\s", y):
+            continue
+        # Fiili bir sonraki adrese kadarki pencerede ara ki komsu cagrinin
+        # metodu buraya sizmasin.
+        son = eslesmeler[i + 1].start() if i + 1 < len(eslesmeler) else len(temiz)
+        pencere = temiz[m.end():min(son, m.end() + 400)]
+        fiil = re.search(r"""method\s*:\s*["']([A-Za-z]+)["']""", pencere)
+        bulunan.add(((fiil.group(1).upper() if fiil else "GET"), y))
+    return bulunan
+
 
 def url_topla(metin):
-    temiz = re.sub(r"\$\{[^}]*\}", "", metin)
-    bulunan = set()
-    for m in URL_KALIBI.finditer(temiz):
-        y = m.group(1)
-        y = re.sub(r"^https?://[^/]+", "", y)          # host'u at
-        y = y.split("?")[0].rstrip("/")
-        if y.startswith("/"):
-            bulunan.add(y)
-    return bulunan
+    """Yalniz adresler -- sayfa siniflandirmasi (CALISIYOR/TASLAK) icin."""
+    return {y for _, y in uc_topla(metin)}
 
 
 def servis_uclari(src_dizin):
@@ -132,12 +197,14 @@ def servis_uclari(src_dizin):
         if not d.endswith((".ts", ".tsx")):
             continue
         kod, _ = ayikla(oku(os.path.join(dizin, d)))
-        # fonksiyonu bir sonraki "export function" / dosya sonuna kadar al
-        parcalar = re.split(r"(?=export\s+(?:async\s+)?function\s+\w+)", kod)
-        for p in parcalar:
-            ad = re.search(r"export\s+(?:async\s+)?function\s+(\w+)", p)
+        # fonksiyonu bir sonraki disa acilan tanima / dosya sonuna kadar al.
+        # Iki bicim de taniniyor: "export function f" ve "export const f = ".
+        bolen = r"(?=export\s+(?:async\s+)?function\s+\w+|export\s+const\s+\w+\s*[:=])"
+        for p in re.split(bolen, kod):
+            ad = re.search(
+                r"export\s+(?:async\s+)?function\s+(\w+)|export\s+const\s+(\w+)\s*[:=]", p)
             if ad:
-                harita[ad.group(1)] = url_topla(p)
+                harita[ad.group(1) or ad.group(2)] = uc_topla(p)
     return harita
 
 
@@ -167,7 +234,8 @@ def sayfayi_incele(dosya_yolu, servisler=None):
     # servis katmani uzerinden gidilen uclari da say
     for ad in re.findall(r'import\s*\{([^}]*)\}\s*from\s*"\.\./services/', kod):
         for parca in ad.split(","):
-            kendi_ucumuz |= (servisler or {}).get(parca.strip(), set())
+            # servis haritasi (fiil, yol) tutuyor; burada yalniz yol gerekli
+            kendi_ucumuz |= {y for _, y in (servisler or {}).get(parca.strip(), set())}
 
     dis_servis = bool(re.search(r"nominatim|openstreetmap", kod))
 
@@ -225,13 +293,94 @@ def backend_uclari(backend_depo):
     return uclar
 
 
+def erisilebilir_dosyalar(src_dizin):
+    """App.tsx'ten baslayip ithal grafigini izleyerek gercekten YUKLENEN
+    dosyalari bulur. `services/` altina BILEREK girilmez -- servis dosyalari
+    fonksiyon duzeyinde degerlendirilir (asagiya bak).
+    """
+    baslangic = os.path.join(src_dizin, "App.tsx")
+    if not os.path.exists(baslangic):
+        return set()
+
+    def coz(kaynak_dosya, hedef):
+        taban = os.path.dirname(kaynak_dosya)
+        aday = os.path.normpath(os.path.join(taban, hedef))
+        for ek in (".tsx", ".ts", "/index.tsx", "/index.ts", ""):
+            if os.path.isfile(aday + ek):
+                return os.path.normpath(aday + ek)
+        return None
+
+    gorulen, kuyruk = set(), [os.path.normpath(baslangic)]
+    while kuyruk:
+        dosya = kuyruk.pop()
+        if dosya in gorulen:
+            continue
+        gorulen.add(dosya)
+        kod, _ = ayikla(oku(dosya))
+        for hedef in re.findall(r'from\s+"(\.[^"]+)"', kod):
+            # servis katmani disarida: "ithal edildi" ile "cagrildi" ayri seyler
+            if "/services/" in hedef.replace("\\", "/") or hedef.endswith("/services"):
+                continue
+            coz_ = coz(dosya, hedef)
+            if coz_ and coz_ not in gorulen:
+                kuyruk.append(coz_)
+    return gorulen
+
+
+def cagrilan_uclar(src_dizin, servisler):
+    """Bir SAYFANIN gercekten cagirdigi uclar.
+
+    🔴 OLCUT DUZELTMESI (Faz 4). Onceki surum `src/` altindaki BUTUN .ts/.tsx
+    dosyalarini tarayip URL metnini gorunce "cagriliyor" diyordu. Bu, servis
+    katmanini "cagiran" saymak demek: `services/messages.ts` uc ucu da yazmis
+    ama HICBIR sayfa onu ithal etmiyor -- yine de "cagriliyor" gorunuyordu.
+    Ayni sekilde yorum satirindaki bir adres de cagri sayiliyordu.
+
+    Dogru olcut iki kollu:
+      (a) erisilebilir bir sayfa/bilesen/context'in KODUNDA gecen adresler,
+      (b) o dosyalarin servis katmanindan ithal ETTIGI **ve** CAGIRDIGI
+          fonksiyonlarin adresleri.
+    Yorumlar hicbir kolda sayilmaz.
+    """
+    cagrilan = set()
+    for dosya in erisilebilir_dosyalar(src_dizin):
+        kod, _ = ayikla(oku(dosya))
+        cagrilan |= uc_topla(kod)                                     # (a)
+        for kume in re.findall(r'import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*"[^"]*services[^"]*"', kod):
+            for parca in kume.split(","):
+                # "x as y" biciminde cagri yerel adla yapilir
+                parcalar = parca.strip().split()
+                kaynak_ad = parcalar[0] if parcalar else ""
+                yerel_ad = parcalar[-1] if parcalar else ""
+                if kaynak_ad not in servisler:
+                    continue
+                # ithal etmek yetmez: gercekten CAGRILIYOR mu?
+                if re.search(r"\b" + re.escape(yerel_ad) + r"\s*\(", kod):
+                    cagrilan |= servisler[kaynak_ad]                  # (b)
+    return cagrilan
+
+
 def uc_var_mi(yol, uclar):
     """Frontend'in cagirdigi yolu backend sablonuyla esler ({id} <-> 123)."""
     for u in uclar:
-        sablon = re.sub(r"\{[^}]+\}", r"[^/]+", u["yol"])
-        if re.fullmatch(sablon, yol):
+        if yol_eslesir_mi(u["yol"], yol):
             return u
     return None
+
+
+def yol_eslesir_mi(backend_yolu, cagrilan_yol):
+    return bool(re.fullmatch(
+        re.sub(r"\{[^}]+\}", r"[^/]+", backend_yolu), cagrilan_yol))
+
+
+def uc_cagriliyor_mu(u, cagrilan):
+    """Bir backend ucunu bir sayfa cagiriyor mu -- FIIL de esleserek.
+
+    Yalniz yola bakmak yetmiyordu: AddListingPage `/api/ads`e POST atiyor diye
+    **GET /api/ads** de cagriliyor sayiliyordu. Ilan listesini ceken sayfa yok.
+    """
+    return any(fiil == u["fiil"] and yol_eslesir_mi(u["yol"], yol)
+               for fiil, yol in cagrilan)
 
 
 def ai_uclari(ai_depo):
@@ -404,22 +553,17 @@ def main():
     erisilemeyen = erisilemeyen_sayfalar(a.frontend, src, rotalar)
     bilesen_listesi = bilesenler(src)
 
-    # --- hicbir yerden cagrilmayan backend uclari -------------------------
+    # --- hicbir SAYFANIN cagirmadigi backend uclari ------------------------
     #
-    # DIKKAT: yalniz sayfalara bakmak YETMEZ. /api/auth/me ve /api/auth/logout
-    # sayfalardan degil AuthContext uzerinden, servis katmani araciligiyla
-    # cagriliyor. Ilk surumde yalniz rotalar taraniyordu ve bu ikisi "hic
-    # cagrilmiyor" diye yanlis raporlandi -- oysa tarayici ag kaydinda
-    # bizzat gorulmustu. Bu yuzden src/ altindaki TUM dosyalar taraniyor.
-    cagrilan = set()
-    for dizin, _, dosyalar in os.walk(src):
-        for d in dosyalar:
-            if d.endswith((".ts", ".tsx")):
-                kod, yorum = ayikla(oku(os.path.join(dizin, d)))
-                cagrilan |= url_topla(kod) | url_topla(yorum)
-    cagrilmayan = [u for u in uclar if not any(
-        re.fullmatch(re.sub(r"\{[^}]+\}", r"[^/]+", u["yol"]), c) for c in cagrilan
-    )]
+    # Iki yanlisi da yapmamak gerekiyor:
+    #  - yalniz sayfa dosyalarina bakmak AZ: /api/auth/me sayfadan degil
+    #    AuthContext -> services/auth uzerinden cagriliyor, tarayicida
+    #    bizzat gorulmustu;
+    #  - src/ altindaki her dosyaya bakmak COK: hicbir yerden ithal edilmeyen
+    #    bir servis dosyasindaki adres de "cagriliyor" sayiliyordu.
+    # Dogrusu erisilebilirlik + gercek cagri: cagrilan_uclar().
+    cagrilan = cagrilan_uclar(src, servisler)
+    cagrilmayan = [u for u in uclar if not uc_cagriliyor_mu(u, cagrilan)]
 
     # --- damga: hangi commit olculdu --------------------------------------
     damga = {
@@ -594,12 +738,56 @@ def sinav(rotalar, kirik, uclar, erisilemeyen, cagrilmayan):
     print("  [{}] kokte dolu / icerde iskelet ciftleri yakalandi ({} adet)".format(
         "OK" if ok else "HATA", len(ikili)))
 
-    # /api/auth/me AuthContext uzerinden cagriliyor; "hic cagrilmiyor"
-    # listesine DUSMEMELI (ilk surumde dusuyordu).
+    # --- "cagriliyor" olcutu: iki yonlu cipa -------------------------------
+    # Bu dort vaka birlikte anlamli. Ikisi olcutun COK GENIS, ikisi COK DAR
+    # olmadigini pinliyor; biri tek basina duzeltilirse digeri duser.
+
+    # (1) /api/auth/me AuthContext -> services/auth uzerinden GERCEKTEN
+    #     cagriliyor (tarayicida her sayfada goruldu). Listeye DUSMEMELI.
     ok = not any(u["yol"] == "/api/auth/me" for u in cagrilmayan)
     gecti += ok; kalan += (not ok)
     print("  [{}] /api/auth/me cagriliyor sayiliyor (servis katmani izlendi)".format(
         "OK" if ok else "HATA"))
+
+    # (2) POST /api/ads: AddListingPage dogrudan cagiriyor, tarayicida 201
+    #     alindi (Faz 2). Listeye DUSMEMELI.
+    ok = not any(u["yol"] == "/api/ads" and u["fiil"] == "POST" for u in cagrilmayan)
+    gecti += ok; kalan += (not ok)
+    print("  [{}] POST /api/ads cagriliyor sayiliyor (sayfada dogrudan)".format(
+        "OK" if ok else "HATA"))
+
+    # (2b) AYNI YOL, FARKLI FIIL: ilan listesini ceken sayfa yok (/listings
+    #      uc satirlik iskelet, Faz 1-2'de tarayicida dogrulandi). Yalniz
+    #      yola bakan eski surum bunu POST yuzunden "cagriliyor" saniyordu.
+    ok = any(u["yol"] == "/api/ads" and u["fiil"] == "GET" for u in cagrilmayan)
+    gecti += ok; kalan += (not ok)
+    print("  [{}] GET /api/ads cagrilmiyor (ayni yola POST var, fiil ayirt edildi)".format(
+        "OK" if ok else "HATA"))
+
+    # (3) /api/messages/unread-count: services/messages.ts yazmis ama hicbir
+    #     sayfa o dosyayi ithal etmiyor. DUZ DIZGI oldugu icin eski surum
+    #     "cagriliyor" saniyordu -- olcut hatasinin ta kendisi.
+    ok = any(u["yol"] == "/api/messages/unread-count" for u in cagrilmayan)
+    gecti += ok; kalan += (not ok)
+    print("  [{}] /api/messages/unread-count cagrilmiyor (duz dizgi tuzagi)".format(
+        "OK" if ok else "HATA"))
+
+    # (4) /api/messages/history/{otherUserId}: ayni dosyada ama SABLON
+    #     dizgisiyle kurulu. Yalniz sablon duzeltilseydi "cagriliyor"a
+    #     donusurdu; erisilebilirlik olcutu onu da tutuyor.
+    ok = any(u["yol"] == "/api/messages/history/{otherUserId}" for u in cagrilmayan)
+    gecti += ok; kalan += (not ok)
+    print("  [{}] /api/messages/history/{{otherUserId}} cagrilmiyor (sablon tuzagi)".format(
+        "OK" if ok else "HATA"))
+
+    # (5) sablon dizgisi birim sinavi: yolun ORTASINDAKI parametre eskiden
+    #     adresi bozuyordu (/api/messages//read). Artik backend sablonuyla
+    #     eslesmeli.
+    uretilen = url_topla('request(`${API_BASE_URL}/api/messages/${messageId}/read`)')
+    ok = any(uc_var_mi(y, uclar) is not None for y in uretilen)
+    gecti += ok; kalan += (not ok)
+    print("  [{}] sablon dizgisi cozuluyor: {} -> backend sablonuyla eslesti".format(
+        "OK" if ok else "HATA", sorted(uretilen) or "(hicbir sey)"))
 
     print("\nSINAV: {} gecti, {} kaldi".format(gecti, kalan))
     if kalan:
