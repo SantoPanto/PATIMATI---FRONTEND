@@ -22,11 +22,17 @@ const [users, setUsers] = useState<UserResponseDTO[]>([]);
     loadUsers();
   }, []);
 
-  const filtered = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    if (!search) return chatThreads;
-    return chatThreads.filter((thread) => `${thread.name} ${thread.preview}`.toLowerCase().includes(search));
-  }, [query]);
+ const filtered = useMemo(() => {
+  const search = query.trim().toLowerCase();
+
+  if (!search) return users;
+
+  return users.filter((user) =>
+    `${user.firstName} ${user.lastName} ${user.email}`
+      .toLowerCase()
+      .includes(search)
+  );
+}, [query, users]);
 
   return (
     <TeamShell className="screen">
