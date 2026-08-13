@@ -58,6 +58,7 @@ function formatDate(value?: string) {
 }
 
 export default function ListingsPage() {
+  console.log("LISTINGS PAGE RENDERED");
   const [listings, setListings] = useState<AdResponse[]>([]);
 
   const [page, setPage] = useState(0);
