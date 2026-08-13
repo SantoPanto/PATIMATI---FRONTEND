@@ -1,129 +1,181 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   ChevronLeft,
   ChevronRight,
   Heart,
   MapPin,
+  PawPrint,
   Search,
   SlidersHorizontal,
   X,
 } from "lucide-react";
 
 import Header from "../components/Header";
+import "../App.css";
+
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
 
-type FilterType = "all" | AdType;
-type SpeciesFilter = "ALL" | "CAT" | "DOG";
+type FilterType = "ALL" | AdType;
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 12;
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=900&q=85";
-
-const AD_TYPE_LABELS: Record<AdType, string> = {
-  LOST: "Kayıp",
-  FOUND: "Bulunan",
-  ADOPTION: "Sahiplendirme",
-};
-
-const SPECIES_LABELS: Record<string, string> = {
-  CAT: "Kedi",
-  DOG: "Köpek",
-};
-
-function getAdTypeClass(type: AdType) {
-  return type.toLowerCase();
+function getListingStatus(adType: AdType) {
+  switch (adType) {
+    case "LOST":
+      return "Kayıp";
+    case "FOUND":
+      return "Bulunan";
+    case "ADOPTION":
+      return "Sahiplendirme";
+    default:
+      return "İlan";
+  }
 }
 
-function getSpeciesLabel(species: string) {
-  return SPECIES_LABELS[species] ?? species;
+function getListingStatusClass(adType: AdType) {
+  switch (adType) {
+    case "LOST":
+      return "listing-status--lost";
+    case "FOUND":
+      return "listing-status--found";
+    case "ADOPTION":
+      return "listing-status--adoption";
+    default:
+      return "";
+  }
 }
 
-function formatDate(value?: string) {
-  if (!value) return "";
+function getSpeciesLabel(species: AdResponse["species"]) {
+  switch (species) {
+    case "CAT":
+      return "Kedi";
+    case "DOG":
+      return "Köpek";
+    default:
+      return species;
+  }
+}
 
-  const date = new Date(value);
+function getGenderLabel(gender: AdResponse["gender"]) {
+  switch (gender) {
+    case "MALE":
+      return "Erkek";
+    case "FEMALE":
+      return "Dişi";
+    default:
+      return "Bilinmiyor";
+  }
+}
 
-  if (Number.isNaN(date.getTime())) {
+function getRelativeDate(date: string) {
+  const created = new Date(date);
+
+  if (Number.isNaN(created.getTime())) {
     return "";
   }
 
-  return new Intl.DateTimeFormat("tr-TR", {
+  const now = Date.now();
+  const difference = Math.max(0, now - created.getTime());
+
+  const minutes = Math.floor(difference / 60000);
+  const hours = Math.floor(difference / 3600000);
+  const days = Math.floor(difference / 86400000);
+
+  if (minutes < 1) return "Az önce";
+  if (minutes < 60) return `${minutes} dk önce`;
+  if (hours < 24) return `${hours} saat önce`;
+  if (days === 1) return "Dün";
+  if (days < 7) return `${days} gün önce`;
+
+  return created.toLocaleDateString("tr-TR", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
-  }).format(date);
+  });
+}
+
+function getImageUrl(ad: AdResponse) {
+  if (ad.photoUrls && ad.photoUrls.length > 0) {
+    return ad.photoUrls[0];
+  }
+
+  return null;
 }
 
 export default function ListingsPage() {
-  console.log("LISTINGS PAGE RENDERED");
-  const [listings, setListings] = useState<AdResponse[]>([]);
+  const [, navigate] = useLocation();
 
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-
-  const [activeFilter, setActiveFilter] =
-    useState<FilterType>("all");
-
-  const [searchValue, setSearchValue] = useState("");
-
-  const [speciesFilter, setSpeciesFilter] =
-    useState<SpeciesFilter>("ALL");
-
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
-
+  const [ads, setAds] = useState<AdResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [activeFilter, setActiveFilter] =
+    useState<FilterType>("ALL");
+
+  const [searchValue, setSearchValue] = useState("");
+
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const [selectedSpecies, setSelectedSpecies] = useState<
+    string[]
+  >([]);
+
+  const [selectedGender, setSelectedGender] = useState<
+    string[]
+  >([]);
+
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
   /*
-   * --------------------------------------------------------------------------
-   * Load public listings
-   * --------------------------------------------------------------------------
+   * Load public listings.
    *
    * Backend:
-   *
    * GET /api/public/ads
-   * GET /api/public/ads?adType=LOST
-   * GET /api/public/ads?adType=FOUND
-   * GET /api/public/ads?adType=ADOPTION
    *
-   * Pagination is handled by the backend.
+   * Supported query:
+   * adType, page, size
    */
   useEffect(() => {
     let cancelled = false;
 
-    async function loadListings() {
-      setLoading(true);
-      setError(null);
-
+    async function loadAds() {
       try {
+        setLoading(true);
+        setError(null);
+
         const response = await getPublicAds({
-          page,
-          size: PAGE_SIZE,
           adType:
-            activeFilter === "all"
+            activeFilter === "ALL"
               ? undefined
               : activeFilter,
+          page: currentPage,
+          size: PAGE_SIZE,
         });
 
         if (cancelled) return;
 
-        setListings(response.content ?? []);
+        setAds(response.content ?? []);
         setTotalPages(response.totalPages ?? 0);
+        setTotalElements(response.totalElements ?? 0);
       } catch (err) {
-        if (cancelled) return;
-
         console.error("İlanlar yüklenemedi:", err);
 
-        setError(
-          err instanceof Error
-            ? err.message
-            : "İlanlar yüklenirken bir hata oluştu.",
-        );
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "İlanlar yüklenirken bir hata oluştu.",
+          );
+          setAds([]);
+          setTotalPages(0);
+          setTotalElements(0);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -131,23 +183,103 @@ export default function ListingsPage() {
       }
     }
 
-    void loadListings();
+    void loadAds();
 
     return () => {
       cancelled = true;
     };
-  }, [page, activeFilter]);
+  }, [activeFilter, currentPage]);
 
   /*
-   * --------------------------------------------------------------------------
-   * Filter drawer body scroll
-   * --------------------------------------------------------------------------
+   * Reset to page 0 whenever the listing type changes.
    */
+  function handleFilterChange(filter: FilterType) {
+    setActiveFilter(filter);
+    setCurrentPage(0);
+  }
+
+  /*
+   * Search is intentionally performed on the already-loaded
+   * public page because the backend controller currently only
+   * supports adType, page and size.
+   */
+  const filteredAds = useMemo(() => {
+    const normalizedSearch = searchValue
+      .trim()
+      .toLocaleLowerCase("tr-TR");
+
+    return ads.filter((ad) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        ad.title
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        ad.description
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        (ad.breed ?? "")
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        (ad.ownerDisplayName ?? "")
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch) ||
+        getSpeciesLabel(ad.species)
+          .toLocaleLowerCase("tr-TR")
+          .includes(normalizedSearch);
+
+      const matchesSpecies =
+        selectedSpecies.length === 0 ||
+        selectedSpecies.includes(ad.species);
+
+      const matchesGender =
+        selectedGender.length === 0 ||
+        selectedGender.includes(ad.gender);
+
+      return (
+        matchesSearch &&
+        matchesSpecies &&
+        matchesGender
+      );
+    });
+  }, [
+    ads,
+    searchValue,
+    selectedSpecies,
+    selectedGender,
+  ]);
+
+  function toggleFavorite(id: number) {
+    setFavoriteIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
+
+  function toggleSpecies(species: string) {
+    setSelectedSpecies((current) =>
+      current.includes(species)
+        ? current.filter((item) => item !== species)
+        : [...current, species],
+    );
+  }
+
+  function toggleGender(gender: string) {
+    setSelectedGender((current) =>
+      current.includes(gender)
+        ? current.filter((item) => item !== gender)
+        : [...current, gender],
+    );
+  }
+
+  function clearFilters() {
+    setSearchValue("");
+    setSelectedSpecies([]);
+    setSelectedGender([]);
+  }
+
   useEffect(() => {
-    if (!isFilterOpen) {
-      document.body.style.overflow = "";
-      return;
-    }
+    if (!isFilterOpen) return;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -160,423 +292,355 @@ export default function ListingsPage() {
 
     return () => {
       document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener(
+        "keydown",
+        handleEscape,
+      );
     };
   }, [isFilterOpen]);
 
-  /*
-   * --------------------------------------------------------------------------
-   * Client-side search / species filtering
-   * --------------------------------------------------------------------------
-   *
-   * The current backend endpoint supports:
-   *   adType
-   *   page
-   *   size
-   *
-   * It does NOT expose a search parameter, so search is performed against
-   * the currently loaded backend page instead of inventing an unsupported
-   * backend endpoint.
-   */
-  const filteredListings = useMemo(() => {
-    const normalizedSearch = searchValue
-      .trim()
-      .toLocaleLowerCase("tr-TR");
-
-    return listings.filter((listing) => {
-      const matchesSpecies =
-        speciesFilter === "ALL" ||
-        listing.species === speciesFilter;
-
-      if (!matchesSpecies) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      const searchableText = [
-        listing.title,
-        listing.description,
-        listing.breed,
-        listing.ownerDisplayName,
-        getSpeciesLabel(listing.species),
-        AD_TYPE_LABELS[listing.adType],
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase("tr-TR");
-
-      return searchableText.includes(normalizedSearch);
-    });
-  }, [listings, searchValue, speciesFilter]);
-
-  /*
-   * --------------------------------------------------------------------------
-   * Filters
-   * --------------------------------------------------------------------------
-   */
-  const handleFilterChange = (filter: FilterType) => {
-    setActiveFilter(filter);
-    setPage(0);
-  };
-
-  const clearFilters = () => {
-    setActiveFilter("all");
-    setSpeciesFilter("ALL");
-    setSearchValue("");
-    setPage(0);
-  };
-
-  /*
-   * --------------------------------------------------------------------------
-   * Favorites
-   * --------------------------------------------------------------------------
-   *
-   * This keeps the same local favorite behavior already used by HomePage.
-   * We are not inventing a favorites API here.
-   */
-  const toggleFavorite = (listingId: number) => {
-    setFavoriteIds((currentIds) =>
-      currentIds.includes(listingId)
-        ? currentIds.filter((id) => id !== listingId)
-        : [...currentIds, listingId],
-    );
-  };
-
-  /*
-   * --------------------------------------------------------------------------
-   * Render
-   * --------------------------------------------------------------------------
-   */
   return (
     <div className="home-page">
       <Header />
 
       <main>
-        <section className="page-container">
-          {/* ---------------------------------------------------------------- */}
-          {/* Page heading                                                     */}
-          {/* ---------------------------------------------------------------- */}
-
-          <div className="section-heading">
-            <span className="section-eyebrow">
-              PATIMATI ilanları
-            </span>
-
-            <h1>İlanlar</h1>
-
-            <p>
-              Kayıp, bulunan ve sahiplendirilecek hayvan
-              ilanlarını keşfet.
-            </p>
-          </div>
-
-          {/* ---------------------------------------------------------------- */}
-          {/* Search                                                           */}
-          {/* ---------------------------------------------------------------- */}
-
-          <div
-            className="hero-search"
-            style={{ marginTop: "24px" }}
-          >
-            <Search size={21} aria-hidden="true" />
-
-            <input
-              value={searchValue}
-              onChange={(event) =>
-                setSearchValue(event.target.value)
-              }
-              placeholder="İsim, tür, ırk veya ilan ara..."
-              aria-label="İlanlarda ara"
-            />
-
-            {searchValue && (
-              <button
-                type="button"
-                aria-label="Aramayı temizle"
-                onClick={() => setSearchValue("")}
-              >
-                <X size={18} />
-              </button>
-            )}
-
-            <button
-              type="button"
-              aria-label="Filtreleri aç"
-              aria-expanded={isFilterOpen}
-              onClick={() => setIsFilterOpen(true)}
-            >
-              <SlidersHorizontal size={19} />
-              <span>Filtrele</span>
-            </button>
-          </div>
-
-          {/* ---------------------------------------------------------------- */}
-          {/* Quick filters                                                    */}
-          {/* ---------------------------------------------------------------- */}
-
-          <div
-            className="listing-filters"
-            role="tablist"
-            aria-label="İlan türleri"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeFilter === "all"}
-              className={
-                activeFilter === "all" ? "active" : ""
-              }
-              onClick={() => handleFilterChange("all")}
-            >
-              Tümü
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeFilter === "LOST"}
-              className={
-                activeFilter === "LOST" ? "active" : ""
-              }
-              onClick={() => handleFilterChange("LOST")}
-            >
-              Kayıp
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeFilter === "FOUND"}
-              className={
-                activeFilter === "FOUND" ? "active" : ""
-              }
-              onClick={() => handleFilterChange("FOUND")}
-            >
-              Bulunan
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeFilter === "ADOPTION"}
-              className={
-                activeFilter === "ADOPTION"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                handleFilterChange("ADOPTION")
-              }
-            >
-              Sahiplendirme
-            </button>
-          </div>
-
-          {/* ---------------------------------------------------------------- */}
-          {/* Loading                                                          */}
-          {/* ---------------------------------------------------------------- */}
-
-          {loading && (
-            <div className="empty-listings">
-              <span>
-                <Search size={28} />
-              </span>
-
-              <h3>İlanlar yükleniyor...</h3>
-
-              <p>
-                Güncel ilanları getiriyoruz.
-              </p>
-            </div>
-          )}
-
-          {/* ---------------------------------------------------------------- */}
-          {/* Error                                                            */}
-          {/* ---------------------------------------------------------------- */}
-
-          {!loading && error && (
-            <div className="empty-listings">
-              <span>
-                <Search size={28} />
-              </span>
-
-              <h3>İlanlar yüklenemedi</h3>
-
-              <p>{error}</p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  /*
-                   * Changing page and back forces the effect to run.
-                   * For page 0 we temporarily move to page 1 only when
-                   * there is another page available.
-                   */
-                  setError(null);
-
-                  if (page > 0) {
-                    setPage(0);
-                  } else {
-                    setActiveFilter((current) => current);
-                  }
-                }}
-              >
-                Tekrar dene
-              </button>
-            </div>
-          )}
-
-          {/* ---------------------------------------------------------------- */}
-          {/* Empty                                                            */}
-          {/* ---------------------------------------------------------------- */}
-
-          {!loading &&
-            !error &&
-            filteredListings.length === 0 && (
-              <div className="empty-listings">
-                <span>
-                  <Search size={28} />
+        <section className="listings-section">
+          <div className="page-container">
+            <div className="section-heading-row">
+              <div className="section-heading">
+                <span className="section-eyebrow">
+                  PATIMATI
                 </span>
 
-                <h3>
-                  Aramana uygun ilan bulunamadı
-                </h3>
+                <h1>İlanlar</h1>
 
                 <p>
-                  Farklı bir isim, konum veya hayvan
-                  türü aramayı dene.
+                  Kayıp, bulunan ve sahiplendirilecek
+                  hayvan ilanlarını keşfet.
                 </p>
+              </div>
+
+              <button
+                type="button"
+                className="filter-open-button"
+                onClick={() => setIsFilterOpen(true)}
+              >
+                <SlidersHorizontal size={18} />
+                Filtrele
+              </button>
+            </div>
+
+            <div className="hero-search listings-search">
+              <Search
+                size={20}
+                aria-hidden="true"
+              />
+
+              <input
+                type="search"
+                value={searchValue}
+                onChange={(event) =>
+                  setSearchValue(event.target.value)
+                }
+                placeholder="İlan, tür, ırk veya kullanıcı ara..."
+                aria-label="İlanlarda ara"
+              />
+
+              {searchValue && (
+                <button
+                  type="button"
+                  aria-label="Aramayı temizle"
+                  onClick={() => setSearchValue("")}
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            <div
+              className="listing-filters"
+              role="tablist"
+              aria-label="İlan türleri"
+            >
+              <button
+                type="button"
+                className={
+                  activeFilter === "ALL"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleFilterChange("ALL")
+                }
+              >
+                Tümü
+              </button>
+
+              <button
+                type="button"
+                className={
+                  activeFilter === "LOST"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleFilterChange("LOST")
+                }
+              >
+                Kayıp
+              </button>
+
+              <button
+                type="button"
+                className={
+                  activeFilter === "FOUND"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleFilterChange("FOUND")
+                }
+              >
+                Bulunan
+              </button>
+
+              <button
+                type="button"
+                className={
+                  activeFilter === "ADOPTION"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleFilterChange("ADOPTION")
+                }
+              >
+                Sahiplendirme
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="empty-listings">
+                <span>
+                  <PawPrint size={28} />
+                </span>
+
+                <h3>İlanlar yükleniyor...</h3>
+
+                <p>
+                  Güncel ilanları getiriyoruz.
+                </p>
+              </div>
+            ) : error ? (
+              <div className="empty-listings">
+                <span>
+                  <PawPrint size={28} />
+                </span>
+
+                <h3>İlanlar yüklenemedi</h3>
+
+                <p>{error}</p>
 
                 <button
                   type="button"
-                  onClick={clearFilters}
+                  onClick={() => {
+                    setCurrentPage(0);
+                    setActiveFilter(
+                      activeFilter === "ALL"
+                        ? "ALL"
+                        : activeFilter,
+                    );
+                  }}
                 >
-                  Filtreleri temizle
+                  Tekrar dene
                 </button>
               </div>
-            )}
+            ) : filteredAds.length === 0 ? (
+              <div className="empty-listings">
+                <span>
+                  <PawPrint size={28} />
+                </span>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* Listings                                                         */}
-          {/* ---------------------------------------------------------------- */}
+                <h3>
+                  {ads.length === 0
+                    ? "Henüz ilan bulunmuyor"
+                    : "Aramanızla eşleşen ilan yok"}
+                </h3>
 
-          {!loading &&
-            !error &&
-            filteredListings.length > 0 && (
+                <p>
+                  {ads.length === 0
+                    ? "Yeni ilanlar yayınlandığında burada görünecek."
+                    : "Filtreleri veya arama kelimenizi değiştirmeyi deneyin."}
+                </p>
+
+                {(searchValue ||
+                  selectedSpecies.length > 0 ||
+                  selectedGender.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                  >
+                    Filtreleri temizle
+                  </button>
+                )}
+              </div>
+            ) : (
               <>
-                <div className="pet-listings-grid">
-                  {filteredListings.map((listing) => {
-                    const isFavorite =
-                      favoriteIds.includes(listing.id);
+                <div className="section-heading-row listing-results-heading">
+                  <div className="section-heading">
+                    <p>
+                      {totalElements > 0
+                        ? `${totalElements} ilan`
+                        : `${filteredAds.length} ilan`}
+                    </p>
+                  </div>
+                </div>
 
-                    const image =
-                      listing.photoUrls?.[0] ||
-                      FALLBACK_IMAGE;
+                <div className="pet-listings-grid">
+                  {filteredAds.map((ad) => {
+                    const imageUrl =
+                      getImageUrl(ad);
+
+                    const isFavorite =
+                      favoriteIds.includes(ad.id);
 
                     return (
                       <article
+                        key={ad.id}
                         className="pet-listing-card"
-                        key={listing.id}
                       >
-                        {/* Image / status */}
-                        <Link
-                          href={`/pet/${listing.id}`}
-                          className="pet-listing-card__image"
-                        >
-                          <img
-                            src={image}
-                            alt={listing.title}
-                            loading="lazy"
-                            onError={(event) => {
-                              event.currentTarget.src =
-                                FALLBACK_IMAGE;
-                            }}
-                          />
+                        <div className="pet-listing-card__image">
+                          <Link
+                            href={`/pet/${ad.id}`}
+                            aria-label={`${ad.title} detayını görüntüle`}
+                          >
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={ad.title}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  display: "grid",
+                                  placeItems: "center",
+                                  background:
+                                    "var(--primary-light)",
+                                  color:
+                                    "var(--primary)",
+                                }}
+                              >
+                                <PawPrint
+                                  size={48}
+                                />
+                              </div>
+                            )}
+                          </Link>
 
                           <span
-                            className={`listing-status listing-status--${getAdTypeClass(
-                              listing.adType,
+                            className={`listing-status ${getListingStatusClass(
+                              ad.adType,
                             )}`}
                           >
-                            {
-                              AD_TYPE_LABELS[
-                                listing.adType
-                              ]
-                            }
+                            {getListingStatus(
+                              ad.adType,
+                            )}
                           </span>
-                        </Link>
 
-                        {/* Favorite */}
-                        <button
-                          type="button"
-                          className={`favorite-button ${
-                            isFavorite
-                              ? "favorite-button--active"
-                              : ""
-                          }`}
-                          onClick={() =>
-                            toggleFavorite(listing.id)
-                          }
-                          aria-label={
-                            isFavorite
-                              ? `${listing.title} ilanını favorilerden çıkar`
-                              : `${listing.title} ilanını favorilere ekle`
-                          }
-                          aria-pressed={isFavorite}
-                        >
-                          <Heart
-                            size={20}
-                            fill={
+                          <button
+                            type="button"
+                            className={`favorite-button ${
                               isFavorite
-                                ? "currentColor"
-                                : "none"
+                                ? "favorite-button--active"
+                                : ""
+                            }`}
+                            aria-label={
+                              isFavorite
+                                ? "Favorilerden çıkar"
+                                : "Favorilere ekle"
                             }
-                          />
-                        </button>
+                            aria-pressed={
+                              isFavorite
+                            }
+                            onClick={() =>
+                              toggleFavorite(ad.id)
+                            }
+                          >
+                            <Heart
+                              size={19}
+                              fill={
+                                isFavorite
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
+                          </button>
 
-                        {/* Card body */}
+                          {ad.aiStatus ===
+                            "DONE" &&
+                            ad.aiIsPet === true && (
+                              <span className="listing-featured">
+                                AI doğrulandı
+                              </span>
+                            )}
+                        </div>
+
                         <div className="pet-listing-card__body">
                           <div className="pet-listing-card__title-row">
                             <div>
-                              <h3>{listing.title}</h3>
+                              <h3>
+                                {ad.title}
+                              </h3>
 
                               <p>
                                 {getSpeciesLabel(
-                                  listing.species,
+                                  ad.species,
                                 )}
-
-                                {listing.breed
-                                  ? ` · ${listing.breed}`
+                                {ad.breed
+                                  ? ` · ${ad.breed}`
                                   : ""}
                               </p>
                             </div>
 
                             <span>
-                              {formatDate(
-                                listing.createdAt,
+                              {getRelativeDate(
+                                ad.createdAt,
                               )}
                             </span>
                           </div>
 
                           <div className="pet-listing-card__location">
-                            <MapPin size={17} />
+                            <MapPin size={15} />
 
                             <span>
-                              {listing.latitude.toFixed(4)}
-                              ,{" "}
-                              {listing.longitude.toFixed(4)}
+                              {ad.latitude != null &&
+                              ad.longitude != null
+                                ? `${ad.latitude.toFixed(
+                                    4,
+                                  )}, ${ad.longitude.toFixed(
+                                    4,
+                                  )}`
+                                : "Konum belirtilmemiş"}
                             </span>
+
+                            <strong>
+                              {getGenderLabel(
+                                ad.gender,
+                              )}
+                            </strong>
                           </div>
 
                           <Link
-                            href={`/pet/${listing.id}`}
+                            href={`/pet/${ad.id}`}
                             className="pet-listing-card__button"
                           >
-                            İlanı incele
-                            <ChevronRight size={18} />
+                            Detayları görüntüle
+                            <ChevronRight
+                              size={17}
+                            />
                           </Link>
                         </div>
                       </article>
@@ -584,73 +648,79 @@ export default function ListingsPage() {
                   })}
                 </div>
 
-                {/* ---------------------------------------------------------------- */}
-                {/* Pagination                                                       */}
-                {/* ---------------------------------------------------------------- */}
-
                 {totalPages > 1 && (
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "16px",
+                      gap: "12px",
                       marginTop: "32px",
-                      marginBottom: "48px",
                     }}
                   >
                     <button
                       type="button"
-                      className="icon-button"
-                      disabled={page === 0}
+                      className="pet-listing-card__button"
+                      style={{
+                        marginTop: 0,
+                        width: "auto",
+                        padding: "0 16px",
+                      }}
+                      disabled={currentPage === 0}
                       onClick={() =>
-                        setPage((current) =>
-                          Math.max(0, current - 1),
+                        setCurrentPage(
+                          (page) =>
+                            Math.max(0, page - 1),
                         )
                       }
-                      aria-label="Önceki sayfa"
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={17} />
+                      Önceki
                     </button>
 
                     <span
                       style={{
+                        color:
+                          "var(--text-secondary)",
                         fontSize: "14px",
-                        fontWeight: 600,
-                        color: "var(--text-secondary)",
                       }}
                     >
-                      Sayfa {page + 1} / {totalPages}
+                      {currentPage + 1} /{" "}
+                      {totalPages}
                     </span>
 
                     <button
                       type="button"
-                      className="icon-button"
+                      className="pet-listing-card__button"
+                      style={{
+                        marginTop: 0,
+                        width: "auto",
+                        padding: "0 16px",
+                      }}
                       disabled={
-                        page >= totalPages - 1
+                        currentPage >=
+                        totalPages - 1
                       }
                       onClick={() =>
-                        setPage((current) =>
-                          Math.min(
-                            totalPages - 1,
-                            current + 1,
-                          ),
+                        setCurrentPage(
+                          (page) =>
+                            Math.min(
+                              totalPages - 1,
+                              page + 1,
+                            ),
                         )
                       }
-                      aria-label="Sonraki sayfa"
                     >
-                      <ChevronRight size={20} />
+                      Sonraki
+                      <ChevronRight size={17} />
                     </button>
                   </div>
                 )}
               </>
             )}
+          </div>
         </section>
       </main>
-
-      {/* ====================================================================== */}
-      {/* FILTER DRAWER                                                         */}
-      {/* ====================================================================== */}
 
       <div
         className={`filter-drawer-overlay ${
@@ -674,7 +744,6 @@ export default function ListingsPage() {
           <div className="filter-drawer__header">
             <div>
               <span>Arama seçenekleri</span>
-
               <h2>Filtreler</h2>
             </div>
 
@@ -691,121 +760,60 @@ export default function ListingsPage() {
           </div>
 
           <div className="filter-drawer__body">
-            {/* Animal */}
             <section className="filter-group">
               <h3>Hayvan türü</h3>
 
               <div className="filter-chip-grid">
-                <button
-                  type="button"
-                  className={
-                    speciesFilter === "ALL"
-                      ? "is-selected"
-                      : ""
-                  }
-                  onClick={() =>
-                    setSpeciesFilter("ALL")
-                  }
-                >
-                  Tümü
-                </button>
-
-                <button
-                  type="button"
-                  className={
-                    speciesFilter === "CAT"
-                      ? "is-selected"
-                      : ""
-                  }
-                  onClick={() =>
-                    setSpeciesFilter("CAT")
-                  }
-                >
-                  Kedi
-                </button>
-
-                <button
-                  type="button"
-                  className={
-                    speciesFilter === "DOG"
-                      ? "is-selected"
-                      : ""
-                  }
-                  onClick={() =>
-                    setSpeciesFilter("DOG")
-                  }
-                >
-                  Köpek
-                </button>
+                {[
+                  ["CAT", "Kedi"],
+                  ["DOG", "Köpek"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={
+                      selectedSpecies.includes(
+                        value,
+                      )
+                        ? "is-selected"
+                        : ""
+                    }
+                    onClick={() =>
+                      toggleSpecies(value)
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </section>
 
-            {/* Listing type */}
             <section className="filter-group">
-              <h3>İlan türü</h3>
+              <h3>Cinsiyet</h3>
 
-              <div className="filter-checkbox-list">
-                <label>
-                  <input
-                    type="radio"
-                    name="listing-type"
-                    checked={
-                      activeFilter === "all"
-                    }
-                    onChange={() =>
-                      handleFilterChange("all")
-                    }
-                  />
-
-                  <span>Tümü</span>
-                </label>
-
-                <label>
-                  <input
-                    type="radio"
-                    name="listing-type"
-                    checked={
-                      activeFilter === "LOST"
-                    }
-                    onChange={() =>
-                      handleFilterChange("LOST")
-                    }
-                  />
-
-                  <span>Kayıp</span>
-                </label>
-
-                <label>
-                  <input
-                    type="radio"
-                    name="listing-type"
-                    checked={
-                      activeFilter === "FOUND"
-                    }
-                    onChange={() =>
-                      handleFilterChange("FOUND")
-                    }
-                  />
-
-                  <span>Bulunan</span>
-                </label>
-
-                <label>
-                  <input
-                    type="radio"
-                    name="listing-type"
-                    checked={
-                      activeFilter === "ADOPTION"
-                    }
-                    onChange={() =>
-                      handleFilterChange(
-                        "ADOPTION",
+              <div className="filter-chip-grid">
+                {[
+                  ["MALE", "Erkek"],
+                  ["FEMALE", "Dişi"],
+                  ["UNKNOWN", "Bilinmiyor"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={
+                      selectedGender.includes(
+                        value,
                       )
+                        ? "is-selected"
+                        : ""
                     }
-                  />
-
-                  <span>Sahiplendirme</span>
-                </label>
+                    onClick={() =>
+                      toggleGender(value)
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </section>
           </div>
@@ -826,7 +834,7 @@ export default function ListingsPage() {
                 setIsFilterOpen(false)
               }
             >
-              Filtreleri uygula
+              {filteredAds.length} sonucu göster
             </button>
           </div>
         </aside>
