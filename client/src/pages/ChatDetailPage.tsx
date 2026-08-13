@@ -9,11 +9,6 @@ import {
   markMessageAsRead,
 } from "../services/messages";
 
-import {
-  connectWebSocket,
-  disconnectWebSocket,
-  sendMessage,
-} from "../services/websocket";
 
 import type { MessageResponse } from "../services/types";
 
