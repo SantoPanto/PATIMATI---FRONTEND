@@ -1,27 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "wouter";
 import {
   ChevronLeft,
   ChevronRight,
   Heart,
   MapPin,
-  PawPrint,
   Search,
-  SlidersHorizontal,
-  X,
+  Sparkles,
 } from "lucide-react";
 
 import Header from "../components/Header";
-import "../App.css";
-
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
+import "../App.css";
 
 type FilterType = "ALL" | AdType;
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 20;
 
-function getListingStatus(adType: AdType) {
+const FILTERS: Array<{ value: FilterType; label: string }> = [
+  { value: "ALL", label: "Tümü" },
+  { value: "LOST", label: "Kayıp" },
+  { value: "FOUND", label: "Bulunan" },
+  { value: "ADOPTION", label: "Sahiplendirme" },
+];
+
+function getListingStatus(adType: AdType): string {
   switch (adType) {
     case "LOST":
       return "Kayıp";
@@ -34,20 +38,20 @@ function getListingStatus(adType: AdType) {
   }
 }
 
-function getListingStatusClass(adType: AdType) {
+function getListingStatusClass(adType: AdType): string {
   switch (adType) {
     case "LOST":
-      return "listing-status--lost";
+      return "lost";
     case "FOUND":
-      return "listing-status--found";
+      return "found";
     case "ADOPTION":
-      return "listing-status--adoption";
+      return "adoption";
     default:
-      return "";
+      return "lost";
   }
 }
 
-function getSpeciesLabel(species: AdResponse["species"]) {
+function getSpeciesLabel(species: AdResponse["species"]): string {
   switch (species) {
     case "CAT":
       return "Kedi";
@@ -58,383 +62,314 @@ function getSpeciesLabel(species: AdResponse["species"]) {
   }
 }
 
-function getGenderLabel(gender: AdResponse["gender"]) {
+function getGenderLabel(gender: AdResponse["gender"]): string {
   switch (gender) {
     case "MALE":
       return "Erkek";
     case "FEMALE":
       return "Dişi";
-    default:
+    case "UNKNOWN":
       return "Bilinmiyor";
+    default:
+      return gender;
   }
 }
 
-function getRelativeDate(date: string) {
-  const created = new Date(date);
+function getAgeGroupLabel(ageGroup: AdResponse["ageGroup"]): string {
+  switch (ageGroup) {
+    case "BABY":
+      return "Yavru";
+    case "YOUNG":
+      return "Genç";
+    case "ADULT":
+      return "Yetişkin";
+    case "SENIOR":
+      return "Yaşlı";
+    default:
+      return ageGroup;
+  }
+}
 
-  if (Number.isNaN(created.getTime())) {
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
     return "";
   }
 
-  const now = Date.now();
-  const difference = Math.max(0, now - created.getTime());
-
-  const minutes = Math.floor(difference / 60000);
-  const hours = Math.floor(difference / 3600000);
-  const days = Math.floor(difference / 86400000);
-
-  if (minutes < 1) return "Az önce";
-  if (minutes < 60) return `${minutes} dk önce`;
-  if (hours < 24) return `${hours} saat önce`;
-  if (days === 1) return "Dün";
-  if (days < 7) return `${days} gün önce`;
-
-  return created.toLocaleDateString("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "short",
     year: "numeric",
-  });
+  }).format(date);
 }
 
-function getImageUrl(ad: AdResponse) {
-  if (ad.photoUrls && ad.photoUrls.length > 0) {
-    return ad.photoUrls[0];
+function getLocationLabel(ad: AdResponse): string {
+  /*
+   * The public AdResponse currently exposes latitude/longitude,
+   * but does not expose a city/district name.
+   *
+   * Therefore we deliberately do not invent a location name here.
+   * If the backend later adds a location field, this helper can
+   * be updated without changing the card component.
+   */
+  if (
+    typeof ad.latitude === "number" &&
+    typeof ad.longitude === "number"
+  ) {
+    return `${ad.latitude.toFixed(4)}, ${ad.longitude.toFixed(4)}`;
   }
 
-  return null;
+  return "Konum belirtilmemiş";
+}
+
+function getPrimaryImage(ad: AdResponse): string | null {
+  if (!Array.isArray(ad.photoUrls) || ad.photoUrls.length === 0) {
+    return null;
+  }
+
+  const firstValidUrl = ad.photoUrls.find(
+    (url) => typeof url === "string" && url.trim().length > 0,
+  );
+
+  return firstValidUrl || null;
+}
+
+function PetListingCard({ ad }: { ad: AdResponse }) {
+  const image = getPrimaryImage(ad);
+  const statusClass = getListingStatusClass(ad.adType);
+
+  const subtitle = [
+    getSpeciesLabel(ad.species),
+    ad.breed?.trim() || "Cins belirtilmemiş",
+  ].join(" · ");
+
+  return (
+    <article className="pet-listing-card">
+      <Link
+        href={`/pet/${ad.id}`}
+        className="pet-listing-card__image"
+        aria-label={`${ad.title} ilanını görüntüle`}
+      >
+        {image ? (
+          <img src={image} alt={ad.title} loading="lazy" />
+        ) : (
+          <div
+            className="flex h-full min-h-[220px] w-full items-center justify-center bg-[#FFF7ED] text-[#F97316]"
+            aria-label="Fotoğraf bulunmuyor"
+          >
+            <Search size={42} />
+          </div>
+        )}
+
+        <span
+          className={`listing-status listing-status--${statusClass}`}
+        >
+          {getListingStatus(ad.adType)}
+        </span>
+
+        {ad.aiStatus === "DONE" && ad.aiIsPet === true && (
+          <span className="listing-featured">
+            <Sparkles size={14} />
+            AI doğrulandı
+          </span>
+        )}
+      </Link>
+
+      <div className="pet-listing-card__body">
+        <div className="pet-listing-card__title-row">
+          <div className="min-w-0">
+            <h3 className="truncate">{ad.title}</h3>
+
+            <p>
+              {subtitle}
+            </p>
+          </div>
+
+          <span>{formatDate(ad.createdAt)}</span>
+        </div>
+
+        <div className="pet-listing-card__location">
+          <MapPin size={17} />
+          <span className="truncate">{getLocationLabel(ad)}</span>
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B]">
+          <span>{getGenderLabel(ad.gender)}</span>
+          <span>·</span>
+          <span>{getAgeGroupLabel(ad.ageGroup)}</span>
+        </div>
+
+        <Link
+          href={`/pet/${ad.id}`}
+          className="pet-listing-card__button"
+        >
+          İlanı incele
+          <ChevronRight size={18} />
+        </Link>
+      </div>
+    </article>
+  );
 }
 
 export default function ListingsPage() {
-  const [, navigate] = useLocation();
-
+  const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
   const [ads, setAds] = useState<AdResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const [activeFilter, setActiveFilter] =
-    useState<FilterType>("ALL");
-
-  const [searchValue, setSearchValue] = useState("");
-
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
-
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  const [selectedSpecies, setSelectedSpecies] = useState<
-    string[]
-  >([]);
-
-  const [selectedGender, setSelectedGender] = useState<
-    string[]
-  >([]);
-
-  const [currentPage, setCurrentPage] = useState(0);
+  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  /*
-   * Load public listings.
-   *
-   * Backend:
-   * GET /api/public/ads
-   *
-   * Supported query:
-   * adType, page, size
-   */
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadAds = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await getPublicAds({
+        page,
+        size: PAGE_SIZE,
+        ...(activeFilter !== "ALL"
+          ? { adType: activeFilter }
+          : {}),
+      });
+
+      setAds(Array.isArray(response.content) ? response.content : []);
+      setTotalPages(response.totalPages ?? 0);
+      setTotalElements(response.totalElements ?? 0);
+    } catch (requestError) {
+      console.error("İlanlar yüklenemedi:", requestError);
+
+      setAds([]);
+      setTotalPages(0);
+      setTotalElements(0);
+
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "İlanlar yüklenirken bir hata oluştu.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeFilter, page]);
+
   useEffect(() => {
-    let cancelled = false;
+    void loadAds();
+  }, [loadAds]);
 
-    async function loadAds() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await getPublicAds({
-          adType:
-            activeFilter === "ALL"
-              ? undefined
-              : activeFilter,
-          page: currentPage,
-          size: PAGE_SIZE,
-        });
-
-        if (cancelled) return;
-
-        setAds(response.content ?? []);
-        setTotalPages(response.totalPages ?? 0);
-        setTotalElements(response.totalElements ?? 0);
-      } catch (err) {
-        console.error("İlanlar yüklenemedi:", err);
-
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "İlanlar yüklenirken bir hata oluştu.",
-          );
-          setAds([]);
-          setTotalPages(0);
-          setTotalElements(0);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+  const handleFilterChange = (filter: FilterType) => {
+    if (filter === activeFilter) {
+      return;
     }
 
-    void loadAds();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeFilter, currentPage]);
-
-  /*
-   * Reset to page 0 whenever the listing type changes.
-   */
-  function handleFilterChange(filter: FilterType) {
     setActiveFilter(filter);
-    setCurrentPage(0);
-  }
+    setPage(0);
+  };
 
-  /*
-   * Search is intentionally performed on the already-loaded
-   * public page because the backend controller currently only
-   * supports adType, page and size.
-   */
-  const filteredAds = useMemo(() => {
-    const normalizedSearch = searchValue
-      .trim()
-      .toLocaleLowerCase("tr-TR");
+  const goToPreviousPage = () => {
+    setPage((currentPage) => Math.max(0, currentPage - 1));
+  };
 
-    return ads.filter((ad) => {
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        ad.title
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        ad.description
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        (ad.breed ?? "")
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        (ad.ownerDisplayName ?? "")
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        getSpeciesLabel(ad.species)
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch);
-
-      const matchesSpecies =
-        selectedSpecies.length === 0 ||
-        selectedSpecies.includes(ad.species);
-
-      const matchesGender =
-        selectedGender.length === 0 ||
-        selectedGender.includes(ad.gender);
-
-      return (
-        matchesSearch &&
-        matchesSpecies &&
-        matchesGender
-      );
-    });
-  }, [
-    ads,
-    searchValue,
-    selectedSpecies,
-    selectedGender,
-  ]);
-
-  function toggleFavorite(id: number) {
-    setFavoriteIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
+  const goToNextPage = () => {
+    setPage((currentPage) =>
+      totalPages > 0
+        ? Math.min(totalPages - 1, currentPage + 1)
+        : currentPage,
     );
-  }
-
-  function toggleSpecies(species: string) {
-    setSelectedSpecies((current) =>
-      current.includes(species)
-        ? current.filter((item) => item !== species)
-        : [...current, species],
-    );
-  }
-
-  function toggleGender(gender: string) {
-    setSelectedGender((current) =>
-      current.includes(gender)
-        ? current.filter((item) => item !== gender)
-        : [...current, gender],
-    );
-  }
-
-  function clearFilters() {
-    setSearchValue("");
-    setSelectedSpecies([]);
-    setSelectedGender([]);
-  }
-
-  useEffect(() => {
-    if (!isFilterOpen) return;
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsFilterOpen(false);
-      }
-    };
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener(
-        "keydown",
-        handleEscape,
-      );
-    };
-  }, [isFilterOpen]);
+  };
 
   return (
-    <div className="home-page">
+    <div className="home-page min-h-screen bg-[#F8FAFC]">
       <Header />
 
       <main>
+        <section className="page-container pt-12 pb-8 sm:pt-16">
+          <div className="section-heading">
+            <span className="section-eyebrow">
+              PATIMATI ilanları
+            </span>
+
+            <h1>Tüm ilanlar</h1>
+
+            <p>
+              Kayıp, bulunan ve sahiplendirme ilanlarını keşfet.
+              Sana en uygun dostu bulmak için ilanları incele.
+            </p>
+          </div>
+
+          <div
+            className="listing-filters mt-8"
+            role="tablist"
+            aria-label="İlan türü filtreleri"
+          >
+            {FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === filter.value}
+                className={
+                  activeFilter === filter.value ? "active" : ""
+                }
+                onClick={() => handleFilterChange(filter.value)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
         <section className="listings-section">
-          <div className="page-container">
-            <div className="section-heading-row">
-              <div className="section-heading">
-                <span className="section-eyebrow">
-                  PATIMATI
-                </span>
+          <div className="page-container pb-16">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <strong className="text-[#0F172A]">
+                  {isLoading
+                    ? "İlanlar yükleniyor..."
+                    : `${totalElements} ilan`}
+                </strong>
 
-                <h1>İlanlar</h1>
-
-                <p>
-                  Kayıp, bulunan ve sahiplendirilecek
-                  hayvan ilanlarını keşfet.
-                </p>
+                {!isLoading && totalPages > 0 && (
+                  <p className="mt-1 text-sm text-[#64748B]">
+                    Sayfa {page + 1} / {totalPages}
+                  </p>
+                )}
               </div>
 
-              <button
-                type="button"
-                className="filter-open-button"
-                onClick={() => setIsFilterOpen(true)}
+              <Link
+                href="/add-listing"
+                className="hero-primary-action inline-flex w-fit"
               >
-                <SlidersHorizontal size={18} />
-                Filtrele
-              </button>
+                İlan oluştur
+              </Link>
             </div>
 
-            <div className="hero-search listings-search">
-              <Search
-                size={20}
-                aria-hidden="true"
-              />
+            {isLoading ? (
+              <div className="pet-listings-grid">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="pet-listing-card overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    <div className="min-h-[220px] animate-pulse bg-[#E2E8F0]" />
 
-              <input
-                type="search"
-                value={searchValue}
-                onChange={(event) =>
-                  setSearchValue(event.target.value)
-                }
-                placeholder="İlan, tür, ırk veya kullanıcı ara..."
-                aria-label="İlanlarda ara"
-              />
-
-              {searchValue && (
-                <button
-                  type="button"
-                  aria-label="Aramayı temizle"
-                  onClick={() => setSearchValue("")}
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
-
-            <div
-              className="listing-filters"
-              role="tablist"
-              aria-label="İlan türleri"
-            >
-              <button
-                type="button"
-                className={
-                  activeFilter === "ALL"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleFilterChange("ALL")
-                }
-              >
-                Tümü
-              </button>
-
-              <button
-                type="button"
-                className={
-                  activeFilter === "LOST"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleFilterChange("LOST")
-                }
-              >
-                Kayıp
-              </button>
-
-              <button
-                type="button"
-                className={
-                  activeFilter === "FOUND"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleFilterChange("FOUND")
-                }
-              >
-                Bulunan
-              </button>
-
-              <button
-                type="button"
-                className={
-                  activeFilter === "ADOPTION"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleFilterChange("ADOPTION")
-                }
-              >
-                Sahiplendirme
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="empty-listings">
-                <span>
-                  <PawPrint size={28} />
-                </span>
-
-                <h3>İlanlar yükleniyor...</h3>
-
-                <p>
-                  Güncel ilanları getiriyoruz.
-                </p>
+                    <div className="space-y-4 p-5">
+                      <div className="h-5 animate-pulse rounded bg-[#E2E8F0]" />
+                      <div className="h-4 animate-pulse rounded bg-[#E2E8F0]" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-[#E2E8F0]" />
+                      <div className="h-10 animate-pulse rounded bg-[#E2E8F0]" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : error ? (
               <div className="empty-listings">
                 <span>
-                  <PawPrint size={28} />
+                  <Search size={28} />
                 </span>
 
                 <h3>İlanlar yüklenemedi</h3>
@@ -443,402 +378,74 @@ export default function ListingsPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setCurrentPage(0);
-                    setActiveFilter(
-                      activeFilter === "ALL"
-                        ? "ALL"
-                        : activeFilter,
-                    );
-                  }}
+                  onClick={() => void loadAds()}
                 >
                   Tekrar dene
                 </button>
               </div>
-            ) : filteredAds.length === 0 ? (
+            ) : ads.length > 0 ? (
+              <div className="pet-listings-grid">
+                {ads.map((ad) => (
+                  <PetListingCard key={ad.id} ad={ad} />
+                ))}
+              </div>
+            ) : (
               <div className="empty-listings">
                 <span>
-                  <PawPrint size={28} />
+                  <Search size={28} />
                 </span>
 
-                <h3>
-                  {ads.length === 0
-                    ? "Henüz ilan bulunmuyor"
-                    : "Aramanızla eşleşen ilan yok"}
-                </h3>
+                <h3>Bu kategoride ilan bulunamadı</h3>
 
                 <p>
-                  {ads.length === 0
-                    ? "Yeni ilanlar yayınlandığında burada görünecek."
-                    : "Filtreleri veya arama kelimenizi değiştirmeyi deneyin."}
+                  Şu anda seçtiğin filtreye uygun aktif bir ilan
+                  bulunmuyor. Başka bir ilan türünü deneyebilirsin.
                 </p>
 
-                {(searchValue ||
-                  selectedSpecies.length > 0 ||
-                  selectedGender.length > 0) && (
+                {activeFilter !== "ALL" && (
                   <button
                     type="button"
-                    onClick={clearFilters}
+                    onClick={() => handleFilterChange("ALL")}
                   >
-                    Filtreleri temizle
+                    Tüm ilanları göster
                   </button>
                 )}
               </div>
-            ) : (
-              <>
-                <div className="section-heading-row listing-results-heading">
-                  <div className="section-heading">
-                    <p>
-                      {totalElements > 0
-                        ? `${totalElements} ilan`
-                        : `${filteredAds.length} ilan`}
-                    </p>
-                  </div>
-                </div>
+            )}
 
-                <div className="pet-listings-grid">
-                  {filteredAds.map((ad) => {
-                    const imageUrl =
-                      getImageUrl(ad);
+            {!isLoading && !error && totalPages > 1 && (
+              <nav
+                className="mt-10 flex items-center justify-center gap-3"
+                aria-label="İlan sayfaları"
+              >
+                <button
+                  type="button"
+                  onClick={goToPreviousPage}
+                  disabled={page === 0}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Önceki sayfa"
+                >
+                  <ChevronLeft size={20} />
+                </button>
 
-                    const isFavorite =
-                      favoriteIds.includes(ad.id);
+                <span className="min-w-24 text-center text-sm font-medium text-[#64748B]">
+                  {page + 1} / {totalPages}
+                </span>
 
-                    return (
-                      <article
-                        key={ad.id}
-                        className="pet-listing-card"
-                      >
-                        <div className="pet-listing-card__image">
-                          <Link
-                            href={`/pet/${ad.id}`}
-                            aria-label={`${ad.title} detayını görüntüle`}
-                          >
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={ad.title}
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  display: "grid",
-                                  placeItems: "center",
-                                  background:
-                                    "var(--primary-light)",
-                                  color:
-                                    "var(--primary)",
-                                }}
-                              >
-                                <PawPrint
-                                  size={48}
-                                />
-                              </div>
-                            )}
-                          </Link>
-
-                          <span
-                            className={`listing-status ${getListingStatusClass(
-                              ad.adType,
-                            )}`}
-                          >
-                            {getListingStatus(
-                              ad.adType,
-                            )}
-                          </span>
-
-                          <button
-                            type="button"
-                            className={`favorite-button ${
-                              isFavorite
-                                ? "favorite-button--active"
-                                : ""
-                            }`}
-                            aria-label={
-                              isFavorite
-                                ? "Favorilerden çıkar"
-                                : "Favorilere ekle"
-                            }
-                            aria-pressed={
-                              isFavorite
-                            }
-                            onClick={() =>
-                              toggleFavorite(ad.id)
-                            }
-                          >
-                            <Heart
-                              size={19}
-                              fill={
-                                isFavorite
-                                  ? "currentColor"
-                                  : "none"
-                              }
-                            />
-                          </button>
-
-                          {ad.aiStatus ===
-                            "DONE" &&
-                            ad.aiIsPet === true && (
-                              <span className="listing-featured">
-                                AI doğrulandı
-                              </span>
-                            )}
-                        </div>
-
-                        <div className="pet-listing-card__body">
-                          <div className="pet-listing-card__title-row">
-                            <div>
-                              <h3>
-                                {ad.title}
-                              </h3>
-
-                              <p>
-                                {getSpeciesLabel(
-                                  ad.species,
-                                )}
-                                {ad.breed
-                                  ? ` · ${ad.breed}`
-                                  : ""}
-                              </p>
-                            </div>
-
-                            <span>
-                              {getRelativeDate(
-                                ad.createdAt,
-                              )}
-                            </span>
-                          </div>
-
-                          <div className="pet-listing-card__location">
-                            <MapPin size={15} />
-
-                            <span>
-                              {ad.latitude != null &&
-                              ad.longitude != null
-                                ? `${ad.latitude.toFixed(
-                                    4,
-                                  )}, ${ad.longitude.toFixed(
-                                    4,
-                                  )}`
-                                : "Konum belirtilmemiş"}
-                            </span>
-
-                            <strong>
-                              {getGenderLabel(
-                                ad.gender,
-                              )}
-                            </strong>
-                          </div>
-
-                          <Link
-                            href={`/pet/${ad.id}`}
-                            className="pet-listing-card__button"
-                          >
-                            Detayları görüntüle
-                            <ChevronRight
-                              size={17}
-                            />
-                          </Link>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-
-                {totalPages > 1 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "12px",
-                      marginTop: "32px",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="pet-listing-card__button"
-                      style={{
-                        marginTop: 0,
-                        width: "auto",
-                        padding: "0 16px",
-                      }}
-                      disabled={currentPage === 0}
-                      onClick={() =>
-                        setCurrentPage(
-                          (page) =>
-                            Math.max(0, page - 1),
-                        )
-                      }
-                    >
-                      <ChevronLeft size={17} />
-                      Önceki
-                    </button>
-
-                    <span
-                      style={{
-                        color:
-                          "var(--text-secondary)",
-                        fontSize: "14px",
-                      }}
-                    >
-                      {currentPage + 1} /{" "}
-                      {totalPages}
-                    </span>
-
-                    <button
-                      type="button"
-                      className="pet-listing-card__button"
-                      style={{
-                        marginTop: 0,
-                        width: "auto",
-                        padding: "0 16px",
-                      }}
-                      disabled={
-                        currentPage >=
-                        totalPages - 1
-                      }
-                      onClick={() =>
-                        setCurrentPage(
-                          (page) =>
-                            Math.min(
-                              totalPages - 1,
-                              page + 1,
-                            ),
-                        )
-                      }
-                    >
-                      Sonraki
-                      <ChevronRight size={17} />
-                    </button>
-                  </div>
-                )}
-              </>
+                <button
+                  type="button"
+                  onClick={goToNextPage}
+                  disabled={page >= totalPages - 1}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Sonraki sayfa"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </nav>
             )}
           </div>
         </section>
       </main>
-
-      <div
-        className={`filter-drawer-overlay ${
-          isFilterOpen ? "is-open" : ""
-        }`}
-        aria-hidden={!isFilterOpen}
-        onMouseDown={(event) => {
-          if (
-            event.target === event.currentTarget
-          ) {
-            setIsFilterOpen(false);
-          }
-        }}
-      >
-        <aside
-          className="filter-drawer"
-          role="dialog"
-          aria-modal="true"
-          aria-label="İlan filtreleri"
-        >
-          <div className="filter-drawer__header">
-            <div>
-              <span>Arama seçenekleri</span>
-              <h2>Filtreler</h2>
-            </div>
-
-            <button
-              type="button"
-              className="filter-drawer__close"
-              aria-label="Filtreleri kapat"
-              onClick={() =>
-                setIsFilterOpen(false)
-              }
-            >
-              <X size={22} />
-            </button>
-          </div>
-
-          <div className="filter-drawer__body">
-            <section className="filter-group">
-              <h3>Hayvan türü</h3>
-
-              <div className="filter-chip-grid">
-                {[
-                  ["CAT", "Kedi"],
-                  ["DOG", "Köpek"],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={
-                      selectedSpecies.includes(
-                        value,
-                      )
-                        ? "is-selected"
-                        : ""
-                    }
-                    onClick={() =>
-                      toggleSpecies(value)
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="filter-group">
-              <h3>Cinsiyet</h3>
-
-              <div className="filter-chip-grid">
-                {[
-                  ["MALE", "Erkek"],
-                  ["FEMALE", "Dişi"],
-                  ["UNKNOWN", "Bilinmiyor"],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={
-                      selectedGender.includes(
-                        value,
-                      )
-                        ? "is-selected"
-                        : ""
-                    }
-                    onClick={() =>
-                      toggleGender(value)
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          <div className="filter-drawer__footer">
-            <button
-              type="button"
-              className="filter-clear-button"
-              onClick={clearFilters}
-            >
-              Temizle
-            </button>
-
-            <button
-              type="button"
-              className="filter-apply-button"
-              onClick={() =>
-                setIsFilterOpen(false)
-              }
-            >
-              {filteredAds.length} sonucu göster
-            </button>
-          </div>
-        </aside>
-      </div>
     </div>
   );
 }
