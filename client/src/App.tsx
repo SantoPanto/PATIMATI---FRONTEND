@@ -3,8 +3,8 @@ import "./App.css";
 import { Route, Switch } from "wouter";
 
 import HomePage from "./pages/HomePage";
-import ListingsPage from "./pages/ListingsPage";
-import AddListingPage from "./pages/AddListingPage";
+import ListingsPage from "./pages/listingpage";
+import AddListingPage from "./pages/AddListingPage"; 
 import MapPage from "./pages/MapPage";
 import ProfilePage from "./pages/ProfilePage";
 import PetDetailPage from "./pages/PetDetailPage";
