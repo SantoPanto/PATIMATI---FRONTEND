@@ -6,12 +6,12 @@ importScripts(
 );
 
 firebase.initializeApp({
-  apiKey: "__VITE_FIREBASE_API_KEY__",
-  authDomain: "__VITE_FIREBASE_AUTH_DOMAIN__",
-  projectId: "__VITE_FIREBASE_PROJECT_ID__",
-  storageBucket: "__VITE_FIREBASE_STORAGE_BUCKET__",
-  messagingSenderId: "__VITE_FIREBASE_MESSAGING_SENDER_ID__",
-  appId: "__VITE_FIREBASE_APP_ID__",
+  apiKey: "AIzaSyAxZBrAWIusf4rsCmKRsct0z9d_Yi0GgvI",
+  authDomain: "patim-25976.firebaseapp.com",
+  projectId: "patim-25976",
+  storageBucket: "patim-25976.firebasestorage.app",
+  messagingSenderId: "691865471618",
+  appId: "1:691865471618:web:54b9755bfe855aa1a5029b",
 });
 
 const messaging = firebase.messaging();

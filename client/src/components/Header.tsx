@@ -3,6 +3,7 @@ import {
   ChevronDown,
   LogOut,
   PawPrint,
+  ShieldAlert,
   UserRound,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -11,6 +12,8 @@ import { useAuth } from "../contexts/AuthContext";
 export default function Header() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+
+  const isAdmin = user?.role === "ADMIN";
 
   const userDisplayName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
@@ -42,6 +45,17 @@ export default function Header() {
   return (
     <header className="home-header">
       <div className="page-container home-header__content">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs"
+            aria-label="Yönetim Paneli"
+          >
+            <ShieldAlert size={18} className="text-blue-600" />
+            <span>Admin Panel</span>
+          </Link>
+        )}
+
         <Link href="/" className="brand" aria-label="PATIMATI ana sayfa">
           <span className="brand__icon">
             <PawPrint size={24} strokeWidth={2.4} />

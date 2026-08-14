@@ -148,14 +148,14 @@ export default function MapPage() {
   );
 
   const center = useMemo<[number, number]>(() => {
-    if (selectedAd) {
+    if (selectedAd && selectedAd.latitude != null && selectedAd.longitude != null) {
       return [
         selectedAd.latitude,
         selectedAd.longitude,
       ];
     }
 
-    if (adsWithCoordinates.length > 0) {
+    if (adsWithCoordinates.length > 0 && adsWithCoordinates[0].latitude != null && adsWithCoordinates[0].longitude != null) {
       return [
         adsWithCoordinates[0].latitude,
         adsWithCoordinates[0].longitude,
@@ -296,8 +296,8 @@ export default function MapPage() {
                 <CircleMarker
                   key={ad.id}
                   center={[
-                    ad.latitude,
-                    ad.longitude,
+                    ad.latitude ?? 0,
+                    ad.longitude ?? 0,
                   ]}
                   radius={
                     selectedAd?.id === ad.id
