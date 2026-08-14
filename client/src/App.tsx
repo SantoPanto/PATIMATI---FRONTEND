@@ -146,6 +146,7 @@ function App() {
           component={ProtectedAddListingPage}
         />
         <Route path="/pet/:id" component={PetDetailPage} />
+        <Route path="/ads/:id" component={PetDetailPage} />
 
         {/* Buldum İlanı */}
         <Route
