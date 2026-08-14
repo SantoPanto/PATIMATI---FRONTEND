@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   Eye,
+  Flag,
   Heart,
   MapPin,
   MessageCircle,
@@ -20,6 +21,7 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ComplaintModal from "../components/ComplaintModal";
 import { getPublicAdById } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
 import {
@@ -92,6 +94,7 @@ export default function PetDetailPage() {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
 
   const adId = id ? Number(id) : NaN;
   const isValidId = !Number.isNaN(adId) && adId > 0;
@@ -500,7 +503,7 @@ export default function PetDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={openChat}
@@ -518,6 +521,15 @@ export default function PetDetailPage() {
                   <MapPin size={19} />
                   Haritada Gör
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsComplaintModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                >
+                  <Flag size={19} />
+                  Şikayet Et
+                </button>
               </div>
             </div>
           </div>
@@ -525,6 +537,16 @@ export default function PetDetailPage() {
       </main>
 
       <Footer />
+
+      {ad && (
+        <ComplaintModal
+          isOpen={isComplaintModalOpen}
+          onClose={() => setIsComplaintModalOpen(false)}
+          targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
+          targetId={ad.id}
+          targetTitle={ad.title}
+        />
+      )}
     </div>
   );
 }

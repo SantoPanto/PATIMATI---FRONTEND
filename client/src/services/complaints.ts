@@ -50,6 +50,10 @@ export function createAdoptionComplaint(
   return request<ComplaintResponse>(`/api/adoptions/${adId}/complaints`, {
     method: "POST",
     requiresAuth: true,
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      reportedAdId: adId,
+      reason: data.reason,
+      description: data.description,
+    }),
   });
 }

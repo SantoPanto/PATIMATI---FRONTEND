@@ -23,6 +23,7 @@ export function getAdminUsers(params?: {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  searchParams.set("_t", String(Date.now()));
 
   const query = searchParams.toString();
   return request<Page<UserDetailForAdminDTO>>(
@@ -64,6 +65,7 @@ export function getAdminAds(params?: {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  searchParams.set("_t", String(Date.now()));
 
   const query = searchParams.toString();
   return request<Page<AdResponse>>(

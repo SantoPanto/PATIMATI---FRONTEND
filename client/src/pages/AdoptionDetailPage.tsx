@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   CalendarDays,
   ChevronRight,
+  Flag,
   Heart,
   MapPin,
   MessageCircle,
@@ -15,6 +16,7 @@ import { useLocation, useParams } from "wouter";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import ComplaintModal from "../components/ComplaintModal";
 import { getPublicAdoptionById } from "../services/adoptions";
 import type { AdResponse } from "../services/types";
 import {
@@ -34,6 +36,7 @@ export default function AdoptionDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
   const adId = Number(id);
   const hasValidId = Number.isInteger(adId) && adId > 0;
 
@@ -201,7 +204,7 @@ export default function AdoptionDetailPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <button
                     type="button"
                     onClick={openConversation}
@@ -218,6 +221,14 @@ export default function AdoptionDetailPage() {
                     <Heart size={19} />
                     Sahiplenmek İstiyorum
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsComplaintModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 transition hover:bg-rose-100"
+                  >
+                    <Flag size={19} />
+                    Şikayet Et
+                  </button>
                 </div>
               </div>
             </div>
@@ -233,6 +244,16 @@ export default function AdoptionDetailPage() {
       </main>
 
       <Footer />
+
+      {ad && (
+        <ComplaintModal
+          isOpen={isComplaintModalOpen}
+          onClose={() => setIsComplaintModalOpen(false)}
+          targetType="ADOPTION"
+          targetId={ad.id}
+          targetTitle={ad.title}
+        />
+      )}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export type ApiResponse<T = unknown> = {
 // 1. User & Authentication Types (/api/auth)
 // ==========================================
 
-export type Role = "USER" | "ADMIN";
+export type Role = "GUEST" | "USER" | "ADMIN";
 
 export type UserResponseDTO = {
   uid: number;
@@ -251,6 +251,11 @@ export type MessageResponse = {
 // ==========================================
 
 export type ComplaintReason =
+  | "SAHTE_ILAN"
+  | "UYGUNSUZ_ICERIK"
+  | "DOLANDIRICILIK"
+  | "KOTU_DIL_KULLANIMI"
+  | "DIGER"
   | "SPAM"
   | "INAPPROPRIATE_CONTENT"
   | "FRAUD"
