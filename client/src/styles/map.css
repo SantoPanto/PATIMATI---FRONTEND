@@ -1,0 +1,568 @@
+/* =========================================================
+   PATIMATI — Map Page
+   ========================================================= */
+
+.map-page {
+  width: 100%;
+  min-height: 100vh;
+  padding-bottom: 90px;
+}
+
+/* ---------------------------------------------------------
+   Header
+   --------------------------------------------------------- */
+
+.map-page .center-header {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.map-page .center-header h1 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------
+   Filters
+   --------------------------------------------------------- */
+
+.map-filter {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.map-filter::-webkit-scrollbar {
+  display: none;
+}
+
+.map-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #dce1e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.map-filter-chip:hover {
+  border-color: #172033;
+}
+
+.map-filter-chip.active {
+  background: #172033;
+  border-color: #172033;
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------
+   Search
+   --------------------------------------------------------- */
+
+.map-search-panel {
+  margin-bottom: 14px;
+}
+
+.map-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #dce1e8;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+.map-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #172033;
+  font-size: 14px;
+}
+
+.map-search input::placeholder {
+  color: #98a2b3;
+}
+
+.map-search button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #172033;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------
+   Status
+   --------------------------------------------------------- */
+
+.map-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.map-status strong {
+  color: #172033;
+  font-size: 18px;
+}
+
+/* ---------------------------------------------------------
+   Map container
+   --------------------------------------------------------- */
+
+.map-art {
+  position: relative;
+  width: 100%;
+  height: min(70vh, 720px);
+  min-height: 500px;
+  overflow: hidden;
+  border: 1px solid #dce1e8;
+  border-radius: 24px;
+  background: #e9edf2;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+}
+
+.real-map {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  z-index: 1;
+}
+
+/* Make sure Leaflet itself fills the container */
+
+.map-art .leaflet-container {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  font-family: inherit;
+}
+
+/* ---------------------------------------------------------
+   Map controls
+   --------------------------------------------------------- */
+
+.map-art .leaflet-control-zoom {
+  border: 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.map-art .leaflet-control-zoom a {
+  color: #172033;
+}
+
+/* ---------------------------------------------------------
+   Empty state
+   --------------------------------------------------------- */
+
+.map-empty {
+  position: absolute;
+  z-index: 500;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  width: min(360px, calc(100% - 40px));
+
+  padding: 28px;
+
+  border-radius: 20px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.14);
+
+  text-align: center;
+
+  backdrop-filter: blur(10px);
+}
+
+.map-empty svg {
+  display: block;
+  margin: 0 auto 12px;
+}
+
+.map-empty strong {
+  display: block;
+  margin-bottom: 12px;
+
+  color: #172033;
+
+  line-height: 1.45;
+}
+
+.map-empty a {
+  color: #172033;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------
+   Error state
+   --------------------------------------------------------- */
+
+.map-error {
+  display: flex;
+
+  min-height: 400px;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+
+  padding: 32px;
+
+  border: 1px solid #e1e5eb;
+  border-radius: 24px;
+
+  background: #ffffff;
+
+  text-align: center;
+}
+
+.map-error strong {
+  max-width: 420px;
+
+  line-height: 1.5;
+}
+
+.map-error a {
+  color: #172033;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   Selected listing card
+   --------------------------------------------------------- */
+
+.map-selected-card {
+  position: sticky;
+  bottom: 20px;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+
+  margin-top: 16px;
+  padding: 16px 18px;
+
+  border: 1px solid #dce1e8;
+  border-radius: 18px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+
+  backdrop-filter: blur(12px);
+}
+
+.map-selected-card > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.map-selected-card > div > span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #667085;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+}
+
+.map-selected-card strong {
+  display: block;
+
+  overflow: hidden;
+
+  color: #172033;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-selected-card p {
+  margin: 4px 0 0;
+
+  color: #667085;
+
+  font-size: 13px;
+}
+
+.map-selected-card > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+
+  flex: 0 0 auto;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: #f0f2f5;
+
+  color: #172033;
+
+  cursor: pointer;
+}
+
+.map-selected-card > button:hover {
+  background: #e5e7eb;
+}
+
+.map-selected-card > a {
+  flex: 0 0 auto;
+
+  padding: 10px 16px;
+
+  border-radius: 10px;
+
+  background: #172033;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  transition: opacity 0.2s ease;
+}
+
+.map-selected-card > a:hover {
+  opacity: 0.9;
+}
+
+/* ---------------------------------------------------------
+   Map popup
+   --------------------------------------------------------- */
+
+.map-popup {
+  display: flex;
+
+  width: 250px;
+
+  gap: 10px;
+}
+
+.map-popup__image {
+  width: 76px;
+  height: 76px;
+
+  flex: 0 0 76px;
+
+  border-radius: 10px;
+
+  object-fit: cover;
+}
+
+.map-popup__content {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.map-popup__content strong {
+  color: #172033;
+
+  line-height: 1.3;
+}
+
+.map-popup__content > span:not(.map-popup__type) {
+  color: #667085;
+
+  font-size: 12px;
+}
+
+.map-popup__type {
+  font-size: 11px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+}
+
+.map-popup__content a {
+  margin-top: 4px;
+
+  color: #172033;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   Pet markers
+   --------------------------------------------------------- */
+
+.pet-map-marker--lost {
+  fill: #ef4444;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.pet-map-marker--found {
+  fill: #22c55e;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.pet-map-marker--adoption {
+  fill: #f59e0b;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+/* ---------------------------------------------------------
+   Loading state
+   --------------------------------------------------------- */
+
+.map-loading {
+  position: absolute;
+  z-index: 500;
+
+  left: 50%;
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 180px;
+
+  padding: 16px 22px;
+
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.94);
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+
+  color: #172033;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .map-art {
+    height: 65vh;
+    min-height: 480px;
+  }
+
+  .real-map,
+  .map-art .leaflet-container {
+    min-height: 480px;
+  }
+}
+
+@media (max-width: 700px) {
+  .map-page {
+    padding-bottom: 80px;
+  }
+
+  .map-page .center-header {
+    gap: 8px;
+  }
+
+  .map-art {
+    height: calc(100vh - 280px);
+    min-height: 430px;
+
+    border-radius: 18px;
+  }
+
+  .real-map,
+  .map-art .leaflet-container {
+    min-height: 430px;
+  }
+
+  .map-selected-card {
+    bottom: 10px;
+
+    padding: 13px;
+  }
+
+  .map-selected-card > a {
+    padding: 9px 12px;
+  }
+
+  .map-popup {
+    width: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-filter-chip {
+    min-height: 38px;
+
+    padding: 0 13px;
+
+    font-size: 13px;
+  }
+
+  .map-status {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .map-selected-card {
+    align-items: flex-start;
+  }
+
+  .map-selected-card > a {
+    align-self: center;
+  }
+}

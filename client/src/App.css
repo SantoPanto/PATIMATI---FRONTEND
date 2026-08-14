@@ -2690,3 +2690,154 @@ img {
   .ai-match-photo--back { width: 200px; height: 220px; right: 0; }
   .ai-match-photo--front { width: 225px; height: 250px; left: 0; }
 }
+/* =========================================================
+   PATIMATI TEAM SHELL
+   Shared layout for TeamShell-based pages.
+   Uses the existing PATIMATI design tokens above.
+   ========================================================= */
+
+.app-shell {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--background);
+}
+
+.app-shell > main {
+  width: min(100% - 32px, 1200px);
+  min-width: 0;
+  min-height: 100vh;
+  margin-inline: auto;
+  padding: 24px 0 32px;
+}
+
+.app-shell > main .center-header {
+  display: grid;
+  width: 100%;
+  min-height: 52px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.app-shell > main .center-header h1 {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.7px;
+  text-align: center;
+}
+
+.app-shell > main .center-header .icon-button {
+  width: 44px;
+  height: 44px;
+}
+
+.app-shell > main .center-header > :last-child {
+  justify-self: end;
+}
+
+/* TeamUI navigation. The component uses these names, while the
+   existing homepage uses the mobile-bottom-nav naming scheme. */
+.bottom-nav {
+  display: none;
+}
+
+.nav-item {
+  color: var(--text-muted);
+}
+
+@media (max-width: 767px) {
+  .app-shell > main {
+    width: min(100% - 24px, 1200px);
+    padding-top: 16px;
+    padding-bottom: 96px;
+  }
+
+  .app-shell > main .center-header {
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .app-shell > main .center-header h1 {
+    font-size: 22px;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    z-index: 1000;
+    right: 12px;
+    bottom: 10px;
+    left: 12px;
+    display: grid;
+    height: 68px;
+    align-items: center;
+    padding: 6px 8px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(18px);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .nav-item {
+    display: flex;
+    width: 100%;
+    height: 54px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 3px;
+    border-radius: 15px;
+    color: var(--text-muted);
+    background: transparent;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .nav-item__icon {
+    display: grid;
+    place-items: center;
+    line-height: 1;
+  }
+
+  .nav-item.is-active {
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  .nav-item--add .nav-item__icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-items: center;
+    border: 5px solid #fff;
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    box-shadow: 0 8px 22px rgba(249, 115, 22, 0.32);
+    transform: translateY(-16px);
+  }
+
+  .nav-item--add small {
+    transform: translateY(-10px);
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell > main {
+    width: min(100% - 20px, 1200px);
+  }
+
+  .bottom-nav {
+    right: 8px;
+    left: 8px;
+  }
+}
