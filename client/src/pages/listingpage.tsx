@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import {
   ChevronLeft,
   ChevronRight,
-  Heart,
   MapPin,
   Search,
   Sparkles,
