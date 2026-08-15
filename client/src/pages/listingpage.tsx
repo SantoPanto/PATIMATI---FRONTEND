@@ -11,6 +11,7 @@ import {
 import Header from "../components/Header";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
+import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
 type FilterType = "ALL" | AdType;
@@ -246,9 +247,7 @@ export default function ListingsPage() {
       setTotalElements(0);
 
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "İlanlar yüklenirken bir hata oluştu.",
+        getUserErrorMessage(requestError, "İlanlar yüklenirken bir hata oluştu."),
       );
     } finally {
       setIsLoading(false);
@@ -256,6 +255,7 @@ export default function ListingsPage() {
   }, [activeFilter, page]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- filtre/sayfa degistiginde sunucudan veri cekmek (dis sistemle senkronizasyon), loadAds kendi ici setIsLoading/setError cagirir
     void loadAds();
   }, [loadAds]);
 

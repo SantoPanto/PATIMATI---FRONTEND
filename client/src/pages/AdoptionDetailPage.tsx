@@ -28,6 +28,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 export default function AdoptionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,9 +64,7 @@ export default function AdoptionDetailPage() {
       } catch (error) {
         if (isActive) {
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Sahiplendirme ilanı yüklenemedi.",
+            getUserErrorMessage(error, "Sahiplendirme ilanı yüklenemedi."),
           );
         }
       } finally {

@@ -7,6 +7,7 @@ import {
   getAdminUserComplaints,
 } from "../services/admin";
 import type { ComplaintResponse } from "../services/types";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 type AdminComplaint = ComplaintResponse & {
   title: string;
@@ -53,9 +54,7 @@ export default function AdminComplaintsPage() {
       .catch((err) => {
         if (!cancelled) {
           setError(
-            err instanceof Error
-              ? err.message
-              : "Şikayetler yüklenemedi.",
+            getUserErrorMessage(err, "Şikayetler yüklenemedi."),
           );
         }
       })

@@ -25,6 +25,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { request } from "../services/api";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -467,10 +468,15 @@ export default function AddListingPage() {
       .catch(() => null);
 
     if (!response.ok) {
+      const detailMessage =
+        typeof data?.detail === "string" && data.detail.trim()
+          ? data.detail
+          : typeof data?.message === "string" && data.message.trim()
+            ? data.message
+            : null;
+
       throw new Error(
-        data?.detail ||
-          data?.message ||
-          "AI fotoğraf analizi başarısız oldu.",
+        detailMessage || "AI fotoğraf analizi başarısız oldu.",
       );
     }
 
@@ -578,12 +584,11 @@ export default function AddListingPage() {
         );
       }
     } catch (error) {
+      console.error("AI analiz hatası:", error);
       setAnalysisMessage("");
 
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "AI analizi sırasında hata oluştu.",
+        getUserErrorMessage(error, "AI analizi sırasında hata oluştu."),
       );
     } finally {
       setIsAnalyzing(false);
@@ -820,9 +825,7 @@ export default function AddListingPage() {
       );
 
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "İlan oluşturulurken bir hata oluştu.",
+        getUserErrorMessage(error, "İlan oluşturulurken bir hata oluştu."),
       );
     } finally {
       setIsSubmitting(false);

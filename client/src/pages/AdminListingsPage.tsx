@@ -3,6 +3,7 @@ import { Eye } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getAdminAds } from "../services/admin";
 import type { AdResponse } from "../services/types";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 export default function AdminListingsPage() {
   const [listings, setListings] = useState<AdResponse[]>([]);
@@ -21,9 +22,7 @@ export default function AdminListingsPage() {
       .catch((err) => {
         if (!cancelled) {
           setError(
-            err instanceof Error
-              ? err.message
-              : "İlanlar yüklenemedi.",
+            getUserErrorMessage(err, "İlanlar yüklenemedi."),
           );
         }
       })

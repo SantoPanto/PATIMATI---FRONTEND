@@ -20,6 +20,7 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 type ListingType = "lost" | "found";
 
@@ -330,10 +331,12 @@ export default function AiMatchPage() {
         navigate("/ai-match/results");
       */
     } catch (error) {
+      console.error("AI eşleştirme hatası:", error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Eşleştirme sırasında beklenmeyen bir hata oluştu.",
+        getUserErrorMessage(
+          error,
+          "Eşleştirme sırasında beklenmeyen bir hata oluştu.",
+        ),
       );
     } finally {
       setIsMatching(false);

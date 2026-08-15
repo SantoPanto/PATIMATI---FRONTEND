@@ -11,6 +11,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { getUserErrorMessage } from "../utils/errorMessage";
 import Header from "../components/Header";
 import "../App.css";
 import {
@@ -100,9 +101,7 @@ export default function HomePage() {
       } catch (error) {
         if (isActive) {
           setListingsError(
-            error instanceof Error
-              ? error.message
-              : "İlanlar yüklenemedi.",
+            getUserErrorMessage(error, "İlanlar yüklenemedi."),
           );
         }
       } finally {
@@ -916,7 +915,7 @@ export default function HomePage() {
 
       <footer className="border-t border-[#E2E8F0] bg-white">
         <div className="page-container py-10 sm:py-12">
-          <div className="grid gap-8 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
+          <div className="grid gap-8 md:grid-cols-[1.3fr_1fr_1fr]">
             <div>
               <Link
                 href="/"
@@ -993,38 +992,6 @@ export default function HomePage() {
                   className="text-sm text-[#64748B] transition hover:text-[#F97316]"
                 >
                   Hakkımızda
-                </Link>
-
-                <Link
-                  href="/contact"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  İletişim
-                </Link>
-              </nav>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#0F172A]">
-                Yasal
-              </h3>
-
-              <nav
-                className="mt-4 flex flex-col gap-3"
-                aria-label="Footer yasal"
-              >
-                <Link
-                  href="/privacy"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Gizlilik
-                </Link>
-
-                <Link
-                  href="/terms"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Kullanım Koşulları
                 </Link>
               </nav>
             </div>

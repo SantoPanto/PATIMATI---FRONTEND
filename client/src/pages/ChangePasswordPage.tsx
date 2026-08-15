@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { changePassword } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 type PasswordField =
   | "currentPassword"
@@ -139,9 +140,7 @@ export default function ChangePasswordPage() {
       }, 1500);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Şifre değiştirilirken bir hata oluştu.",
+        getUserErrorMessage(error, "Şifre değiştirilirken bir hata oluştu."),
       );
     } finally {
       setIsSubmitting(false);
