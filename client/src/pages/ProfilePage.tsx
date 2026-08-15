@@ -27,6 +27,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
 import { updateProfile } from "../services/auth";
 import type { AuthUser } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 import "../styles/profile.css";
 
@@ -175,9 +176,7 @@ function ProfileContent() {
       setIsEditing(false);
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Profil güncellenirken bir hata oluştu.",
+        getUserErrorMessage(error, "Profil güncellenirken bir hata oluştu."),
       );
     } finally {
       setIsSaving(false);

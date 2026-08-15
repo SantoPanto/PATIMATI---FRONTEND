@@ -52,9 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               <p className="mt-1 text-sm text-slate-600">
                 {this.props.message ||
-                  (this.state.error?.message
-                    ? `Hata ayrıntısı: ${this.state.error.message}`
-                    : "Lütfen sayfayı yenileyin veya tekrar deneyin.")}
+                  "Lütfen sayfayı yenileyin veya tekrar deneyin."}
               </p>
 
               <div className="mt-4 flex items-center gap-3">

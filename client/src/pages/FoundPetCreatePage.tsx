@@ -26,6 +26,7 @@ import {
   API_BASE_URL,
   getStoredToken,
 } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 type SelectedImage = {
   id: string;
@@ -472,10 +473,12 @@ export default function FoundPetCreatePage() {
        */
       navigate("/");
     } catch (error) {
+      console.error("Buldum ilanı oluşturma hatası:", error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "İlan oluşturulurken beklenmeyen bir hata oluştu.",
+        getUserErrorMessage(
+          error,
+          "İlan oluşturulurken beklenmeyen bir hata oluştu.",
+        ),
       );
     } finally {
       setIsSubmitting(false);

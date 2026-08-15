@@ -18,7 +18,7 @@ import {
   saveStoredUser,
 } from "../services/auth";
 import type { AuthUser } from "../services/auth";
-import { AUTH_UNAUTHORIZED_EVENT } from "../services/api";
+import { ApiError, AUTH_UNAUTHORIZED_EVENT } from "../services/api";
 
 type AuthContextType = {
   user: AuthUser | null;
@@ -71,7 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return normalized;
     } catch (error) {
       console.error("Kullanıcı oturumu doğrulanamadı:", error);
-      setUser(null);
+
+      /*
+       * Yalnizca gercek 401 (ApiError, HTTP status 401) oturumu
+       * gecersiz kilar. 403/5xx veya network hatasinda (backend
+       * kapali, baglanti kopuk) mevcut oturum durumu korunur --
+       * aksi halde sunucu gecici olarak ulasilamaz oldugunda
+       * kullanici yanlislikla giris ekranina dusuyordu.
+       */
+      if (error instanceof ApiError && error.status === 401) {
+        setUser(null);
+      }
+
       return null;
     } finally {
       setIsAuthLoading(false);

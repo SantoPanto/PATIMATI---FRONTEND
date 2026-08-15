@@ -10,6 +10,7 @@ import {
   saveAuthResponse,
   startGoogleOAuth,
 } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 import {
   ArrowLeft,
   Eye,
@@ -97,17 +98,9 @@ export default function LoginPage() {
       await refreshUser();
       navigate(redirectPath);
     } catch (error) {
-      if (error instanceof TypeError) {
-        setErrorMessage(
-          "Backend sunucusuna ulaşılamadı. API adresini veya sunucunun çalışıp çalışmadığını kontrol et.",
-        );
-      } else {
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Giriş sırasında bir sorun oluştu.",
-        );
-      }
+      setErrorMessage(
+        getUserErrorMessage(error, "Giriş sırasında bir sorun oluştu."),
+      );
     } finally {
       setIsLoading(false);
     }

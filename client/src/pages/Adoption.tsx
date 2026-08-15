@@ -25,6 +25,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { getUserErrorMessage } from "../utils/errorMessage";
 import "../styles/adoption.css";
 
 export default function Adoption() {
@@ -54,9 +55,7 @@ export default function Adoption() {
       } catch (error) {
         if (isActive) {
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Sahiplendirme ilanları yüklenemedi.",
+            getUserErrorMessage(error, "Sahiplendirme ilanları yüklenemedi."),
           );
         }
       } finally {

@@ -33,6 +33,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
 function getAdTypeBadge(adType: AdType) {
@@ -119,9 +120,7 @@ export default function PetDetailPage() {
     } catch (err) {
       console.error("İlan detayı alınırken hata oluştu:", err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "İlan bilgileri yüklenirken bir sorun oluştu.",
+        getUserErrorMessage(err, "İlan bilgileri yüklenirken bir sorun oluştu."),
       );
       setAd(null);
     } finally {
@@ -130,6 +129,7 @@ export default function PetDetailPage() {
   }, [adId, isValidId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ilan id'si degistiginde sunucudan veri cekmek (dis sistemle senkronizasyon), fetchAdDetail kendi ici setIsLoading/setError cagirir
     void fetchAdDetail();
   }, [fetchAdDetail]);
 

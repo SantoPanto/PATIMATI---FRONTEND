@@ -9,6 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { forgotPassword } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -33,9 +34,7 @@ export default function ForgotPasswordPage() {
       setIsSent(true);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Beklenmeyen bir sorun oluştu.",
+        getUserErrorMessage(error, "Beklenmeyen bir sorun oluştu."),
       );
     } finally {
       setIsLoading(false);

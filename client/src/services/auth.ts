@@ -183,10 +183,12 @@ export function completeGoogleOAuthCallback():
   } = consumeOAuthIntent("/");
 
   if (error) {
+    console.error("Google OAuth hatası:", error);
+
     return {
       status: "error",
       message:
-        `Google ile giriş tamamlanamadı: ${error}`,
+        "Google ile giriş tamamlanamadı. Lütfen tekrar deneyin.",
     };
   }
 
@@ -281,8 +283,14 @@ export async function getCurrentUser():
   } catch (error) {
     if (
       error instanceof ApiError &&
-      [401, 403].includes(error.status)
+      error.status === 401
     ) {
+      /*
+       * Yalnizca gercek 401 (oturum gecersiz) durumunda saklanan
+       * oturumu temizle. 403 bir yetki sorunudur, oturumun
+       * gecersiz oldugu anlamina gelmez; 5xx/network hatalarinda
+       * da kullanici yanlislikla cikis yapilmis sayilmamali.
+       */
       clearAuthStorage();
     }
 

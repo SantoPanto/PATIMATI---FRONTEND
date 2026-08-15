@@ -81,8 +81,9 @@ export default function MapPicker({
         }
       },
       (error) => {
+        console.error("Konum alınamadı:", error);
         setIsLocating(false);
-        alert("Konumunuz alınamadı: " + error.message);
+        alert("Konumunuz alınamadı. Lütfen konum izni verip tekrar deneyin.");
       },
       { enableHighAccuracy: true }
     );
