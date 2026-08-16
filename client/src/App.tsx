@@ -19,8 +19,6 @@ import SettingsPage from "./pages/SettingsPage";
 import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
-import AiMatchPage from "./pages/AiMatchPage";
-import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
@@ -194,16 +192,6 @@ function App() {
 
         <Route path="/adoption" component={Adoption} />
 
-        {/* Yapay Zeka */}
-        <Route
-          path="/ai-match/results"
-          component={AiMatchResultsPage}
-        />
-
-        <Route
-          path="/ai-match"
-          component={AiMatchPage}
-        />
         {/* Admin */}
         <Route path="/admin" component={ProtectedAdminDashboardPage} />
         <Route

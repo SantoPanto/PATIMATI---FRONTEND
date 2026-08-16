@@ -268,6 +268,9 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
+  const [matches, setMatches] = useState<any[]>([]);
+  const [showMatchModal, setShowMatchModal] = useState(false);
+
   /* ---------------------------------------------------------------------- */
   /* Helpers                                                                */
   /* ---------------------------------------------------------------------- */
@@ -567,21 +570,40 @@ export default function AddListingPage() {
     );
 
     try {
-      const analysis =
-        await analyzeImage(
-          images[0].file,
-        );
-
-      applyAiAnalysis(analysis);
+      const analysis = await analyzeImage(images[0].file);
 
       if (analysis.is_pet === false) {
         setAnalysisMessage(
           "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
         );
       } else {
+        applyAiAnalysis(analysis);
         setAnalysisMessage(
-          "AI analizi tamamlandı. Tespit edilen bilgiler forma aktarıldı.",
+          "AI analizi tamamlandı. Olası eşleşmeler aranıyor...",
         );
+
+        // Fetch matches concurrently
+        try {
+          const formData = new FormData();
+          formData.append("listingType", adType);
+          images.forEach((img) => formData.append("images", img.file));
+
+          const matchesData = await request<any[]>("/api/ai-match", {
+            method: "POST",
+            body: formData,
+            requiresAuth: true,
+          });
+
+          if (matchesData && matchesData.length > 0) {
+            setMatches(matchesData);
+            setShowMatchModal(true);
+          }
+        } catch (matchError) {
+          console.error("Eşleştirme hatası:", matchError);
+        } finally {
+          setIsAnalyzing(false);
+          setAnalysisMessage("");
+        }
       }
     } catch (error) {
       console.error("AI analiz hatası:", error);
@@ -753,7 +775,8 @@ export default function AddListingPage() {
        * FormData kullanıldığı için Content-Type başlığını tarayıcı boundary
        * değeriyle birlikte kendisi oluşturur.
        */
-      const responseData = await request<AdResponse>("/api/ads", {
+      const url = adType === "ADOPTION" ? "/api/adoptions" : "/api/ads";
+      const responseData = await request<AdResponse>(url, {
         method: "POST",
         requiresAuth: true,
         body: formData,
@@ -1934,6 +1957,81 @@ export default function AddListingPage() {
           </button>
         </form>
       </main>
+
+      {/* AI Match Modal */}
+      {showMatchModal && matches.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6">
+              <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
+                <Sparkles className="text-[#F97316]" size={24} />
+                Olası Eşleşmeler Bulundu!
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowMatchModal(false)}
+                className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <p className="text-[#64748B] mb-6">
+              İlanını oluşturmadan önce, sistemimizde fotoğrafı yüklediğin hayvana benzeyen bazı ilanlar bulduk. Lütfen bunları incele:
+            </p>
+
+            <div className="grid gap-4">
+              {matches.map((match, idx) => (
+                <div key={idx} className="flex gap-4 p-4 border border-[#E2E8F0] rounded-xl hover:border-[#CBD5E1] transition bg-[#F8FAFC]">
+                  {match.ad?.photoUrls?.[0] ? (
+                    <img
+                      src={match.ad.photoUrls[0]}
+                      alt={match.ad.title || "Eşleşen İlan"}
+                      className="w-24 h-24 rounded-lg object-cover bg-[#E2E8F0]"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-lg bg-[#E2E8F0] flex items-center justify-center">
+                      <PawPrint size={32} className="text-[#94A3B8]" />
+                    </div>
+                  )}
+                  
+                  <div className="flex-1 flex flex-col justify-center">
+                    <h3 className="font-bold text-[#0F172A] text-lg mb-1">{match.ad?.title || "İlan"}</h3>
+                    <p className="text-sm text-[#64748B] line-clamp-2">{match.ad?.description}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-[#ECFCCB] px-2.5 py-0.5 text-xs font-semibold text-[#4D7C0F]">
+                        %{(match.score * 100).toFixed(0)} Benzerlik
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-center pl-4 border-l border-[#E2E8F0]">
+                    <a
+                      href={`/pet/${match.ad?.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F8FAFC] px-4 py-2 font-semibold text-[#0F172A] border border-[#CBD5E1] hover:bg-[#F1F5F9] hover:border-[#94A3B8] transition"
+                    >
+                      İncele
+                      <ChevronRight size={16} />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-8 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowMatchModal(false)}
+                className="rounded-xl bg-[#0F172A] px-6 py-3 font-bold text-white transition hover:bg-[#334155]"
+              >
+                İlan Oluşturmaya Devam Et
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
