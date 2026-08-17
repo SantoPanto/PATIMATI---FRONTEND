@@ -16,6 +16,7 @@ import {
   Save,
   Settings,
   Shield,
+  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
@@ -278,6 +279,13 @@ function ProfileContent() {
                 label="İlanlarım"
                 description="Yayınladığınız ilanları yönetin"
                 onClick={() => navigate("/profile/listings")}
+              />
+
+              <ProfileMenuItem
+                icon={<Sparkles size={20} />}
+                label="Eşleşmelerim"
+                description="AI destekli eşleşme sonuçları"
+                onClick={() => navigate("/my-matches")}
               />
 
               <ProfileMenuItem
