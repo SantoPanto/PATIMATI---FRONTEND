@@ -14,12 +14,8 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../contexts/AuthContext";
+import { useChatWebSocket } from "../hooks/useChatWebSocket";
 import { getMessageHistory, markMessageAsRead } from "../services/messages";
-import {
-  connectWebSocket,
-  disconnectWebSocket,
-  sendMessage as sendStompMessage,
-} from "../services/websocket";
 import type { MessageResponse } from "../services/types";
 
 interface ChatContact {
@@ -42,7 +38,6 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [text, setText] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [wsConnected, setWsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,21 +47,29 @@ export default function ChatPage() {
     (contactUserId: number, contactName: string, lastMsg: string, timestamp: string) => {
       setContacts((prev) => {
         const index = prev.findIndex((c) => c.userId === contactUserId);
+        const resolvedName =
+          contactName && !contactName.startsWith("Kullanıcı #")
+            ? contactName
+            : index >= 0 && prev[index].userName && !prev[index].userName.startsWith("Kullanıcı #")
+            ? prev[index].userName
+            : contactName || `Kullanıcı #${contactUserId}`;
+
         if (index >= 0) {
           const updated = [...prev];
           updated[index] = {
             ...updated[index],
-            lastMessage: lastMsg,
-            lastTimestamp: timestamp,
+            userName: resolvedName,
+            lastMessage: lastMsg || updated[index].lastMessage,
+            lastTimestamp: timestamp || updated[index].lastTimestamp,
           };
-          // Move to top
+          // Move to top if new timestamp/message
           const [moved] = updated.splice(index, 1);
           return [moved, ...updated];
         }
         return [
           {
             userId: contactUserId,
-            userName: contactName,
+            userName: resolvedName,
             lastMessage: lastMsg,
             lastTimestamp: timestamp,
           },
@@ -77,10 +80,50 @@ export default function ChatPage() {
     [],
   );
 
+  // WebSocket message handler
+  const handleIncomingMessage = useCallback(
+    (incomingMessage: MessageResponse) => {
+      const senderId = incomingMessage.senderId;
+      const recipientId = incomingMessage.recipientId;
+      const otherId = senderId === currentUserId ? recipientId : senderId;
+      const otherName =
+        senderId === currentUserId
+          ? incomingMessage.recipientName
+          : incomingMessage.senderName;
+
+      // Update contacts sidebar
+      upsertContact(
+        otherId,
+        otherName,
+        incomingMessage.content,
+        incomingMessage.timestamp,
+      );
+
+      // If incoming message belongs to active chat, append to messages
+      if (activeUserId && (senderId === activeUserId || recipientId === activeUserId)) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === incomingMessage.id)) return prev;
+          return [...prev, incomingMessage];
+        });
+
+        // Mark as read if received from active user
+        if (senderId === activeUserId && !incomingMessage.isRead) {
+          void markMessageAsRead(incomingMessage.id).catch(console.error);
+        }
+      }
+    },
+    [activeUserId, currentUserId, upsertContact],
+  );
+
+  // Encapsulated Custom Hook for WebSocket status and communication (SOLID - SRP)
+  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
+    handleIncomingMessage,
+  );
+
   // Load active chat history when activeUserId changes
   useEffect(() => {
     if (!activeUserId || !Number.isFinite(activeUserId)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- secili sohbet kapatildiginda mesaj listesini temizlemek, dis sistemle (aktif sohbet secimi) senkronizasyonun bir parcasi
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Secili sohbet kapatildiginda mesaj listesini temizleme
       setMessages([]);
       return;
     }
@@ -104,7 +147,7 @@ export default function ChatPage() {
         const history = [...page.content].reverse();
         setMessages(history);
 
-        // Add active recipient to contacts list if not present
+        // Add active recipient to contacts list with actual partner name
         if (history.length > 0) {
           const last = history[history.length - 1];
           const otherName =
@@ -113,7 +156,7 @@ export default function ChatPage() {
               : last.senderName;
           upsertContact(currentActiveUserId, otherName, last.content, last.timestamp);
         } else {
-          upsertContact(currentActiveUserId, `Kullanıcı #${currentActiveUserId}`, "", "");
+          upsertContact(currentActiveUserId, "", "", "");
         }
 
         // Mark unread messages from this recipient as read
@@ -137,58 +180,6 @@ export default function ChatPage() {
 
     return () => {
       cancelled = true;
-    };
-  }, [activeUserId, currentUserId, upsertContact]);
-
-  // Connect STOMP WebSocket
-  useEffect(() => {
-    try {
-      const client = connectWebSocket((incomingMessage) => {
-        setWsConnected(true);
-
-        const senderId = incomingMessage.senderId;
-        const recipientId = incomingMessage.recipientId;
-        const otherId =
-          senderId === currentUserId ? recipientId : senderId;
-        const otherName =
-          senderId === currentUserId
-            ? incomingMessage.recipientName
-            : incomingMessage.senderName;
-
-        // Update contacts sidebar
-        upsertContact(
-          otherId,
-          otherName || `Kullanıcı #${otherId}`,
-          incomingMessage.content,
-          incomingMessage.timestamp,
-        );
-
-        // If incoming message belongs to active chat, append to messages
-        if (activeUserId && (senderId === activeUserId || recipientId === activeUserId)) {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === incomingMessage.id)) return prev;
-            return [...prev, incomingMessage];
-          });
-
-          // Mark as read if received from active user
-          if (senderId === activeUserId && !incomingMessage.isRead) {
-            void markMessageAsRead(incomingMessage.id).catch(console.error);
-          }
-        }
-      });
-
-      if (client?.connected) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- baglanti kurulur kurulmaz dis sistemin (WebSocket) o anki durumunu yansitiyor
-        setWsConnected(true);
-      }
-    } catch (err) {
-      console.error("WebSocket bağlantı hatası:", err);
-      setWsConnected(false);
-    }
-
-    return () => {
-      disconnectWebSocket();
-      setWsConnected(false);
     };
   }, [activeUserId, currentUserId, upsertContact]);
 
@@ -218,6 +209,50 @@ export default function ChatPage() {
     }
   };
 
+  // Derive connection status badge properties
+  const getStatusBadge = () => {
+    switch (wsStatus) {
+      case "CONNECTED":
+        return {
+          label: "Canlı",
+          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+          dotClass: "bg-emerald-500",
+        };
+      case "CONNECTING":
+        return {
+          label: "Bağlanıyor...",
+          badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+          dotClass: "bg-amber-500 animate-pulse",
+        };
+      case "ERROR":
+        return {
+          label: "Bağlantı Hatası",
+          badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
+          dotClass: "bg-rose-500",
+        };
+      default:
+        return {
+          label: "Bağlantı Kesildi",
+          badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+          dotClass: "bg-slate-400",
+        };
+    }
+  };
+
+  const { label: wsLabel, badgeClass: wsBadgeClass, dotClass: wsDotClass } =
+    getStatusBadge();
+
+  // Determine active contact name dynamically (Fixes "Kullanıcı #1" hardcoded bug)
+  const activeContact = contacts.find((c) => c.userId === activeUserId);
+  const activePartnerName =
+    activeContact?.userName && !activeContact.userName.startsWith("Kullanıcı #")
+      ? activeContact.userName
+      : messages.length > 0
+      ? messages[0].senderId === currentUserId
+        ? messages[0].recipientName
+        : messages[0].senderName
+      : activeContact?.userName || `Kullanıcı #${activeUserId}`;
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
@@ -242,18 +277,10 @@ export default function ChatPage() {
               </div>
 
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full ${
-                  wsConnected
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full border ${wsBadgeClass}`}
               >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    wsConnected ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
-                  }`}
-                />
-                <span>{wsConnected ? "Canlı" : "Bağlanıyor..."}</span>
+                <span className={`w-2 h-2 rounded-full ${wsDotClass}`} />
+                <span>{wsLabel}</span>
               </span>
             </div>
 
@@ -284,13 +311,13 @@ export default function ChatPage() {
                       }`}
                     >
                       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 font-extrabold text-blue-700">
-                        {c.userName.charAt(0).toUpperCase()}
+                        {c.userName ? c.userName.charAt(0).toUpperCase() : "U"}
                       </span>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
                           <h3 className="text-sm font-bold text-slate-900 truncate">
-                            {c.userName}
+                            {c.userName || `Kullanıcı #${c.userId}`}
                           </h3>
                           {c.lastTimestamp && (
                             <span className="text-[11px] font-medium text-slate-400 shrink-0">
@@ -336,7 +363,7 @@ export default function ChatPage() {
                     </span>
                     <div>
                       <h2 className="text-base font-extrabold text-slate-900">
-                        Kullanıcı #{activeUserId}
+                        {activePartnerName}
                       </h2>
                       <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />

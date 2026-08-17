@@ -22,6 +22,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
+import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
 import {
@@ -88,6 +89,7 @@ function formatPattern(pattern?: string): string {
 export default function PetDetailPage() {
   const { id } = useParams<{ id?: string }>();
   const [, navigate] = useLocation();
+  const { user } = useAuth();
 
   const [ad, setAd] = useState<AdResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,6 +101,10 @@ export default function PetDetailPage() {
 
   const adId = id ? Number(id) : NaN;
   const isValidId = !Number.isNaN(adId) && adId > 0;
+
+  const currentUserId = user?.id ?? user?.uid;
+  const isOwner = Boolean(currentUserId && ad?.ownerId && Number(currentUserId) === Number(ad.ownerId));
+
 
   const fetchAdDetail = useCallback(async () => {
     if (!isValidId) {
@@ -504,14 +510,20 @@ export default function PetDetailPage() {
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={openChat}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
-                >
-                  <MessageCircle size={19} />
-                  Mesaj Gönder
-                </button>
+                {!isOwner ? (
+                  <button
+                    type="button"
+                    onClick={openChat}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
+                  >
+                    <MessageCircle size={19} />
+                    Mesaj Gönder
+                  </button>
+                ) : (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold flex items-center justify-center">
+                    Kendi ilanınız
+                  </div>
+                )}
 
                 <button
                   type="button"
