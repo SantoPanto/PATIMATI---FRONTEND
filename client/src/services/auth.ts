@@ -49,6 +49,8 @@ export {
   getStoredUser,
   sanitizeRedirectPath,
   saveStoredUser,
+  saveOAuthIntent,    
+  consumeOAuthIntent, 
 } from "./authStorage";
 
 export function normalizeUser(

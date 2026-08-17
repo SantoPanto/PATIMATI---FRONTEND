@@ -3,11 +3,13 @@ import type { FormEvent } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  API_BASE_URL,
   clearAuthStorage,
   completeGoogleOAuthCallback,
   login,
   sanitizeRedirectPath,
   saveAuthResponse,
+  saveOAuthIntent,
   startGoogleOAuth,
 } from "../services/auth";
 import { getUserErrorMessage } from "../utils/errorMessage";
@@ -109,7 +111,8 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setErrorMessage("");
     setIsOAuthLoading(true);
-    startGoogleOAuth({ redirectPath, rememberMe });
+    saveOAuthIntent(redirectPath, rememberMe);
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
 
   const handleGuestContinue = () => {
