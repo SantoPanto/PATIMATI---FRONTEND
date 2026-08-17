@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Trash2, Ban, MessageSquare } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import {
   getAdminAdComplaints,
   getAdminAdoptionComplaints,
   getAdminUserComplaints,
+  deleteComplaint,
+  suspendAd,
+  createAdminChatRoom,
 } from "../services/admin";
 import type { ComplaintResponse } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
@@ -17,18 +20,16 @@ export default function AdminComplaintsPage() {
   const [complaints, setComplaints] = useState<AdminComplaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const fetchComplaints = () => {
+    setLoading(true);
     Promise.all([
       getAdminAdComplaints({ page: 0, size: 50 }),
       getAdminUserComplaints({ page: 0, size: 50 }),
       getAdminAdoptionComplaints({ page: 0, size: 50 }),
     ])
       .then(([adComplaints, userComplaints, adoptionComplaints]) => {
-        if (cancelled) return;
-
         const ads: AdminComplaint[] = adComplaints.content.map((item) => ({
           ...item,
           title: item.adTitle || `İlan #${item.reportedAdId ?? "-"}`,
@@ -52,22 +53,60 @@ export default function AdminComplaintsPage() {
         setComplaints([...ads, ...users, ...adoptions]);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(
-            getUserErrorMessage(err, "Şikayetler yüklenemedi."),
-          );
-        }
+        setError(
+          getUserErrorMessage(err, "Şikayetler yüklenemedi."),
+        );
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
       });
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    fetchComplaints();
   }, []);
+
+  // Şikayeti silme / kaldırma
+  const handleDeleteComplaint = async (complaintId: number) => {
+    if (!window.confirm("Bu şikayeti silmek/kaldırmak istediğinize emin misiniz?")) return;
+    try {
+      setActionLoadingId(complaintId);
+      await deleteComplaint(complaintId);
+      setComplaints((prev) => prev.filter((c) => c.id !== complaintId));
+    } catch (err) {
+      alert(getUserErrorMessage(err, "Şikayet silinemedi."));
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // İlanı askıya alma
+  const handleSuspendAd = async (adId?: number) => {
+    if (!adId) return;
+    if (!window.confirm("Bu ilanı askıya almak istediğinize emin misiniz?")) return;
+    try {
+      await suspendAd(adId);
+      alert("İlan başarıyla askıya alındı.");
+    } catch (err) {
+      alert(getUserErrorMessage(err, "İlan askıya alınamadı."));
+    }
+  };
+
+  // Kullanıcı ile admin sohbeti başlatma
+  const handleStartChat = async (userId?: number) => {
+    if (!userId) return;
+    try {
+      const res = await createAdminChatRoom(userId);
+      const chatId = res?.chatId || res?.roomId || res?.id;
+      if (chatId) {
+        window.location.href = `/chats/${chatId}`;
+      } else {
+        window.location.href = `/chats`;
+      }
+    } catch (err) {
+      alert(getUserErrorMessage(err, "Sohbet odası oluşturulamadı."));
+    }
+  };
 
   return (
     <TeamShell className="screen">
@@ -99,14 +138,42 @@ export default function AdminComplaintsPage() {
 
             <p>{item.description}</p>
 
-            <button
-              className="button button--outline"
-              type="button"
-              disabled
-            >
-              <CheckCircle2 size={16} />
-              Çözüldü olarak işaretle
-            </button>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+              {/* Şikayeti Sil / Kaldır */}
+              <button
+                className="button button--outline"
+                type="button"
+                onClick={() => handleDeleteComplaint(item.id)}
+                disabled={actionLoadingId === item.id}
+              >
+                <Trash2 size={16} />
+                Şikayeti Kaldır
+              </button>
+
+              {/* İlan şikayetiyse Askıya Al */}
+              {item.reportedAdId && (
+                <button
+                  className="button button--outline"
+                  type="button"
+                  onClick={() => handleSuspendAd(item.reportedAdId)}
+                >
+                  <Ban size={16} />
+                  İlanı Askıya Al
+                </button>
+              )}
+
+              {/* Kullanıcı ile Sohbet Başlat (Şikayet eden veya edilen üzerinden) */}
+              {item.reportedUserId && (
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={() => handleStartChat(item.reportedUserId)}
+                >
+                  <MessageSquare size={16} />
+                  Kullanıcıyla Sohbet Et
+                </button>
+              )}
+            </div>
           </article>
         ))}
       </section>
