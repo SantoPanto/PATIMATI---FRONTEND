@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Check,
   CheckCheck,
+  Flag,
   Loader2,
   MessageSquare,
   MessageSquareOff,
@@ -13,6 +14,7 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ReportUserModal from "../components/ReportUserModal";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatWebSocket } from "../hooks/useChatWebSocket";
 import {
@@ -45,6 +47,8 @@ export default function ChatPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -487,6 +491,17 @@ export default function ChatPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Report User Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/60 hover:border-rose-300 transition-all shadow-2xs"
+                    title="Kullanıcıyı Şikayet Et"
+                  >
+                    <Flag size={14} />
+                    <span>Şikayet Et</span>
+                  </button>
                 </div>
 
                 {/* Messages Body */}
@@ -602,6 +617,28 @@ export default function ChatPage() {
       </main>
 
       <Footer />
+
+      {/* Report User Modal */}
+      {activeUserId && (
+        <ReportUserModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={activeUserId}
+          reportedUserName={activePartnerName}
+          onSuccess={() => {
+            setToastMessage("Kullanıcı başarıyla şikayet edildi.");
+            setTimeout(() => setToastMessage(null), 4000);
+          }}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[300] flex items-center gap-3 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white shadow-xl animate-in slide-in-from-bottom-5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

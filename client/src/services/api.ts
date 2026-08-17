@@ -2,6 +2,7 @@ import {
   clearAuthStorage,
   getStoredToken,
 } from "./authStorage";
+import type { ComplaintResponse, UserComplaintRequestDTO } from "./types";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -134,6 +135,20 @@ export async function request<T>(
   }
 
   return data as T;
+}
+
+/**
+ * POST /api/complaints/user (Bearer)
+ * Report a user for inappropriate behavior
+ */
+export function reportUser(
+  payload: UserComplaintRequestDTO,
+): Promise<ComplaintResponse> {
+  return request<ComplaintResponse>("/api/complaints/user", {
+    method: "POST",
+    requiresAuth: true,
+    body: JSON.stringify(payload),
+  });
 }
 
 export { API_BASE_URL };
