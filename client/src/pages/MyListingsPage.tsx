@@ -23,6 +23,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 type ListingFilter = "all" | "active" | "inactive";
 
@@ -53,9 +54,7 @@ export default function MyListingsPage() {
       .catch((error: unknown) => {
         if (isActive) {
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "İlanlarınız yüklenemedi.",
+            getUserErrorMessage(error, "İlanlarınız yüklenemedi."),
           );
         }
       })
@@ -87,9 +86,7 @@ export default function MyListingsPage() {
       setAds(page.content);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "İlan yayından kaldırılamadı.",
+        getUserErrorMessage(error, "İlan yayından kaldırılamadı."),
       );
     } finally {
       setDeletingId(null);

@@ -80,6 +80,7 @@ export default function ChatPage() {
   // Load active chat history when activeUserId changes
   useEffect(() => {
     if (!activeUserId || !Number.isFinite(activeUserId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- secili sohbet kapatildiginda mesaj listesini temizlemek, dis sistemle (aktif sohbet secimi) senkronizasyonun bir parcasi
       setMessages([]);
       return;
     }
@@ -177,6 +178,7 @@ export default function ChatPage() {
       });
 
       if (client?.connected) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- baglanti kurulur kurulmaz dis sistemin (WebSocket) o anki durumunu yansitiyor
         setWsConnected(true);
       }
     } catch (err) {

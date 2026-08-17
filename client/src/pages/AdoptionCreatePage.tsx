@@ -24,6 +24,7 @@ import {
   API_BASE_URL,
   getStoredToken,
 } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 type Gender = "female" | "male" | "unknown";
 
@@ -462,10 +463,9 @@ export default function AdoptionCreatePage() {
        */
       navigate("/adoption");
     } catch (error) {
+      console.error("Sahiplendirme ilanı oluşturma hatası:", error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "İlan oluşturulurken bir hata oluştu.",
+        getUserErrorMessage(error, "İlan oluşturulurken bir hata oluştu."),
       );
     } finally {
       setIsSubmitting(false);

@@ -19,8 +19,6 @@ import SettingsPage from "./pages/SettingsPage";
 import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
-import AiMatchPage from "./pages/AiMatchPage";
-import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
@@ -34,6 +32,8 @@ import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import ComplaintPage from "./pages/ComplaintPage";
 
 function ProtectedAddListingPage() {
   return (
@@ -106,6 +106,14 @@ function ProtectedAdminUsersPage() {
   return <RequireAuth component={AdminUsersPage} mode="redirect" />;
 }
 
+function ProtectedNotificationsPage() {
+  return <RequireAuth component={NotificationsPage} mode="redirect" />;
+}
+
+function ProtectedComplaintPage() {
+  return <RequireAuth component={ComplaintPage} mode="redirect" />;
+}
+
 function GuestLoginPage() {
   return <RequireGuest component={LoginPage} />;
 }
@@ -166,6 +174,11 @@ function App() {
         <Route path="/profile" component={ProtectedProfilePage} />
         <Route path="/settings" component={ProtectedSettingsPage} />
         <Route path="/favorites" component={ProtectedFavoritesPage} />
+        <Route
+          path="/notifications"
+          component={ProtectedNotificationsPage}
+        />
+        <Route path="/complaints" component={ProtectedComplaintPage} />
         {/* Sahiplendirme */}
         <Route
           path="/adoption/create"
@@ -179,16 +192,6 @@ function App() {
 
         <Route path="/adoption" component={Adoption} />
 
-        {/* Yapay Zeka */}
-        <Route
-          path="/ai-match/results"
-          component={AiMatchResultsPage}
-        />
-
-        <Route
-          path="/ai-match"
-          component={AiMatchPage}
-        />
         {/* Admin */}
         <Route path="/admin" component={ProtectedAdminDashboardPage} />
         <Route

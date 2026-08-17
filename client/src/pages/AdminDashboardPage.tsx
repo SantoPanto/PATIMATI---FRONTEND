@@ -138,6 +138,10 @@ export default function AdminDashboardPage() {
 
   // Effect to load data based on active tab
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect --
+       sekme/sayfa degistiginde sunucudan veri cekmek (dis sistemle
+       senkronizasyon) useEffect'in var olma sebebi; fetchUsers/fetchAds/
+       fetchComplaints kendi ici setLoading/setError cagrilarini yapiyor. */
     if (activeTab === "users") {
       fetchUsers(usersPageIndex);
     } else if (activeTab === "ads") {
@@ -145,6 +149,7 @@ export default function AdminDashboardPage() {
     } else if (activeTab === "complaints") {
       fetchComplaints(complaintSubTab, complaintsPageIndex);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [
     activeTab,
     complaintSubTab,

@@ -3,6 +3,7 @@ import { UserRoundCog } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getAdminUsers } from "../services/admin";
 import type { UserDetailForAdminDTO } from "../services/types";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserDetailForAdminDTO[]>([]);
@@ -21,9 +22,7 @@ export default function AdminUsersPage() {
       .catch((err) => {
         if (!cancelled) {
           setError(
-            err instanceof Error
-              ? err.message
-              : "Kullanıcılar yüklenemedi.",
+            getUserErrorMessage(err, "Kullanıcılar yüklenemedi."),
           );
         }
       })

@@ -18,6 +18,7 @@ import {
   saveAuthResponse,
   startGoogleOAuth,
 } from "../services/auth";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 export default function RegisterPage() {
   const [, navigate] = useLocation();
@@ -165,17 +166,9 @@ export default function RegisterPage() {
 
       navigate("/");
     } catch (error) {
-      if (error instanceof TypeError) {
-        setErrorMessage(
-          "Backend sunucusuna ulaşılamadı. Backend'in çalıştığını ve API adresini kontrol et.",
-        );
-      } else {
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Kayıt sırasında bir sorun oluştu.",
-        );
-      }
+      setErrorMessage(
+        getUserErrorMessage(error, "Kayıt sırasında bir sorun oluştu."),
+      );
     } finally {
       setIsLoading(false);
     }

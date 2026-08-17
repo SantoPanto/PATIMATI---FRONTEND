@@ -6,6 +6,7 @@ import {
   createUserComplaint,
 } from "../services/complaints";
 import type { ComplaintReason } from "../services/types";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 export type ComplaintTargetType = "USER" | "AD" | "ADOPTION";
 
@@ -39,6 +40,23 @@ export default function ComplaintModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  /*
+   * Modal her acildiginda formu sifirla. Bunu bir effect yerine render
+   * sirasinda yapiyoruz (React'in "adjusting state when a prop changes"
+   * deseni) ki gereksiz bir ekstra render/flash olusmasin.
+   */
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+
+    if (isOpen) {
+      setReason("SAHTE_ILAN");
+      setDescription("");
+      setError(null);
+      setSuccess(false);
+    }
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,16 +77,6 @@ export default function ComplaintModal({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose, submitting]);
-
-  // Reset state when opening/closing modal
-  useEffect(() => {
-    if (isOpen) {
-      setReason("SAHTE_ILAN");
-      setDescription("");
-      setError(null);
-      setSuccess(false);
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -116,9 +124,10 @@ export default function ComplaintModal({
     } catch (err) {
       console.error("Şikayet gönderimi başarısız:", err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "Şikayetiniz gönderilirken bir hata oluştu. Lütfen tekrar deneyin.",
+        getUserErrorMessage(
+          err,
+          "Şikayetiniz gönderilirken bir hata oluştu. Lütfen tekrar deneyin.",
+        ),
       );
     } finally {
       setSubmitting(false);
