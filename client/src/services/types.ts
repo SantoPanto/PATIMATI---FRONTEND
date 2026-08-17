@@ -232,6 +232,17 @@ export type ResolveAdoptionAdRequest = {
 
 export type WebSocketStatus = "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "ERROR";
 
+export type ChatRoomResponse = {
+  id?: number;
+  partnerId: number;
+  partnerName?: string;
+  partnerAvatar?: string;
+  lastMessage?: string;
+  lastTimestamp?: string;
+  unreadCount?: number;
+  createdAt?: string;
+};
+
 export type ChatPartnerDTO = {
   partnerId: number;
   partnerName: string;

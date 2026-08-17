@@ -1,10 +1,34 @@
 import { API_BASE_URL, request } from "./api";
 import { getStoredToken } from "./auth";
-import type { MessageResponse, Page } from "./types";
+import type { ChatRoomResponse, MessageResponse, Page } from "./types";
 
 /**
  * 4. Mesajlaşma & Chat (/api/messages ve WebSocket)
  */
+
+/**
+ * POST /api/messages/rooms/{partnerId} (Bearer)
+ * Create or get chat room with a partner
+ */
+export function createOrGetChatRoom(
+  partnerId: number,
+): Promise<ChatRoomResponse> {
+  return request<ChatRoomResponse>(`/api/messages/rooms/${partnerId}`, {
+    method: "POST",
+    requiresAuth: true,
+  });
+}
+
+/**
+ * GET /api/messages/rooms (Bearer)
+ * Returns all chat rooms for current user
+ */
+export function getChatRooms(): Promise<ChatRoomResponse[]> {
+  return request<ChatRoomResponse[]>("/api/messages/rooms", {
+    method: "GET",
+    requiresAuth: true,
+  });
+}
 
 /**
  * GET /api/messages/history/{otherUserId} (Bearer)

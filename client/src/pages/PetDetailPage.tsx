@@ -24,6 +24,7 @@ import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { createOrGetChatRoom } from "../services/messages";
 import type { AdResponse, AdType } from "../services/types";
 import {
   getAdImage,
@@ -156,9 +157,21 @@ export default function PetDetailPage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const openChat = () => {
-    if (ad) {
-      navigate(`/chat/${ad.ownerId}?adId=${ad.id}`);
+  const openChat = async () => {
+    if (!ad || !ad.ownerId) return;
+
+    const partnerId = Number(ad.ownerId);
+    if (currentUserId && Number(currentUserId) === partnerId) {
+      alert("Kendinizle sohbet odası oluşturamazsınız.");
+      return;
+    }
+
+    try {
+      await createOrGetChatRoom(partnerId);
+      navigate(`/chat/${partnerId}?adId=${ad.id}`);
+    } catch (err) {
+      console.error("Sohbet odası oluşturulamadı:", err);
+      alert(getUserErrorMessage(err, "Sohbet odası oluşturulurken bir hata oluştu."));
     }
   };
 

@@ -15,8 +15,13 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatWebSocket } from "../hooks/useChatWebSocket";
-import { getMessageHistory, markMessageAsRead } from "../services/messages";
-import type { MessageResponse } from "../services/types";
+import {
+  createOrGetChatRoom,
+  getChatRooms,
+  getMessageHistory,
+  markMessageAsRead,
+} from "../services/messages";
+import type { ChatRoomResponse, MessageResponse } from "../services/types";
 
 interface ChatContact {
   userId: number;
@@ -38,11 +43,19 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [text, setText] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Helper to upsert a contact in contacts list
+  // Auto-scroll helper
+  const scrollToBottom = useCallback((smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }, []);
+
+  // Helper to upsert a contact room in contacts list
   const upsertContact = useCallback(
     (contactUserId: number, contactName: string, lastMsg: string, timestamp: string) => {
       setContacts((prev) => {
@@ -62,7 +75,7 @@ export default function ChatPage() {
             lastMessage: lastMsg || updated[index].lastMessage,
             lastTimestamp: timestamp || updated[index].lastTimestamp,
           };
-          // Move to top if new timestamp/message
+          // Move active contact room to top of list
           const [moved] = updated.splice(index, 1);
           return [moved, ...updated];
         }
@@ -80,7 +93,43 @@ export default function ChatPage() {
     [],
   );
 
-  // WebSocket message handler
+  // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
+  useEffect(() => {
+    if (!currentUserId || !Number.isFinite(currentUserId)) return;
+
+    let isMounted = true;
+
+    async function fetchRooms() {
+      try {
+        setLoadingRooms(true);
+        const roomsData: ChatRoomResponse[] = await getChatRooms();
+
+        if (!isMounted) return;
+
+        const formattedContacts: ChatContact[] = (roomsData || []).map((room) => ({
+          userId: room.partnerId,
+          userName: room.partnerName || `Kullanıcı #${room.partnerId}`,
+          lastMessage: room.lastMessage || "",
+          lastTimestamp: room.lastTimestamp || room.createdAt || "",
+          unreadCount: room.unreadCount || 0,
+        }));
+
+        setContacts(formattedContacts);
+      } catch (err) {
+        console.error("Sohbet odaları yüklenemedi:", err);
+      } finally {
+        if (isMounted) setLoadingRooms(false);
+      }
+    }
+
+    void fetchRooms();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserId]);
+
+  // 3. WebSocket incoming message handler
   const handleIncomingMessage = useCallback(
     (incomingMessage: MessageResponse) => {
       const senderId = incomingMessage.senderId;
@@ -91,7 +140,7 @@ export default function ChatPage() {
           ? incomingMessage.recipientName
           : incomingMessage.senderName;
 
-      // Update contacts sidebar
+      // Update contacts sidebar room list
       upsertContact(
         otherId,
         otherName,
@@ -102,11 +151,27 @@ export default function ChatPage() {
       // If incoming message belongs to active chat, append to messages
       if (activeUserId && (senderId === activeUserId || recipientId === activeUserId)) {
         setMessages((prev) => {
+          // If exact ID exists, ignore
           if (prev.some((m) => m.id === incomingMessage.id)) return prev;
+
+          // Replace matching optimistic message if present
+          const optIndex = prev.findIndex(
+            (m) =>
+              m.senderId === incomingMessage.senderId &&
+              m.recipientId === incomingMessage.recipientId &&
+              m.content === incomingMessage.content,
+          );
+
+          if (optIndex !== -1) {
+            const updated = [...prev];
+            updated[optIndex] = incomingMessage;
+            return updated;
+          }
+
           return [...prev, incomingMessage];
         });
 
-        // Mark as read if received from active user
+        // Mark as read if received from active partner
         if (senderId === activeUserId && !incomingMessage.isRead) {
           void markMessageAsRead(incomingMessage.id).catch(console.error);
         }
@@ -115,15 +180,14 @@ export default function ChatPage() {
     [activeUserId, currentUserId, upsertContact],
   );
 
-  // Encapsulated Custom Hook for WebSocket status and communication (SOLID - SRP)
+  // Encapsulated Custom Hook for WebSocket status and STOMP message sending
   const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
     handleIncomingMessage,
   );
 
-  // Load active chat history when activeUserId changes
+  // Load active chat room message history
   useEffect(() => {
     if (!activeUserId || !Number.isFinite(activeUserId)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Secili sohbet kapatildiginda mesaj listesini temizleme
       setMessages([]);
       return;
     }
@@ -131,10 +195,25 @@ export default function ChatPage() {
     const currentActiveUserId = activeUserId;
     let cancelled = false;
 
+    // Self-chat guard
+    if (currentUserId && Number(currentUserId) === Number(currentActiveUserId)) {
+      setError("Kendinizle sohbet odası oluşturamazsınız.");
+      setMessages([]);
+      return;
+    }
+
     async function loadChatHistory() {
       try {
         setLoadingHistory(true);
         setError(null);
+
+        // Ensure room is created/fetched via POST /api/messages/rooms/{partnerId}
+        const room = await createOrGetChatRoom(currentActiveUserId);
+        if (cancelled) return;
+
+        if (room.partnerName) {
+          upsertContact(currentActiveUserId, room.partnerName, "", "");
+        }
 
         const page = await getMessageHistory(currentActiveUserId, {
           page: 0,
@@ -143,24 +222,33 @@ export default function ChatPage() {
 
         if (cancelled) return;
 
-        // Backend returns newest first; reverse for display (oldest to newest)
-        const history = [...page.content].reverse();
-        setMessages(history);
+        // 2. Mesaj Sıralaması: Timestamp bazlı kronolojik sıralama (Eskiler üstte, yeniler en altta)
+        const sortedHistory = [...page.content].sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        );
 
-        // Add active recipient to contacts list with actual partner name
-        if (history.length > 0) {
-          const last = history[history.length - 1];
+        setMessages(sortedHistory);
+
+        // Add or update active partner in contacts list
+        if (sortedHistory.length > 0) {
+          const last = sortedHistory[sortedHistory.length - 1];
           const otherName =
             last.senderId === currentUserId
               ? last.recipientName
               : last.senderName;
-          upsertContact(currentActiveUserId, otherName, last.content, last.timestamp);
+          upsertContact(
+            currentActiveUserId,
+            otherName,
+            last.content,
+            last.timestamp,
+          );
         } else {
-          upsertContact(currentActiveUserId, "", "", "");
+          upsertContact(currentActiveUserId, room.partnerName || "", "", "");
         }
 
-        // Mark unread messages from this recipient as read
-        const unreadMsgs = history.filter(
+        // Mark unread messages as read
+        const unreadMsgs = sortedHistory.filter(
           (m) => !m.isRead && m.senderId === currentActiveUserId,
         );
         await Promise.allSettled(unreadMsgs.map((m) => markMessageAsRead(m.id)));
@@ -183,21 +271,55 @@ export default function ChatPage() {
     };
   }, [activeUserId, currentUserId, upsertContact]);
 
-  // Scroll to bottom when messages update
+  // 2. Auto-Scroll: Yeni mesaj geldiğinde veya sohbet açıldığında en alta kaydırma
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    scrollToBottom(true);
+  }, [messages, scrollToBottom]);
 
-  // Send message via WebSocket STOMP
+  // Determine active contact partner name dynamically
+  const activeContact = contacts.find((c) => c.userId === activeUserId);
+  const activePartnerName =
+    activeContact?.userName && !activeContact.userName.startsWith("Kullanıcı #")
+      ? activeContact.userName
+      : messages.length > 0
+      ? messages[0].senderId === currentUserId
+        ? messages[0].recipientName
+        : messages[0].senderName
+      : activeContact?.userName || `Kullanıcı #${activeUserId}`;
+
+  // Send message via WebSocket with Optimistic UI update (Instant state update)
   const handleSend = () => {
     const content = text.trim();
     if (!content || !activeUserId) return;
 
+    // Optimistic message object for instant UI reactivity
+    const optimisticMsg: MessageResponse = {
+      id: Date.now(),
+      senderId: currentUserId,
+      senderName: user?.firstName
+        ? `${user.firstName} ${user.lastName || ""}`.trim()
+        : "Ben",
+      recipientId: activeUserId,
+      recipientName: activePartnerName,
+      content,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+    };
+
+    // Instant UI State Update (Reaktivite & F5 Çözümü)
+    setMessages((prev) => [...prev, optimisticMsg]);
+    upsertContact(
+      activeUserId,
+      activePartnerName,
+      content,
+      optimisticMsg.timestamp,
+    );
+    setText("");
+
     try {
       sendStompMessage(activeUserId, content);
-      setText("");
     } catch (err) {
-      console.error("Mesaj gönderilemedi:", err);
+      console.error("Mesaj gönderilirken hata oluştu:", err);
       setError("Mesaj gönderilirken bağlantı hatası oluştu.");
     }
   };
@@ -209,7 +331,7 @@ export default function ChatPage() {
     }
   };
 
-  // Derive connection status badge properties
+  // Connection status badge
   const getStatusBadge = () => {
     switch (wsStatus) {
       case "CONNECTED":
@@ -242,24 +364,13 @@ export default function ChatPage() {
   const { label: wsLabel, badgeClass: wsBadgeClass, dotClass: wsDotClass } =
     getStatusBadge();
 
-  // Determine active contact name dynamically (Fixes "Kullanıcı #1" hardcoded bug)
-  const activeContact = contacts.find((c) => c.userId === activeUserId);
-  const activePartnerName =
-    activeContact?.userName && !activeContact.userName.startsWith("Kullanıcı #")
-      ? activeContact.userName
-      : messages.length > 0
-      ? messages[0].senderId === currentUserId
-        ? messages[0].recipientName
-        : messages[0].senderName
-      : activeContact?.userName || `Kullanıcı #${activeUserId}`;
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-[600px] overflow-hidden flex flex-col md:flex-row">
-          {/* Left Contacts Sidebar */}
+          {/* Left Contacts / Rooms Sidebar */}
           <div
             className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 ${
               activeUserId ? "hidden md:flex" : "flex"
@@ -272,7 +383,7 @@ export default function ChatPage() {
                   <MessageSquare size={20} />
                 </span>
                 <h1 className="text-lg font-extrabold text-slate-900">
-                  Mesajlar
+                  Mesajlarım
                 </h1>
               </div>
 
@@ -284,9 +395,14 @@ export default function ChatPage() {
               </span>
             </div>
 
-            {/* Contacts List */}
+            {/* Contacts / Chat Rooms List */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100/80">
-              {contacts.length === 0 ? (
+              {loadingRooms ? (
+                <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
+                  <Loader2 size={20} className="animate-spin text-blue-600" />
+                  <span className="text-sm font-medium">Odalar yükleniyor...</span>
+                </div>
+              ) : contacts.length === 0 ? (
                 <div className="p-8 text-center text-slate-400">
                   <MessageSquareOff size={36} className="mx-auto mb-2 opacity-50" />
                   <p className="text-sm font-semibold text-slate-600">
@@ -440,6 +556,7 @@ export default function ChatPage() {
                       );
                     })
                   )}
+                  {/* Anchor element for auto-scroll */}
                   <div ref={messagesEndRef} />
                 </div>
 
