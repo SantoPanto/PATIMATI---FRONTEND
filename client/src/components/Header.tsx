@@ -6,12 +6,46 @@ import {
   ShieldAlert,
   UserRound,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import { getMyPotentialMatches } from "../services/potentialMatches";
+
+const PENDING_MATCH_STATUSES = new Set(["PENDING", "NOTIFIED", "VIEWED"]);
 
 export default function Header() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const [hasPendingMatch, setHasPendingMatch] = useState(false);
+
+  useEffect(() => {
+    // Rozet yalnızca aşağıdaki authenticated dalında render edilir, bu
+    // yüzden çıkış yapıldığında state'i senkron sıfırlamaya gerek yok.
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    // Tek seferlik, header mount olduğunda — global bir polling/state
+    // yönetimi bu kapsam için gereksiz; STOMP/FCM entegrasyonu henüz yok.
+    getMyPotentialMatches()
+      .then((matches) => {
+        if (!cancelled) {
+          setHasPendingMatch(
+            matches.some((match) => PENDING_MATCH_STATUSES.has(match.status)),
+          );
+        }
+      })
+      .catch(() => {
+        // Sessizce yut — bildirim noktası ikincil bir göstergedir,
+        // başarısız olması header'ın geri kalanını bozmamalı.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -116,7 +150,7 @@ export default function Header() {
                 onClick={() => navigate("/notifications")}
               >
                 <Bell size={20} />
-                <span className="notification-dot" />
+                {hasPendingMatch && <span className="notification-dot" />}
               </button>
 
               <Link href="/profile" className="header-profile">

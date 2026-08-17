@@ -305,3 +305,39 @@ export type UserComplaintAdminResponse = ComplaintResponse & {
 export type AdoptionComplaintAdminResponse = ComplaintResponse & {
   adoptionTitle?: string;
 };
+
+// ==========================================
+// 7. Potential Match Types (/api/me/potential-matches)
+// ==========================================
+
+export type PotentialMatchStatus =
+  | "PENDING"
+  | "NOTIFIED"
+  | "VIEWED"
+  | "REJECTED"
+  | "CONFIRMED"
+  | "EXPIRED"
+  | "NOTIFICATION_FAILED";
+
+export type PotentialMatchCounterparty = {
+  kind: "AD" | "EXTERNAL";
+  id: number;
+  title?: string | null;
+  photoUrl?: string | null;
+  adType?: AdType | null;
+  category?: "LOST" | "FOUND" | "ADOPTION" | "IRRELEVANT" | "UNCERTAIN" | null;
+  species?: string | null;
+  breed?: string | null;
+  sourceUrl?: string | null;
+};
+
+export type PotentialMatchSummaryResponse = {
+  recipientId: number;
+  matchId: number;
+  status: PotentialMatchStatus;
+  finalScore: number;
+  createdAt: string; // ISO-8601 UTC
+  counterparty: PotentialMatchCounterparty;
+};
+
+export type PotentialMatchDecision = "CONFIRMED" | "REJECTED";
