@@ -169,3 +169,23 @@ export function getAdminAdoptionComplaints(params?: {
     },
   );
 }
+
+/**
+ * DELETE /api/admin/complaints/{complaintId}
+ */
+export function deleteComplaint(complaintId: number): Promise<{ message: string }> {
+  return request<{ message: string }>(`/api/admin/complaints/${complaintId}`, {
+    method: "DELETE",
+    requiresAuth: true,
+  });
+}
+
+/**
+ * POST /api/admin/chats/create-with-user/{userId}
+ */
+export function createAdminChatRoom(userId: number): Promise<{ chatId?: number; roomId?: number } | any> {
+  return request(`/api/admin/chats/create-with-user/${userId}`, {
+    method: "POST",
+    requiresAuth: true,
+  });
+}
