@@ -3,6 +3,7 @@ import type {
   AdComplaintAdminResponse,
   AdResponse,
   AdoptionComplaintAdminResponse,
+  ExternalPostAdminResponse,
   Page,
   UserComplaintAdminResponse,
   UserDetailForAdminDTO,
@@ -163,6 +164,27 @@ export function getAdminAdoptionComplaints(params?: {
   const query = searchParams.toString();
   return request<Page<AdoptionComplaintAdminResponse>>(
     `/api/admin/complaints/adoptions${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      requiresAuth: true,
+    },
+  );
+}
+
+/**
+ * GET /api/admin/external-posts
+ */
+export function getAdminExternalPosts(params?: {
+  page?: number;
+  size?: number;
+}): Promise<Page<ExternalPostAdminResponse>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.set("page", String(params.page));
+  if (params?.size !== undefined) searchParams.set("size", String(params.size));
+
+  const query = searchParams.toString();
+  return request<Page<ExternalPostAdminResponse>>(
+    `/api/admin/external-posts${query ? `?${query}` : ""}`,
     {
       method: "GET",
       requiresAuth: true,

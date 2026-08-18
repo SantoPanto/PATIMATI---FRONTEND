@@ -306,6 +306,25 @@ export type AdoptionComplaintAdminResponse = ComplaintResponse & {
   adoptionTitle?: string;
 };
 
+export type ExternalPostAdminResponse = {
+  id: number;
+  source: string;
+  sourcePostId: string;
+  canonicalUrl: string;
+  authorUsername: string | null;
+  caption: string | null;
+  detectedAt: string; // ISO-8601 UTC
+  processingStatus: string;
+  failureReason: string | null;
+  photoUrl: string | null;
+  category: string | null;
+  categoryConfidence: number | null;
+  species: string | null;
+  breed: string | null;
+  needsReview: boolean | null;
+  hasMatch: boolean;
+};
+
 // ==========================================
 // 7. Potential Match Types (/api/me/potential-matches)
 // ==========================================

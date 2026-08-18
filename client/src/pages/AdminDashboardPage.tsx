@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
+  AtSign,
   Ban,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
+  ExternalLink,
   Flag,
   LayoutGrid,
   Loader2,
@@ -24,6 +26,7 @@ import {
   getAdminAdComplaints,
   getAdminAdoptionComplaints,
   getAdminAds,
+  getAdminExternalPosts,
   getAdminUserComplaints,
   getAdminUsers,
   suspendAd,
@@ -34,12 +37,13 @@ import type {
   AdComplaintAdminResponse,
   AdResponse,
   AdoptionComplaintAdminResponse,
+  ExternalPostAdminResponse,
   Page,
   UserComplaintAdminResponse,
   UserDetailForAdminDTO,
 } from "../services/types";
 
-type AdminTab = "users" | "ads" | "complaints";
+type AdminTab = "users" | "ads" | "complaints" | "instagram";
 type ComplaintSubTab = "ads" | "users" | "adoptions";
 
 export default function AdminDashboardPage() {
@@ -65,6 +69,11 @@ export default function AdminDashboardPage() {
   const [adoptionComplaintsPage, setAdoptionComplaintsPage] =
     useState<Page<AdoptionComplaintAdminResponse> | null>(null);
   const [complaintsPageIndex, setComplaintsPageIndex] = useState(0);
+
+  // State for Instagram (external) posts
+  const [externalPostsPage, setExternalPostsPage] =
+    useState<Page<ExternalPostAdminResponse> | null>(null);
+  const [externalPostsPageIndex, setExternalPostsPageIndex] = useState(0);
 
   // General state
   const [loading, setLoading] = useState(false);
@@ -136,6 +145,21 @@ export default function AdminDashboardPage() {
     [],
   );
 
+  // Fetch Instagram (external) posts
+  const fetchExternalPosts = useCallback(async (pageIndex: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getAdminExternalPosts({ page: pageIndex, size: 10 });
+      setExternalPostsPage(res);
+    } catch (err) {
+      console.error("Instagram kayıtları yüklenemedi:", err);
+      setError("Instagram kayıtları alınamadı.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Effect to load data based on active tab
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect --
@@ -148,6 +172,8 @@ export default function AdminDashboardPage() {
       fetchAds(adsPageIndex);
     } else if (activeTab === "complaints") {
       fetchComplaints(complaintSubTab, complaintsPageIndex);
+    } else if (activeTab === "instagram") {
+      fetchExternalPosts(externalPostsPageIndex);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [
@@ -156,9 +182,11 @@ export default function AdminDashboardPage() {
     usersPageIndex,
     adsPageIndex,
     complaintsPageIndex,
+    externalPostsPageIndex,
     fetchUsers,
     fetchAds,
     fetchComplaints,
+    fetchExternalPosts,
   ]);
 
   // Action handlers
@@ -262,6 +290,72 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const getExternalCategoryLabel = (category: string | null) => {
+    switch (category) {
+      case "LOST":
+        return "Kayıp";
+      case "FOUND":
+        return "Bulunan";
+      case "ADOPTION":
+        return "Sahiplendirme";
+      case "IRRELEVANT":
+        return "İlgisiz";
+      default:
+        return "Belirsiz";
+    }
+  };
+
+  const getExternalCategoryBadgeClass = (category: string | null) => {
+    switch (category) {
+      case "LOST":
+        return "bg-rose-100 text-rose-700 border border-rose-200";
+      case "FOUND":
+        return "bg-blue-100 text-blue-700 border border-blue-200";
+      case "ADOPTION":
+        return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+      default:
+        return "bg-slate-100 text-slate-700 border border-slate-200";
+    }
+  };
+
+  const getExternalStatusLabel = (status: string) => {
+    switch (status) {
+      case "DISCOVERED":
+        return "Tespit edildi";
+      case "COLLECTED":
+        return "Toplandı";
+      case "MEDIA_STORED":
+        return "Medya depolandı";
+      case "ANALYZING":
+        return "Analiz ediliyor";
+      case "ANALYZED":
+        return "Analiz edildi";
+      case "MATCHING":
+        return "Eşleştiriliyor";
+      case "COMPLETED":
+        return "Tamamlandı";
+      case "FAILED":
+        return "Başarısız";
+      case "NEEDS_REVIEW":
+        return "İncelenmeli";
+      default:
+        return status;
+    }
+  };
+
+  const getExternalStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+      case "FAILED":
+        return "bg-rose-100 text-rose-700 border border-rose-200";
+      case "NEEDS_REVIEW":
+        return "bg-amber-100 text-amber-700 border border-amber-200";
+      default:
+        return "bg-blue-100 text-blue-700 border border-blue-200";
+    }
+  };
+
   const getReasonLabel = (reason: string) => {
     switch (reason) {
       case "SAHTE_ILAN":
@@ -307,6 +401,8 @@ export default function AdminDashboardPage() {
               if (activeTab === "ads") fetchAds(adsPageIndex);
               if (activeTab === "complaints")
                 fetchComplaints(complaintSubTab, complaintsPageIndex);
+              if (activeTab === "instagram")
+                fetchExternalPosts(externalPostsPageIndex);
             }}
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-xs"
           >
@@ -392,6 +488,28 @@ export default function AdminDashboardPage() {
           >
             <Flag size={18} />
             <span>Şikayetler</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("instagram");
+              setError(null);
+              setFeedback(null);
+            }}
+            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "instagram"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300"
+            }`}
+          >
+            <AtSign size={18} />
+            <span>Instagram Kayıtları</span>
+            {externalPostsPage?.totalElements !== undefined && (
+              <span className="ml-1.5 px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-700">
+                {externalPostsPage.totalElements}
+              </span>
+            )}
           </button>
         </div>
 
@@ -940,6 +1058,169 @@ export default function AdminDashboardPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. INSTAGRAM (EXTERNAL) POSTS TAB */}
+          {activeTab === "instagram" && (
+            <div>
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900">
+                  Instagram'da Etiketlenen Gönderiler
+                </h2>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Sayfa {externalPostsPageIndex + 1} /{" "}
+                  {externalPostsPage?.totalPages || 1}
+                </span>
+              </div>
+
+              {loading && !externalPostsPage ? (
+                <div className="p-12 flex justify-center items-center text-slate-400 gap-2">
+                  <Loader2 size={24} className="animate-spin text-blue-600" />
+                  <span>Instagram kayıtları yükleniyor...</span>
+                </div>
+              ) : !externalPostsPage?.content.length ? (
+                <div className="p-12 text-center text-slate-500 font-medium">
+                  Henüz hesap hiçbir gönderide etiketlenmedi.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-xs border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4">Fotoğraf</th>
+                        <th className="px-6 py-4">Yazar</th>
+                        <th className="px-6 py-4">Kategori / Tür</th>
+                        <th className="px-6 py-4">İşleme Durumu</th>
+                        <th className="px-6 py-4">Eşleşme</th>
+                        <th className="px-6 py-4">Tespit Tarihi</th>
+                        <th className="px-6 py-4 text-right">Bağlantı</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {externalPostsPage.content.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="hover:bg-slate-50/80 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            {p.photoUrl ? (
+                              <img
+                                src={p.photoUrl}
+                                alt=""
+                                className="w-14 h-14 rounded-xl object-cover border border-slate-200"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200" />
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-slate-600">
+                            {p.authorUsername ? `@${p.authorUsername}` : "-"}
+                            {p.caption && (
+                              <p className="text-xs text-slate-400 max-w-xs truncate mt-0.5">
+                                {p.caption}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-block px-2.5 py-1 text-xs font-bold rounded-lg ${getExternalCategoryBadgeClass(
+                                p.category,
+                              )}`}
+                            >
+                              {getExternalCategoryLabel(p.category)}
+                            </span>
+                            {(p.species || p.breed) && (
+                              <p className="text-xs text-slate-500 mt-1">
+                                {[p.species, p.breed]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-block px-2.5 py-1 text-xs font-bold rounded-lg ${getExternalStatusBadgeClass(
+                                p.processingStatus,
+                              )}`}
+                            >
+                              {getExternalStatusLabel(p.processingStatus)}
+                            </span>
+                            {p.failureReason && (
+                              <p className="text-xs text-rose-500 max-w-xs truncate mt-1">
+                                {p.failureReason}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {p.hasMatch ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                <CheckCircle size={13} />
+                                <span>Eşleşti</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
+                                <span>Yok</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-500">
+                            {new Date(p.detectedAt).toLocaleString("tr-TR")}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <a
+                              href={p.canonicalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition-all"
+                            >
+                              <ExternalLink size={14} />
+                              <span>Instagram</span>
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {externalPostsPage && externalPostsPage.totalPages > 1 && (
+                <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <button
+                    type="button"
+                    disabled={externalPostsPageIndex <= 0 || loading}
+                    onClick={() =>
+                      setExternalPostsPageIndex((prev) => prev - 1)
+                    }
+                    className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Önceki</span>
+                  </button>
+
+                  <span className="text-xs font-bold text-slate-600">
+                    Sayfa {externalPostsPageIndex + 1} /{" "}
+                    {externalPostsPage.totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={
+                      externalPostsPageIndex >=
+                        externalPostsPage.totalPages - 1 || loading
+                    }
+                    onClick={() =>
+                      setExternalPostsPageIndex((prev) => prev + 1)
+                    }
+                    className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <span>Sonraki</span>
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
               )}
             </div>
