@@ -453,37 +453,33 @@ export default function AddListingPage() {
   /* AI analysis                                                            */
   /* ---------------------------------------------------------------------- */
 
+  /*
+   * AI servisine DOĞRUDAN gidilmez; istek backend üzerinden geçer (A1).
+   *
+   * Eskiden burada `fetch("http://localhost:8000/analyze")` vardı: adres kodun
+   * içine gömülüydü ve istek kimliksizdi. İki sonucu vardı — AI servisi
+   * internete açık olmak ZORUNDAYDI (uçlarına kimlik konsa bu ekran kırılırdı,
+   * entegrasyon sözleşmesi §10 ise AI'nın iç ağda kalmasını söylüyor) ve giriş
+   * yapmamış biri de modeli çalıştırabiliyordu.
+   *
+   * Merkezi API servisi JWT'yi Authorization başlığına otomatik ekler ve
+   * FormData gövdesinde Content-Type'a dokunmaz (sınır dizgisini tarayıcı
+   * yazar). Hata durumunda ApiError fırlatır; çağıran zaten `.message`
+   * okuyor, bu yüzden buradaki elle hata çözümlemesi de gereksizleşti.
+   */
   const analyzeImage = async (file: File) => {
     const formData = new FormData();
 
     formData.append("file", file);
 
-    const response = await fetch(
-      "http://localhost:8000/analyze",
+    return await request<AiAnalysis>(
+      "/api/ai/analyze",
       {
         method: "POST",
         body: formData,
+        requiresAuth: true,
       },
     );
-
-    const data = await response
-      .json()
-      .catch(() => null);
-
-    if (!response.ok) {
-      const detailMessage =
-        typeof data?.detail === "string" && data.detail.trim()
-          ? data.detail
-          : typeof data?.message === "string" && data.message.trim()
-            ? data.message
-            : null;
-
-      throw new Error(
-        detailMessage || "AI fotoğraf analizi başarısız oldu.",
-      );
-    }
-
-    return data as AiAnalysis;
   };
 
   const applyAiAnalysis = (
