@@ -34,6 +34,7 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
+import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 
 function ProtectedAddListingPage() {
   return (
@@ -135,6 +136,7 @@ function App() {
 
         {/* Giriş / Kayıt */}
         <Route path="/login" component={GuestLoginPage} />
+        <Route path="/oauth-redirect" component={OAuthRedirectHandler} />
         <Route path="/register" component={GuestRegisterPage} />
 
         <Route

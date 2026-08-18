@@ -230,6 +230,28 @@ export type ResolveAdoptionAdRequest = {
 // 4. Messaging & Chat Types (/api/messages)
 // ==========================================
 
+export type WebSocketStatus = "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "ERROR";
+
+export type ChatRoomResponse = {
+  id?: number;
+  partnerId: number;
+  partnerName?: string;
+  partnerAvatar?: string;
+  lastMessage?: string;
+  lastTimestamp?: string;
+  unreadCount?: number;
+  createdAt?: string;
+};
+
+export type ChatPartnerDTO = {
+  partnerId: number;
+  partnerName: string;
+  partnerAvatar?: string;
+  lastMessage?: string;
+  lastTimestamp?: string;
+  unreadCount?: number;
+};
+
 export type MessageSendRequest = {
   recipientId: number;
   content: string;
@@ -245,6 +267,7 @@ export type MessageResponse = {
   timestamp: string; // ISO-8601 UTC
   isRead: boolean;
 };
+
 
 // ==========================================
 // 5. Complaint Types (/api/complaints)

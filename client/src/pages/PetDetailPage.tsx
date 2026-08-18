@@ -6,6 +6,7 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  Download,
   Eye,
   Flag,
   Heart,
@@ -22,7 +23,10 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
+import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { downloadLostPoster } from "../services/posters";
+import { createOrGetChatRoom } from "../services/messages";
 import type { AdResponse, AdType } from "../services/types";
 import {
   getAdImage,
@@ -88,6 +92,7 @@ function formatPattern(pattern?: string): string {
 export default function PetDetailPage() {
   const { id } = useParams<{ id?: string }>();
   const [, navigate] = useLocation();
+  const { user } = useAuth();
 
   const [ad, setAd] = useState<AdResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,9 +101,15 @@ export default function PetDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
+  const [isPosterDownloading, setIsPosterDownloading] = useState(false);
+  const [posterError, setPosterError] = useState<string | null>(null);
 
   const adId = id ? Number(id) : NaN;
   const isValidId = !Number.isNaN(adId) && adId > 0;
+
+  const currentUserId = user?.id ?? user?.uid;
+  const isOwner = Boolean(currentUserId && ad?.ownerId && Number(currentUserId) === Number(ad.ownerId));
+
 
   const fetchAdDetail = useCallback(async () => {
     if (!isValidId) {
@@ -150,9 +161,44 @@ export default function PetDetailPage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const openChat = () => {
-    if (ad) {
-      navigate(`/chat/${ad.ownerId}?adId=${ad.id}`);
+  const openChat = async () => {
+    if (!ad || !ad.ownerId) return;
+
+    const partnerId = Number(ad.ownerId);
+    if (currentUserId && Number(currentUserId) === partnerId) {
+      alert("Kendinizle sohbet odası oluşturamazsınız.");
+      return;
+    }
+
+    try {
+      await createOrGetChatRoom(partnerId);
+      navigate(`/chat/${partnerId}?adId=${ad.id}`);
+    } catch (err) {
+      console.error("Sohbet odası oluşturulamadı:", err);
+      alert(getUserErrorMessage(err, "Sohbet odası oluşturulurken bir hata oluştu."));
+    }
+  };
+
+  const handleDownloadPoster = async () => {
+    if (!ad || ad.adType !== "LOST") {
+      return;
+    }
+
+    setIsPosterDownloading(true);
+    setPosterError(null);
+
+    try {
+      await downloadLostPoster(ad.id);
+    } catch (err) {
+      console.error("Kayıp afişi indirilirken hata oluştu:", err);
+      setPosterError(
+        getUserErrorMessage(
+          err,
+          "Kayıp afişi indirilirken bir sorun oluştu.",
+        ),
+      );
+    } finally {
+      setIsPosterDownloading(false);
     }
   };
 
@@ -484,6 +530,40 @@ export default function PetDetailPage() {
               </div>
             )}
 
+            {/* Kayıp Afişi PDF - yalnızca LOST ilanlarda gösterilir */}
+            {ad.adType === "LOST" && (
+              <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm sm:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Kayıp Afişi
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                      QR kodlu kayıp afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleDownloadPoster()}
+                    disabled={isPosterDownloading}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Download size={19} />
+                    {isPosterDownloading
+                      ? "PDF hazırlanıyor..."
+                      : "Kayıp Afişi İndir (PDF)"}
+                  </button>
+                </div>
+
+                {posterError && (
+                  <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                    {posterError}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* İlan Sahibi & İletişim Kartı */}
             <div className="rounded-3xl border border-orange-100 bg-orange-50/60 p-6 shadow-sm sm:p-8">
               <div className="flex items-center justify-between gap-4">
@@ -504,14 +584,20 @@ export default function PetDetailPage() {
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={openChat}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
-                >
-                  <MessageCircle size={19} />
-                  Mesaj Gönder
-                </button>
+                {!isOwner ? (
+                  <button
+                    type="button"
+                    onClick={openChat}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
+                  >
+                    <MessageCircle size={19} />
+                    Mesaj Gönder
+                  </button>
+                ) : (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold flex items-center justify-center">
+                    Kendi ilanınız
+                  </div>
+                )}
 
                 <button
                   type="button"

@@ -268,7 +268,7 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<unknown[]>([]);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
   /* ---------------------------------------------------------------------- */
@@ -588,7 +588,7 @@ export default function AddListingPage() {
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
 
-          const matchesData = await request<any[]>("/api/ai-match", {
+          const matchesData = await request<unknown[]>("/api/ai-match", {
             method: "POST",
             body: formData,
             requiresAuth: true,
