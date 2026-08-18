@@ -3,6 +3,7 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-lea
 import L from "leaflet";
 import { Locate, MapPin } from "lucide-react";
 import ErrorBoundary from "./ErrorBoundary";
+import { isValidCoordinates } from "../services/location";
 import "leaflet/dist/leaflet.css";
 
 import iconUrl from "leaflet/dist/images/marker-icon.png";
@@ -53,15 +54,17 @@ export default function MapPicker({
   onChange,
   readOnly = false,
 }: MapPickerProps) {
-  const validLat =
-    typeof latitude === "number" && !isNaN(latitude) ? latitude : null;
-  const validLng =
-    typeof longitude === "number" && !isNaN(longitude) ? longitude : null;
-
-  const hasCoordinates = validLat !== null && validLng !== null;
+  const validCoordinates =
+    isValidCoordinates(latitude, longitude) &&
+    typeof longitude === "number"
+      ? { latitude, longitude }
+      : null;
+  const hasCoordinates = validCoordinates !== null;
+  const validLat = validCoordinates?.latitude ?? null;
+  const validLng = validCoordinates?.longitude ?? null;
 
   const center: [number, number] = hasCoordinates
-    ? [validLat, validLng]
+    ? [validCoordinates.latitude, validCoordinates.longitude]
     : DEFAULT_CENTER;
 
   const [isLocating, setIsLocating] = useState(false);
@@ -76,16 +79,40 @@ export default function MapPicker({
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setIsLocating(false);
+        const { latitude: nextLat, longitude: nextLng } = position.coords;
+
+        if (!isValidCoordinates(nextLat, nextLng)) {
+          alert("Tarayıcı geçerli bir konum koordinatı döndürmedi.");
+          return;
+        }
+
         if (onChange) {
-          onChange(position.coords.latitude, position.coords.longitude);
+          onChange(nextLat, nextLng);
         }
       },
       (error) => {
         console.error("Konum alınamadı:", error);
         setIsLocating(false);
-        alert("Konumunuz alınamadı. Lütfen konum izni verip tekrar deneyin.");
+
+        if (error.code === error.PERMISSION_DENIED) {
+          alert(
+            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açıp tekrar deneyin.",
+          );
+          return;
+        }
+
+        if (error.code === error.POSITION_UNAVAILABLE) {
+          alert("Konum bilgisi şu anda alınamıyor.");
+          return;
+        }
+
+        alert("Konum isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
       },
-      { enableHighAccuracy: true }
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
+      },
     );
   };
 
@@ -135,8 +162,17 @@ export default function MapPicker({
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {hasCoordinates && <Marker position={[validLat, validLng]} />}
-            {hasCoordinates && <RecenterMap lat={validLat} lng={validLng} />}
+            {validCoordinates && (
+              <Marker
+                position={[validCoordinates.latitude, validCoordinates.longitude]}
+              />
+            )}
+            {validCoordinates && (
+              <RecenterMap
+                lat={validCoordinates.latitude}
+                lng={validCoordinates.longitude}
+              />
+            )}
 
             {!readOnly && onChange && (
               <ClickHandler
