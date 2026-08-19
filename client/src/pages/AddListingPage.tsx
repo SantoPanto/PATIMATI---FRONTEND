@@ -129,8 +129,23 @@ interface ListingMatchResult {
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı, tahmin edilmedi.
+// Bu üç sayı ön yüzde uydurulamaz: sunucu zaten uyguluyor, ön yüz yalnızca
+// kullanıcıya ÖNCEDEN söylemek için biliyor. Kaynak (19.08.2026):
+//   en az 1  -> AdService.java:84  "İlan oluşturmak için en az bir fotoğraf
+//               yüklenmelidir" (AdController'da @RequestPart required = true)
+//   en fazla 3 -> S3ImageStorageServiceImpl.java:64 (ETKİN @Service sınıfı)
+//               "Bir ilana en fazla 3 fotoğraf yüklenebilir"
+//   5 MB     -> application.yml  spring.servlet.multipart.max-file-size: 5MB
+//
+// ⚠ Bu değerler önceden 5 ve 10 MB yazıyordu, yani ön yüz sunucunun
+// REDDEDECEĞİ seçimlere izin veriyordu: kullanıcı 4. fotoğrafı ya da 7 MB'lık
+// dosyayı sorunsuzca seçiyor, hatayı ancak gönderdikten sonra görüyordu.
+// Sunucu sınırı değişirse BURASI DA değişmeli.
+const MIN_IMAGES = 1;
+const MAX_IMAGES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -340,7 +355,7 @@ export default function AddListingPage() {
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorMessage(
-          `${file.name} 10 MB'dan büyük. Her fotoğraf en fazla 10 MB olabilir.`,
+          `${file.name} ${MAX_FILE_SIZE_MB} MB'dan büyük. Her fotoğraf en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`,
         );
         continue;
       }
@@ -919,6 +934,14 @@ export default function AddListingPage() {
   const disabled =
     isSubmitting || isAnalyzing;
 
+  // ⚠ Fotoğraf koşulu bilerek `disabled`e EKLENMEDİ: o bayrak formdaki bütün
+  // girdilerde kullanılıyor (metin alanları, seçim kutuları ve FOTOĞRAF YÜKLEME
+  // alanı dâhil). Oraya eklenseydi fotoğrafı olmayan kullanıcı fotoğraf da
+  // yükleyemezdi — kilitlenme. Bu yüzden yalnız gönder düğmesine bakan ayrı bir
+  // bayrak var.
+  const fotografEksik = images.length < MIN_IMAGES;
+  const gonderilemez = disabled || fotografEksik;
+
   /* ---------------------------------------------------------------------- */
   /* JSX                                                                    */
   /* ---------------------------------------------------------------------- */
@@ -978,8 +1001,11 @@ export default function AddListingPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  En fazla {MAX_IMAGES} fotoğraf
-                  yükleyebilirsiniz.
+                  <strong className="text-gray-700">
+                    En az {MIN_IMAGES} fotoğraf zorunlu.
+                  </strong>{" "}
+                  En fazla {MAX_IMAGES} fotoğraf, her biri en fazla{" "}
+                  {MAX_FILE_SIZE_MB} MB (JPG, PNG veya WEBP).
                 </p>
               </div>
 
@@ -1975,9 +2001,18 @@ export default function AddListingPage() {
           {/* SUBMIT                                                            */}
           {/* ---------------------------------------------------------------- */}
 
+          {/* Pasif düğmenin SEBEBİ yazılmalı: sebepsiz pasif düğme, kullanıcıyı
+              formu baştan sona kontrol etmeye zorlar. */}
+          {fotografEksik && (
+            <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <Camera size={17} />
+              İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={disabled}
+            disabled={gonderilemez}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7c5cff] px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#6d4ff0] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
