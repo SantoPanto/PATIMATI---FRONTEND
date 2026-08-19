@@ -10,6 +10,7 @@ import {
   saveAuthResponse,
   startGoogleOAuth,
 } from "../services/auth";
+import { getPublicAdCounters } from "../services/ads";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import {
   ArrowLeft,
@@ -31,11 +32,39 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  // Giriş ekranındaki sayaçlar. Buradaki sayılar 19.08.2026'ya kadar SABİTTİ
+  // ("1.248+" aktif ilan, "386" mutlu kavuşma) ve gerçeğin onlarca katıydı —
+  // ölçüm anında veritabanında 37 ilan vardı, kavuşma hiç yoktu. Site halka
+  // açık olduğu için bu yanıltıcı beyandı. HomePage ile AYNI uç kullanılıyor.
+  const [counters, setCounters] = useState({ activeAds: 0, happyEndings: 0 });
   const oauthCallbackHandled = useRef(false);
 
   const redirectPath = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return sanitizeRedirectPath(params.get("redirect"), "/");
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCounters = async () => {
+      try {
+        const data = await getPublicAdCounters();
+        if (isActive) {
+          setCounters(data);
+        }
+      } catch (error) {
+        // Sayaç alınamazsa giriş ekranı çalışmaya devam etsin: sayılar 0 kalır.
+        // Uydurma sayıya geri DÖNÜLMEZ — yanlış sayı, sayı yokluğundan kötüdür.
+        console.error("Sayaç bilgileri alınamadı:", error);
+      }
+    };
+
+    void loadCounters();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -160,14 +189,16 @@ export default function LoginPage() {
 
             <div className="relative z-10 grid grid-cols-3 gap-4">
               <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <strong className="block text-2xl">1.248+</strong>
+                <strong className="block text-2xl">{counters.activeAds}</strong>
                 <span className="mt-1 block text-xs text-slate-300">
                   Aktif ilan
                 </span>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <strong className="block text-2xl">386</strong>
+                <strong className="block text-2xl">
+                  {counters.happyEndings}
+                </strong>
                 <span className="mt-1 block text-xs text-slate-300">
                   Mutlu kavuşma
                 </span>
