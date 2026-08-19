@@ -584,7 +584,11 @@ export default function PetDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div
+                className={`mt-6 grid gap-3 ${
+                  isOwner ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                }`}
+              >
                 {!isOwner ? (
                   <button
                     type="button"
@@ -609,14 +613,20 @@ export default function PetDetailPage() {
                   Haritada Gör
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsComplaintModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
-                >
-                  <Flag size={19} />
-                  Şikayet Et
-                </button>
+                {/* Sahip kendi ilanini sikayet edemez: sunucu da reddediyor
+                    (AdComplaintService: "Kullanici kendi ilanini sikayet
+                    edemez"), dugmenin durmasi kullaniciyi bos yere hataya
+                    goturuyordu. */}
+                {!isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsComplaintModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                  >
+                    <Flag size={19} />
+                    Şikayet Et
+                  </button>
+                )}
               </div>
             </div>
           </div>
