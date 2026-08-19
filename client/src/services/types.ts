@@ -280,6 +280,8 @@ export type ComplaintReason =
   | "KOTU_DIL_KULLANIMI"
   | "DIGER"
   | "SPAM"
+  | "HARASSMENT"
+  | "SCAM"
   | "INAPPROPRIATE_CONTENT"
   | "FRAUD"
   | "OTHER";
@@ -323,6 +325,11 @@ export type AdComplaintAdminResponse = ComplaintResponse & {
 
 export type UserComplaintAdminResponse = ComplaintResponse & {
   reportedUserEmail?: string;
+};
+
+export type AdoptionComplaintAdminResponse = ComplaintResponse & {
+  adoptionTitle?: string;
+  adTitle?: string;
 };
 
 // ==========================================
