@@ -325,6 +325,10 @@ export type UserComplaintAdminResponse = ComplaintResponse & {
   reportedUserEmail?: string;
 };
 
+export type AdoptionComplaintAdminResponse = ComplaintResponse & {
+  adoptionTitle?: string;
+};
+
 // ==========================================
 // 7. Match Types (/api/matches)
 // ==========================================
