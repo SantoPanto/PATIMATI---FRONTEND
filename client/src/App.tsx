@@ -13,6 +13,8 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
+import AiMatchPage from "./pages/AiMatchPage";
+import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
@@ -162,6 +164,10 @@ function App() {
         />
         <Route path="/pet/:id" component={PetDetailPage} />
         <Route path="/ads/:id" component={PetDetailPage} />
+
+        {/* AI Eşleşme */}
+        <Route path="/ai-match" component={AiMatchPage} />
+        <Route path="/ai-match-results" component={AiMatchResultsPage} />
 
         {/* Buldum İlanı */}
         <Route
