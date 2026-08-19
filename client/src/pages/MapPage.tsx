@@ -13,6 +13,7 @@ import "leaflet/dist/leaflet.css";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
+import { getImageUrl } from "../utils/imageUrl";
 
 type MapFilter = "ALL" | "LOST" | "FOUND";
 
@@ -317,7 +318,7 @@ export default function MapPage() {
                     <div className="map-popup">
                       {ad.photoUrls?.[0] && (
                         <img
-                          src={ad.photoUrls[0]}
+                          src={getImageUrl(ad.photoUrls[0])}
                           alt={ad.title}
                           className="map-popup__image"
                         />

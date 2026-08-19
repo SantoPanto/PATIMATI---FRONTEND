@@ -25,6 +25,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { request } from "../services/api";
+import { getImageUrl } from "../utils/imageUrl";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
 /* -------------------------------------------------------------------------- */
@@ -1991,7 +1992,7 @@ export default function AddListingPage() {
                 <div key={idx} className="flex gap-4 p-4 border border-[#E2E8F0] rounded-xl hover:border-[#CBD5E1] transition bg-[#F8FAFC]">
                   {match.ad?.photoUrls?.[0] ? (
                     <img
-                      src={match.ad.photoUrls[0]}
+                      src={getImageUrl(match.ad.photoUrls[0])}
                       alt={match.ad.title || "Eşleşen İlan"}
                       className="w-24 h-24 rounded-lg object-cover bg-[#E2E8F0]"
                     />

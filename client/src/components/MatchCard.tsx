@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { MatchResponseDTO } from "../services/types";
+import { getImageUrl } from "../utils/imageUrl";
 
 interface MatchCardProps {
   match: MatchResponseDTO;
@@ -72,12 +73,13 @@ export default function MatchCard({ match }: MatchCardProps) {
   const breed = partnerAd?.breed || match.breed || adObj?.breed || (adObj?.species ? String(adObj.species) : "Belirtilmedi");
   const locationText = partnerAd?.distinctiveMarks || match.location || (adObj?.latitude && adObj?.longitude ? "Konum Koordinatı Mevcut" : "Konum Belirtilmedi");
   
-  const photoUrl =
+  const photoUrl = getImageUrl(
     partnerAd?.photoUrls?.[0] ||
     match.photoUrl ||
     match.photoUrls?.[0] ||
     adObj?.photoUrls?.[0] ||
-    "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600";
+    "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600"
+  );
 
   const mainScoreStyle = getScoreColorClass(totalScorePct);
 
