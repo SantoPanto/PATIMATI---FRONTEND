@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import { startGoogleOAuth } from "../services/auth";
-import { getPublicAds } from "../services/ads";
+import { getPublicAds, getPublicAdCounters } from "../services/ads";
 import type { AdResponse } from "../services/types";
 import {
   getAdDetailPath,
@@ -76,7 +76,7 @@ export default function HomePage() {
   >([]);
   const [maxDistance, setMaxDistance] = useState(25);
   const [onlyFeatured, setOnlyFeatured] = useState(false);
-
+  const [counters, setCounters] = useState({ activeAds: 0, happyEndings: 0 });
   const [currentLocation, setCurrentLocation] = useState("Bursa");
   const [isLocationLoading, setIsLocationLoading] = useState(false);
 
@@ -108,9 +108,18 @@ export default function HomePage() {
         if (isActive) setIsListingsLoading(false);
       }
     };
-
+    const loadCounters = async () => {
+    try {
+      const data = await getPublicAdCounters();
+      if (isActive) {
+        setCounters(data);
+      }
+    } catch (error) {
+      console.error("Sayaç bilgileri alınamadı:", error);
+    }
+  };
     void loadListings();
-
+    void loadCounters();
     return () => {
       isActive = false;
     };
@@ -451,7 +460,7 @@ export default function HomePage() {
                 </div>
 
                 <div>
-                  <strong>1.248+</strong>
+                  <strong>{counters.activeAds}</strong>
                   <span>Aktif ilan</span>
                 </div>
               </div>
@@ -462,7 +471,7 @@ export default function HomePage() {
                 </div>
 
                 <div>
-                  <strong>386</strong>
+                  <strong>{counters.happyEndings}</strong>
                   <span>Mutlu kavuşma</span>
                 </div>
               </div>
