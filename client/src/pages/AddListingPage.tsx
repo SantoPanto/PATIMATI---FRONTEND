@@ -560,6 +560,42 @@ export default function AddListingPage() {
         ...new Set(detectedColors),
       ]);
     }
+
+    // Goz rengi (eye_color)
+    const eyeColors = etiketten("hard:eye_color_");
+    if (eyeColors.length > 0 && eyeColors[0] !== "unknown") {
+      const eyeMap: Record<string, EyeColor> = {
+        brown: "BROWN",
+        blue: "BLUE",
+        green: "GREEN",
+        amber: "AMBER",
+        hazel: "HAZEL",
+        heterochromia: "HETEROCHROMIA",
+      };
+      if (eyeMap[eyeColors[0]]) {
+        setEyeColor(eyeMap[eyeColors[0]]);
+      }
+    }
+
+    // Tasma (collar)
+    const collar = etiketten("bonus:collar_");
+    if (collar.length > 0) {
+      if (collar[0] === "collar") {
+        setCollarStatus("YES");
+      } else if (collar[0] === "no_collar") {
+        setCollarStatus("NO");
+      }
+    }
+
+    // Kulak Kupesi (ear_tag)
+    const earTag = etiketten("bonus:ear_tag_");
+    if (earTag.length > 0) {
+      if (earTag[0] === "ear_tag") {
+        setEarTagStatus("YES");
+      } else if (earTag[0] === "no_ear_tag") {
+        setEarTagStatus("NO");
+      }
+    }
   };
 
   const runAiAnalysis = async () => {
