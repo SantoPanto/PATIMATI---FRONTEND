@@ -5,8 +5,9 @@ import type {
   Gender,
   Species,
 } from "../services/types";
+import { getImageUrl, getMediaUrl } from "./imageUrl";
 
-const FALLBACK_IMAGE = "/favicon.svg";
+export { getImageUrl, getMediaUrl };
 
 const speciesLabels: Record<Species, string> = {
   CAT: "Kedi",
@@ -50,7 +51,8 @@ export function getAdTypeLabel(adType: AdType): string {
 }
 
 export function getAdImage(ad: AdResponse): string {
-  return ad.photoUrls?.find((url) => Boolean(url?.trim())) || FALLBACK_IMAGE;
+  const firstPhoto = ad.photoUrls?.find((url) => Boolean(url?.trim()));
+  return getImageUrl(firstPhoto);
 }
 
 export function getAdLocation(ad: AdResponse): string {

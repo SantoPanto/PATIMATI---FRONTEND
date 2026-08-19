@@ -33,6 +33,7 @@ import {
   getAdLocation,
   getAgeLabel,
   getGenderLabel,
+  getImageUrl,
   getOwnerInitials,
   getRelativeDate,
   getSpeciesLabel,
@@ -280,7 +281,7 @@ export default function PetDetailPage() {
   const badgeInfo = getAdTypeBadge(ad.adType);
   const photos =
     Array.isArray(ad.photoUrls) && ad.photoUrls.length > 0
-      ? ad.photoUrls
+      ? ad.photoUrls.map((url) => getImageUrl(url))
       : [getAdImage(ad)];
 
   const currentPhoto = photos[selectedPhotoIndex] || photos[0];

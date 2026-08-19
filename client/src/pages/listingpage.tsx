@@ -11,6 +11,7 @@ import {
 import Header from "../components/Header";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
+import { getImageUrl } from "../utils/imageUrl";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
@@ -132,7 +133,7 @@ function getPrimaryImage(ad: AdResponse): string | null {
     (url) => typeof url === "string" && url.trim().length > 0,
   );
 
-  return firstValidUrl || null;
+  return firstValidUrl ? getImageUrl(firstValidUrl) : null;
 }
 
 function PetListingCard({ ad }: { ad: AdResponse }) {
