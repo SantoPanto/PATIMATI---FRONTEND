@@ -6,6 +6,7 @@ import type { MessagePayload } from "firebase/messaging";
 import { useAuth } from "../contexts/AuthContext";
 import {
   clearInAppNotifications,
+  loadNotifications,
   markNotificationAsRead,
   recordForegroundNotification,
 } from "../services/notifications";
@@ -18,7 +19,12 @@ export default function ForegroundNotificationToast() {
   useEffect(() => {
     if (!isAuthenticated) {
       clearInAppNotifications();
+      return;
     }
+
+    void loadNotifications().catch((error: unknown) => {
+      console.error("Bildirim geçmişi yüklenemedi:", error);
+    });
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {
