@@ -44,6 +44,7 @@ function ProtectedAddListingPage() {
     <RequireAuth
       component={AddListingPage}
       fallbackPath="/listings"
+      mode="modal"
     />
   );
 }
@@ -53,16 +54,23 @@ function ProtectedFoundPetCreatePage() {
     <RequireAuth
       component={FoundPetCreatePage}
       fallbackPath="/listings"
+      mode="modal"
     />
   );
 }
 
 function ProtectedChatPage() {
-  return <RequireAuth component={ChatPage} fallbackPath="/" />;
+  return <RequireAuth component={ChatPage} mode="redirect" />;
 }
 
 function ProtectedChatDetailPage() {
-  return <RequireAuth component={ChatDetailPage} fallbackPath="/adoption" />;
+  return (
+    <RequireAuth
+      component={ChatDetailPage}
+      fallbackPath="/adoption"
+      mode="modal"
+    />
+  );
 }
 
 function ProtectedAdoptionCreatePage() {
@@ -70,6 +78,7 @@ function ProtectedAdoptionCreatePage() {
     <RequireAuth
       component={AdoptionCreatePage}
       fallbackPath="/adoption"
+      mode="modal"
     />
   );
 }
@@ -99,19 +108,27 @@ function ProtectedChangePasswordPage() {
 }
 
 function ProtectedAdminDashboardPage() {
-  return <RequireAuth component={AdminDashboardPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminDashboardPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedAdminComplaintsPage() {
-  return <RequireAuth component={AdminComplaintsPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminComplaintsPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedAdminListingsPage() {
-  return <RequireAuth component={AdminListingsPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminListingsPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedAdminUsersPage() {
-  return <RequireAuth component={AdminUsersPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminUsersPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedNotificationsPage() {
