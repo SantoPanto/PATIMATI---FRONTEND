@@ -12,10 +12,11 @@ const FALLBACK_IMAGE = "/favicon.svg";
  * Guard Clause:
  * If `path` starts with `http://` or `https://` (or `data:` / `blob:`),
  * returns it directly as-is without prepending any base path, current route prefix, or domain.
+ * Also cleans any accidental leading slashes before an absolute URL (e.g. `/https://...` -> `https://...`).
  * 
  * Relative Paths:
- * If `path` is a relative path or filename (e.g. `/uploads/...`),
- * prepends the configured media storage base domain if present, or ensures a root-relative path.
+ * Combines `mediaBaseUrl` (without trailing slashes) and `cleanPath` (without leading slashes)
+ * ensuring no leading slash is prepended to an absolute base URL.
  */
 export function getImageUrl(path?: string | null): string {
   if (!path || typeof path !== "string" || !path.trim()) {
@@ -24,24 +25,31 @@ export function getImageUrl(path?: string | null): string {
 
   const trimmed = path.trim();
 
-  // Guard Clause: Absolute external URL or data/blob URI
-  if (/^(https?:\/\/|data:|blob:)/i.test(trimmed)) {
-    return trimmed;
+  // Strip any accidental leading slashes to check for absolute URL
+  const sanitizedPath = trimmed.replace(/^\/+/, "");
+
+  // Guard Clause: Absolute external URL or data/blob URI (e.g. https://... or http://...)
+  if (/^(https?:\/\/|data:|blob:)/i.test(sanitizedPath)) {
+    return sanitizedPath;
   }
 
   // Media / API Base URL configuration
-  const mediaBaseUrl = (
+  const rawBaseUrl = (
     import.meta.env.VITE_MEDIA_URL ||
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     ""
   ).trim();
 
-  if (trimmed.startsWith("/")) {
-    return mediaBaseUrl ? `${mediaBaseUrl.replace(/\/+$/, "")}${trimmed}` : trimmed;
+  // Clean trailing slashes from base URL and leading slashes from path
+  const cleanBase = rawBaseUrl.replace(/\/+$/, "");
+  const cleanPath = sanitizedPath;
+
+  if (cleanBase) {
+    return `${cleanBase}/${cleanPath}`;
   }
 
-  return mediaBaseUrl ? `${mediaBaseUrl.replace(/\/+$/, "")}/${trimmed}` : `/${trimmed}`;
+  return `/${cleanPath}`;
 }
 
 /**
