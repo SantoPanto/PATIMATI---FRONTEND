@@ -114,7 +114,7 @@ export default function ChatPage() {
           userId: room.partnerId,
           userName: room.partnerName || `Kullanıcı #${room.partnerId}`,
           lastMessage: room.lastMessage || "",
-          lastTimestamp: room.lastTimestamp || room.createdAt || "",
+          lastTimestamp: room.lastMessageTimestamp || "",
           unreadCount: room.unreadCount || 0,
         }));
 

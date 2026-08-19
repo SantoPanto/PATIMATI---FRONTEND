@@ -110,7 +110,7 @@ export type AuthResponse = {
 // ==========================================
 
 export type AdType = "LOST" | "FOUND" | "ADOPTION";
-export type Species = "CAT" | "DOG";
+export type Species = "CAT" | "DOG" | "UNKNOWN";
 export type Gender = "MALE" | "FEMALE" | "UNKNOWN";
 export type AgeGroup =
   | "BABY"
@@ -125,20 +125,29 @@ export type PetColor =
   | "GRAY"
   | "ORANGE"
   | "CREAM"
-  | "YELLOW"
+  | "GOLDEN"
   | "BEIGE"
   | "OTHER";
 
 export type CoatPattern =
+  | "UNKNOWN"
   | "SOLID"
-  | "BICOLOR"
-  | "TRICOLOR"
-  | "TABBY"
+  | "STRIPED"
   | "SPOTTED"
-  | "HARLEQUIN"
+  | "PATCHED"
+  | "CALICO"
+  | "TORTOISESHELL"
   | "OTHER";
 
-export type StatusEnum = "PRESENT" | "ABSENT" | "UNKNOWN";
+export type PresenceStatus = "UNKNOWN" | "YES" | "NO";
+
+export type AiStatus =
+  | "PENDING"
+  | "DONE"
+  | "FAILED"
+  | "APPROVED"
+  | "REJECTED"
+  | "NOT_APPLICABLE";
 
 export type AdCreateRequest = {
   title: string;
@@ -150,12 +159,12 @@ export type AdCreateRequest = {
   gender: Gender;
   ageGroup: AgeGroup;
   coatPattern: CoatPattern;
-  collarStatus: StatusEnum;
+  collarStatus: PresenceStatus;
   collarColor?: string;
   collarTagText?: string;
   eyeColor?: string;
-  earTagStatus: StatusEnum;
-  earNotchStatus: StatusEnum;
+  earTagStatus: PresenceStatus;
+  earNotchStatus: PresenceStatus;
   microchipNumber?: string;
   lostDate?: string; // YYYY-MM-DD
   distinctiveMarks?: string;
@@ -176,12 +185,12 @@ export type AdResponse = {
   gender: Gender;
   ageGroup: AgeGroup;
   coatPattern: CoatPattern;
-  collarStatus: StatusEnum;
+  collarStatus: PresenceStatus;
   collarColor?: string;
   collarTagText?: string;
   eyeColor?: string;
-  earTagStatus: StatusEnum;
-  earNotchStatus: StatusEnum;
+  earTagStatus: PresenceStatus;
+  earNotchStatus: PresenceStatus;
   microchipped: boolean;
   lostDate?: string;
   distinctiveMarks?: string;
@@ -193,7 +202,7 @@ export type AdResponse = {
   active: boolean;
   createdAt: string; // ISO-8601 UTC
   updatedAt: string; // ISO-8601 UTC
-  aiStatus?: string;
+  aiStatus?: AiStatus;
   aiIsPet?: boolean;
 };
 
@@ -233,22 +242,12 @@ export type ResolveAdoptionAdRequest = {
 export type WebSocketStatus = "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "ERROR";
 
 export type ChatRoomResponse = {
-  id?: number;
+  roomId?: number;
   partnerId: number;
   partnerName?: string;
   partnerAvatar?: string;
   lastMessage?: string;
-  lastTimestamp?: string;
-  unreadCount?: number;
-  createdAt?: string;
-};
-
-export type ChatPartnerDTO = {
-  partnerId: number;
-  partnerName: string;
-  partnerAvatar?: string;
-  lastMessage?: string;
-  lastTimestamp?: string;
+  lastMessageTimestamp?: string;
   unreadCount?: number;
 };
 
@@ -278,13 +277,9 @@ export type ComplaintReason =
   | "UYGUNSUZ_ICERIK"
   | "DOLANDIRICILIK"
   | "KOTU_DIL_KULLANIMI"
-  | "DIGER"
-  | "SPAM"
-  | "HARASSMENT"
-  | "SCAM"
-  | "INAPPROPRIATE_CONTENT"
-  | "FRAUD"
-  | "OTHER";
+  | "DIGER";
+
+export type ComplaintStatus = "BEKLEMEDE" | "INCELEMEDE" | "COZULDU";
 
 export type UserComplaintRequestDTO = {
   reportedUserId: number;
@@ -306,7 +301,7 @@ export type ComplaintResponse = {
   reportedUserId?: number;
   reason: ComplaintReason;
   description: string;
-  status: "PENDING" | "RESOLVED" | "REJECTED" | string;
+  status: ComplaintStatus;
   createdAt: string; // ISO-8601 UTC
 };
 
@@ -336,31 +331,49 @@ export type AdoptionComplaintAdminResponse = ComplaintResponse & {
 // 7. Match Types (/api/matches)
 // ==========================================
 
+/**
+ * Eslesme kartinin okudugu ilan ozeti.
+ * Backend karsiligi: dto/match/AdMatchResponseDTO.AdSummaryDTO
+ * (AdResponse DEGIL - bu ic sinifin yalnizca su 5 alani vardir).
+ */
+export type AdSummaryDTO = {
+  id?: number;
+  title?: string;
+  photoUrl?: string;
+  species?: Species | string;
+  breed?: string;
+};
+
+/**
+ * Backend karsiligi: dto/match/AdMatchResponseDTO
+ * Alanlar oradan birebir alinmistir. Buraya backend'in GONDERMEDIGI alan
+ * eklenmez: eklenirse kart sessizce bos kalir, tip denetimi de uyarmaz.
+ */
 export type MatchResponseDTO = {
   id?: number;
+
+  // Oturum acan kullanicinin ilani
+  myAd?: AdSummaryDTO;
+  myAdId?: number;
+  myAdTitle?: string;
+
+  // Karsi tarafin ilani
+  partnerAd?: AdSummaryDTO;
+  partnerAdId?: number;
+  partnerAdTitle?: string;
+
+  // Skor kirilimlari
   totalScore: number;
   visualScore: number;
   tagScore: number;
   locationScore: number;
   thresholdAtTime: number;
-  passedThreshold: boolean;
+
+  // Detaylar ve durumlar
+  matchedPhotoPair?: string;
   blockReason?: string | null;
+  passedThreshold: boolean;
+  notificationSentAt?: string;
   createdAt?: string;
-  lostAdId?: number;
-  foundAdId?: number;
-  targetAdId?: number;
-  partnerAdId?: number;
-  partnerAd?: AdResponse;
-  sourceAd?: AdResponse;
-  targetAd?: AdResponse;
-  ad?: AdResponse;
-  matchedAd?: AdResponse;
-  title?: string;
-  petName?: string;
-  species?: Species | string;
-  breed?: string;
-  photoUrl?: string;
-  photoUrls?: string[];
-  location?: string;
 };
 
