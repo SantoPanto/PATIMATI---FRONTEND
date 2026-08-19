@@ -576,6 +576,7 @@ export default function FoundPetCreatePage() {
                           alt={`Bulunan hayvan fotoğrafı ${
                             index + 1
                           }`}
+                          loading="lazy"
                           className="h-40 w-full object-cover"
                         />
 

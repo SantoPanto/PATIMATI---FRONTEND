@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   AtSign,
@@ -83,63 +83,120 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Her fetch akışının kendi son isteğini izleyen AbortController referansı.
+  // Aynı akış (ör. sayfa/sekme hızlı değiştirilirken) yeniden tetiklendiğinde
+  // önceki istek iptal edilir, böylece geç dönen eski bir cevap state'i
+  // ezmez. Akışlar birbirinden bağımsız state'e yazdığı için (usersPage,
+  // adsPage, ...) her biri kendi ref'ine sahip -- bir sekmenin isteği
+  // diğerini iptal etmez.
+  const usersAbortRef = useRef<AbortController | null>(null);
+  const adsAbortRef = useRef<AbortController | null>(null);
+  const complaintsAbortRef = useRef<AbortController | null>(null);
+  const externalPostsAbortRef = useRef<AbortController | null>(null);
+
+  // Bileşen unmount olduğunda hâlâ süren istekleri iptal et (unmount sonrası
+  // state güncellemesini önler).
+  useEffect(() => {
+    return () => {
+      usersAbortRef.current?.abort();
+      adsAbortRef.current?.abort();
+      complaintsAbortRef.current?.abort();
+      externalPostsAbortRef.current?.abort();
+    };
+  }, []);
+
   // Fetch Users
   const fetchUsers = useCallback(async (pageIndex: number) => {
+    usersAbortRef.current?.abort();
+    const controller = new AbortController();
+    usersAbortRef.current = controller;
     try {
       setLoading(true);
       setError(null);
-      const res = await getAdminUsers({ page: pageIndex, size: 10 });
+      const res = await getAdminUsers({
+        page: pageIndex,
+        size: 10,
+        signal: controller.signal,
+      });
       setUsersPage(res);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("Kullanıcılar yüklenemedi:", err);
       setError("Kullanıcı listesi alınamadı.");
     } finally {
-      setLoading(false);
+      // Bu istek hâlâ bu akışın en güncel isteğiyse yükleniyor durumunu
+      // kapat -- iptal edilmiş (üzerine yenisi başlamış) bir isteğin
+      // finally'si, yeni isteğin loading=true'sunu yanlışlıkla kapatmasın.
+      if (usersAbortRef.current === controller) {
+        setLoading(false);
+      }
     }
   }, []);
 
   // Fetch Ads
   const fetchAds = useCallback(async (pageIndex: number) => {
+    adsAbortRef.current?.abort();
+    const controller = new AbortController();
+    adsAbortRef.current = controller;
     try {
       setLoading(true);
       setError(null);
-      const res = await getAdminAds({ page: pageIndex, size: 10 });
+      const res = await getAdminAds({
+        page: pageIndex,
+        size: 10,
+        signal: controller.signal,
+      });
       setAdsPage(res);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("İlanlar yüklenemedi:", err);
       setError("İlan listesi alınamadı.");
     } finally {
-      setLoading(false);
+      if (adsAbortRef.current === controller) {
+        setLoading(false);
+      }
     }
   }, []);
 
   // Fetch Complaints
   const fetchComplaints = useCallback(
     async (subTab: ComplaintSubTab, pageIndex: number) => {
+      complaintsAbortRef.current?.abort();
+      const controller = new AbortController();
+      complaintsAbortRef.current = controller;
       try {
         setLoading(true);
         setError(null);
         if (subTab === "ads") {
-          const res = await getAdminAdComplaints({ page: pageIndex, size: 10 });
+          const res = await getAdminAdComplaints({
+            page: pageIndex,
+            size: 10,
+            signal: controller.signal,
+          });
           setAdComplaintsPage(res);
         } else if (subTab === "users") {
           const res = await getAdminUserComplaints({
             page: pageIndex,
             size: 10,
+            signal: controller.signal,
           });
           setUserComplaintsPage(res);
         } else {
           const res = await getAdminAdoptionComplaints({
             page: pageIndex,
             size: 10,
+            signal: controller.signal,
           });
           setAdoptionComplaintsPage(res);
         }
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("Şikayetler yüklenemedi:", err);
         setError("Şikayet listesi alınamadı.");
       } finally {
-        setLoading(false);
+        if (complaintsAbortRef.current === controller) {
+          setLoading(false);
+        }
       }
     },
     [],
@@ -147,16 +204,26 @@ export default function AdminDashboardPage() {
 
   // Fetch Instagram (external) posts
   const fetchExternalPosts = useCallback(async (pageIndex: number) => {
+    externalPostsAbortRef.current?.abort();
+    const controller = new AbortController();
+    externalPostsAbortRef.current = controller;
     try {
       setLoading(true);
       setError(null);
-      const res = await getAdminExternalPosts({ page: pageIndex, size: 10 });
+      const res = await getAdminExternalPosts({
+        page: pageIndex,
+        size: 10,
+        signal: controller.signal,
+      });
       setExternalPostsPage(res);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("Instagram kayıtları yüklenemedi:", err);
       setError("Instagram kayıtları alınamadı.");
     } finally {
-      setLoading(false);
+      if (externalPostsAbortRef.current === controller) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -203,26 +270,17 @@ export default function AdminDashboardPage() {
         setFeedback(`Kullanıcı #${userId} engellendi.`);
       }
 
-      // Optimistic local state update
-      setUsersPage((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          content: prev.content.map((usr) => {
-            const uid = usr.uid || usr.id || 0;
-            if (uid === userId) {
-              const nextBanned = !currentBanned;
-              return {
-                ...usr,
-                banned: nextBanned,
-                enabled: !nextBanned,
-              };
-            }
-            return usr;
-          }),
-        };
-      });
-
+      // Sunucudan yeniden çek. Eskiden burada AYRICA optimistic bir
+      // setUsersPage güncellemesi vardı -- kaldırıldı, çünkü hemen ardından
+      // gelen bu fetchUsers zaten aynı satırı sunucudan gelen gerçek veriyle
+      // eziyordu; optimistic yazının tek gözlemlenebilir etkisi bir sonraki
+      // satırda üzerine yazılmadan önceki tek bir render'lık kısa bir
+      // yanıp-sönmeydi, hiçbir gerçek fayda sağlamıyordu. Bu dosyadaki tüm
+      // eylem handler'ları (bkz. handleToggleAdSuspend, handleDeleteAd) artık
+      // aynı tek desende: mutasyon -> feedback -> sunucudan yeniden çek. Tek
+      // doğruluk kaynağı sunucu; iki kopyayı senkron tutmaya çalışmak yerine
+      // (ve aralarında tutarsızlık riski almak yerine) her zaman tazesini
+      // isteriz.
       await fetchUsers(usersPageIndex);
     } catch (err) {
       console.error("Kullanıcı durumu değiştirilemedi:", err);
@@ -245,22 +303,12 @@ export default function AdminDashboardPage() {
         setFeedback(`İlan #${adId} askıya alındı.`);
       }
 
-      // Optimistic local state update
-      setAdsPage((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          content: prev.content.map((ad) => {
-            if (ad.id === adId) {
-              return {
-                ...ad,
-                active: isCurrentlySuspended,
-              };
-            }
-            return ad;
-          }),
-        };
-      });
+      // Sunucudan yeniden çek -- handleBanUser/handleDeleteAd ile aynı desen
+      // (bkz. handleBanUser'daki not). Eskiden burada refetch YOKTU, yalnızca
+      // optimistic bir setAdsPage vardı: sayfa değiştirilip geri dönüldüğünde
+      // ya da başka bir yönetici aynı ilanı değiştirdiğinde bu satır sunucudan
+      // hiç doğrulanmadan ekranda kalıyordu.
+      await fetchAds(adsPageIndex);
     } catch (err) {
       console.error("İlan durumu değiştirilemedi:", err);
       setError("İşlem gerçekleştirilemedi.");
@@ -1111,6 +1159,7 @@ export default function AdminDashboardPage() {
                                 src={p.photoUrl}
                                 alt=""
                                 className="w-14 h-14 rounded-xl object-cover border border-slate-200"
+                                loading="lazy"
                               />
                             ) : (
                               <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200" />

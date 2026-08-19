@@ -684,6 +684,7 @@ export default function HomePage() {
                         <img
                           src={listing.image}
                           alt={listing.name}
+                          loading="lazy"
                         />
 
                         <span
@@ -823,6 +824,7 @@ export default function HomePage() {
                   <img
                     src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=700&q=85"
                     alt=""
+                    loading="lazy"
                   />
                 </div>
 
@@ -830,6 +832,7 @@ export default function HomePage() {
                   <img
                     src="https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=700&q=85"
                     alt=""
+                    loading="lazy"
                   />
 
                   <span className="ai-match-score">

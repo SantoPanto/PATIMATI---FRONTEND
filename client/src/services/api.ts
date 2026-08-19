@@ -106,13 +106,32 @@ export async function request<T>(
     );
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}${endpoint}`,
-    {
-      ...restOptions,
-      headers,
-    },
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_BASE_URL}${endpoint}`,
+      {
+        ...restOptions,
+        headers,
+      },
+    );
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      // Kasıtlı iptal (AbortController.abort()) -- gerçek bir ağ hatası
+      // değil, ApiError'a çevrilmeden olduğu gibi fırlatılmalı ki çağıran
+      // taraf (ör. bir useEffect cleanup'ı) bunu kullanıcıya hata olarak
+      // göstermesin.
+      throw err;
+    }
+    // fetch() burada çıplak bir TypeError fırlatır (bağlantı koptu, DNS
+    // çözülemedi, CORS engellendi vb.). Çağıranların çoğu ApiError
+    // bekliyor; aynı biçime çeviriyoruz.
+    throw new ApiError(
+      "Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.",
+      0,
+      null,
+    );
+  }
 
   if (response.status === 204) {
     return {} as T;

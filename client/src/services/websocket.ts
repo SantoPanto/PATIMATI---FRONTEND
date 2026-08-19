@@ -49,7 +49,7 @@ export function connectWebSocket(
     reconnectDelay: 5000,
 
     onConnect: () => {
-      console.log("WebSocket connected");
+      if (import.meta.env.DEV) console.log("WebSocket connected");
       callbacks?.onConnect?.();
 
       stompClient?.subscribe("/user/queue/messages", (frame) => {
@@ -63,7 +63,7 @@ export function connectWebSocket(
     },
 
     onDisconnect: () => {
-      console.log("WebSocket disconnected");
+      if (import.meta.env.DEV) console.log("WebSocket disconnected");
       callbacks?.onDisconnect?.();
     },
 
@@ -79,7 +79,7 @@ export function connectWebSocket(
     },
 
     onWebSocketClose: (event) => {
-      console.log("WebSocket closed", event);
+      if (import.meta.env.DEV) console.log("WebSocket closed", event);
       callbacks?.onDisconnect?.();
     },
   });

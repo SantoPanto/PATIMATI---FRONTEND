@@ -114,6 +114,22 @@ type AdResponse = {
   title?: string;
 };
 
+// POST /api/ai-match yanıtının biçimi -- backend'deki AiMatchService.mapToDTO
+// ile birebir (id/title/description/photoUrls/createdAt/ownerDisplayName).
+type AiMatchAd = {
+  id: number;
+  title: string | null;
+  description: string | null;
+  photoUrls: string[];
+  createdAt?: string;
+  ownerDisplayName?: string | null;
+};
+
+type AiMatchResult = {
+  score: number;
+  ad: AiMatchAd;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -268,7 +284,7 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [matches, setMatches] = useState<unknown[]>([]);
+  const [matches, setMatches] = useState<AiMatchResult[]>([]);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
   /* ---------------------------------------------------------------------- */
@@ -588,7 +604,7 @@ export default function AddListingPage() {
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
 
-          const matchesData = await request<unknown[]>("/api/ai-match", {
+          const matchesData = await request<AiMatchResult[]>("/api/ai-match", {
             method: "POST",
             body: formData,
             requiresAuth: true,
@@ -776,16 +792,11 @@ export default function AddListingPage() {
        * değeriyle birlikte kendisi oluşturur.
        */
       const url = adType === "ADOPTION" ? "/api/adoptions" : "/api/ads";
-      const responseData = await request<AdResponse>(url, {
+      await request<AdResponse>(url, {
         method: "POST",
         requiresAuth: true,
         body: formData,
       });
-
-      console.log(
-        "PatiMati listing created:",
-        responseData,
-      );
 
       /*
        * Release preview object URLs.
@@ -967,6 +978,7 @@ export default function AddListingPage() {
                         index + 1
                       }`}
                       className="h-full w-full object-cover"
+                      loading="lazy"
                     />
 
                     {index === 0 && (
@@ -1988,6 +2000,7 @@ export default function AddListingPage() {
                       src={match.ad.photoUrls[0]}
                       alt={match.ad.title || "Eşleşen İlan"}
                       className="w-24 h-24 rounded-lg object-cover bg-[#E2E8F0]"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-24 h-24 rounded-lg bg-[#E2E8F0] flex items-center justify-center">

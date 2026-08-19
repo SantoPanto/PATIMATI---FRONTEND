@@ -11,13 +11,15 @@ export interface ReportUserModalProps {
   onSuccess?: () => void;
 }
 
+// Backend'in ComplaintReason enum'undaki 5 gerçek değerle birebir aynı --
+// bkz. services/types.ts. ComplaintModal.tsx'teki (aynı enum'u kullanan
+// kardeş bileşen) etiketlerle tutarlı tutuldu.
 const REASON_OPTIONS: { value: ComplaintReason; label: string }[] = [
-  { value: "SPAM", label: "Spam / İstenmeyen Mesaj" },
-  { value: "HARASSMENT", label: "Taciz / Rahatsız Edici Davranış" },
-  { value: "SCAM", label: "Dolandırıcılık / Sahtekarlık Şüphesi" },
-  { value: "INAPPROPRIATE_CONTENT", label: "Uygunsuz / Hakaret İçeren İçerik" },
-  { value: "KOTU_DIL_KULLANIMI", label: "Kötü / Saldırgan Dil Kullanımı" },
-  { value: "OTHER", label: "Diğer Sebepler" },
+  { value: "SAHTE_ILAN", label: "Sahte veya Yanıltıcı İlan" },
+  { value: "UYGUNSUZ_ICERIK", label: "Uygunsuz / Hakaret İçeren İçerik" },
+  { value: "DOLANDIRICILIK", label: "Dolandırıcılık Şüphesi" },
+  { value: "KOTU_DIL_KULLANIMI", label: "Kötü Dil Kullanımı / Taciz" },
+  { value: "DIGER", label: "Diğer Sebepler" },
 ];
 
 export default function ReportUserModal({
@@ -27,7 +29,7 @@ export default function ReportUserModal({
   reportedUserName,
   onSuccess,
 }: ReportUserModalProps) {
-  const [reason, setReason] = useState<ComplaintReason>("SPAM");
+  const [reason, setReason] = useState<ComplaintReason>("SAHTE_ILAN");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export default function ReportUserModal({
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
-      setReason("SPAM");
+      setReason("SAHTE_ILAN");
       setDescription("");
       setError(null);
       setSuccess(false);

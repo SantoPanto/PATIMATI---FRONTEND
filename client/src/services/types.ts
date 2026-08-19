@@ -273,16 +273,16 @@ export type MessageResponse = {
 // 5. Complaint Types (/api/complaints)
 // ==========================================
 
+// Backend'in tek ComplaintReason enum'uyla (Ad/Adoption/User şikayetlerinin
+// üçü de aynısını kullanır) birebir aynı olmalı -- bkz.
+// PATIMATI---BACKEND-social/.../entity/enums/ComplaintReason.java. Bunun
+// dışındaki bir değer backend'den 400 döner.
 export type ComplaintReason =
   | "SAHTE_ILAN"
   | "UYGUNSUZ_ICERIK"
   | "DOLANDIRICILIK"
   | "KOTU_DIL_KULLANIMI"
-  | "DIGER"
-  | "SPAM"
-  | "INAPPROPRIATE_CONTENT"
-  | "FRAUD"
-  | "OTHER";
+  | "DIGER";
 
 export type UserComplaintRequestDTO = {
   reportedUserId: number;

@@ -10,7 +10,6 @@ import {
   sanitizeRedirectPath,
   saveAuthResponse,
   saveOAuthIntent,
-  startGoogleOAuth,
 } from "../services/auth";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import {

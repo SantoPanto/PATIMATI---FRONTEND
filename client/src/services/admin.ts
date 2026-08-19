@@ -20,6 +20,7 @@ import type {
 export function getAdminUsers(params?: {
   page?: number;
   size?: number;
+  signal?: AbortSignal;
 }): Promise<Page<UserDetailForAdminDTO>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
@@ -32,6 +33,7 @@ export function getAdminUsers(params?: {
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -62,6 +64,7 @@ export function unbanUser(userId: number): Promise<{ message: string }> {
 export function getAdminAds(params?: {
   page?: number;
   size?: number;
+  signal?: AbortSignal;
 }): Promise<Page<AdResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
@@ -74,6 +77,7 @@ export function getAdminAds(params?: {
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -114,6 +118,7 @@ export function deleteAdminAd(adId: number): Promise<{ message: string }> {
 export function getAdminAdComplaints(params?: {
   page?: number;
   size?: number;
+  signal?: AbortSignal;
 }): Promise<Page<AdComplaintAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
@@ -125,6 +130,7 @@ export function getAdminAdComplaints(params?: {
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -135,6 +141,7 @@ export function getAdminAdComplaints(params?: {
 export function getAdminUserComplaints(params?: {
   page?: number;
   size?: number;
+  signal?: AbortSignal;
 }): Promise<Page<UserComplaintAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
@@ -146,6 +153,7 @@ export function getAdminUserComplaints(params?: {
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -156,6 +164,7 @@ export function getAdminUserComplaints(params?: {
 export function getAdminAdoptionComplaints(params?: {
   page?: number;
   size?: number;
+  signal?: AbortSignal;
 }): Promise<Page<AdoptionComplaintAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
@@ -167,6 +176,7 @@ export function getAdminAdoptionComplaints(params?: {
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -177,6 +187,7 @@ export function getAdminAdoptionComplaints(params?: {
 export function getAdminExternalPosts(params?: {
   page?: number;
   size?: number;
+  signal?: AbortSignal;
 }): Promise<Page<ExternalPostAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
@@ -188,6 +199,7 @@ export function getAdminExternalPosts(params?: {
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -205,7 +217,9 @@ export function deleteComplaint(complaintId: number): Promise<{ message: string 
 /**
  * POST /api/admin/chats/create-with-user/{userId}
  */
-export function createAdminChatRoom(userId: number): Promise<{ chatId?: number; roomId?: number } | any> {
+export function createAdminChatRoom(
+  userId: number,
+): Promise<{ chatId?: number; roomId?: number; id?: number }> {
   return request(`/api/admin/chats/create-with-user/${userId}`, {
     method: "POST",
     requiresAuth: true,

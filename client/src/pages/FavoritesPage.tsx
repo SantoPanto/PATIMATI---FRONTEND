@@ -312,6 +312,7 @@ function FavoriteCard({
           src={listing.image}
           alt={listing.title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          loading="lazy"
         />
 
         <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">

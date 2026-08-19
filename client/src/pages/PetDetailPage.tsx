@@ -398,6 +398,7 @@ export default function PetDetailPage() {
                         src={photoUrl}
                         alt={`${ad.title} - ${idx + 1}`}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     </button>
                   ))}
