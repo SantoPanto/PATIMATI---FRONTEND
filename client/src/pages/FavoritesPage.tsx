@@ -13,6 +13,7 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { getImageUrl } from "../utils/imageUrl";
 
 type FavoriteCategory =
   | "Tümü"
@@ -309,7 +310,7 @@ function FavoriteCard({
     <article className="group overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
       <div className="relative h-52 overflow-hidden bg-[#F1F5F9]">
         <img
-          src={listing.image}
+          src={getImageUrl(listing.image)}
           alt={listing.title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
