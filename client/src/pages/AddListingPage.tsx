@@ -114,6 +114,16 @@ type AdResponse = {
   title?: string;
 };
 
+interface ListingMatchResult {
+  score: number;
+  ad?: {
+    id?: number;
+    title?: string;
+    description?: string;
+    photoUrls?: string[];
+  };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -268,7 +278,7 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [matches, setMatches] = useState<unknown[]>([]);
+  const [matches, setMatches] = useState<ListingMatchResult[]>([]);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
   /* ---------------------------------------------------------------------- */
@@ -584,7 +594,7 @@ export default function AddListingPage() {
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
 
-          const matchesData = await request<unknown[]>("/api/ai-match", {
+          const matchesData = await request<ListingMatchResult[]>("/api/ai-match", {
             method: "POST",
             body: formData,
             requiresAuth: true,
