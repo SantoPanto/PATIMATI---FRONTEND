@@ -1,0 +1,65 @@
+name: CI
+
+# Neden var: bu depoda 19.08.2026'ya kadar HİÇBİR otomatik denetim yoktu —
+# `.github` dizini bile yoktu. Sonucu ölçüldü: ön yüzde 12 tip hatası birikti ve
+# kimse görmedi; hatalar ancak elle bakınca fark edildi. Daha kötüsü, hataların
+# bir kısmı düzeltilerek değil SUSTURULARAK kapatıldı (modeldeki yanlış değerler
+# tip listesine eklendi) — çünkü denetimi koşturan bir kapı olmayınca "yeşil"
+# diye bir ölçüt de yoktu.
+#
+# Bu iş akışı üç adımı da KAPI yapar: kurulum -> tip denetimi -> paketleme.
+# Üçü ayrı adım, çünkü hangisinin kırıldığı tek bakışta görünsün istiyoruz;
+# `npm run build` zaten tsc'yi de çağırıyor ama kırıldığında sebebi karışıyor.
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+# Aynı dala yeni itme gelirse eskisini iptal et; kuyruk tıkanmasın.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  on-yuz:
+    runs-on: ubuntu-latest
+
+    # ⚠ YALNIZCA client/ build ediliyor, depo kökü DEĞİL.
+    # Depoda iki Vite projesi var (kök ve client/) ve bu, "hangisi gerçek"
+    # karışıklığı üretiyor. Ölçüm: kök package.json'da `firebase` bağımlılığı
+    # YOK, ama client/src/services/firbase.ts firebase'i import ediyor
+    # ⇒ kökten build DERLENMEZ. Dağıtılan proje client/.
+    # Kök projenin tasfiyesi ayrı bir iş (belge: E8, 1. madde).
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      # 1. KAPI — kurulum. `npm ci` bilerek `npm install` değil: package-lock
+      # dosyasına birebir uyar ve uymuyorsa HATA verir. Böylece "benim makinemde
+      # çalışıyordu" sınıfı, kilit dosyası bayatladığında burada yakalanır.
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      # 2. KAPI — tip denetimi. Projenin KENDİ tsc'si kullanılıyor (kök
+      # dizindeki değil); ikisi farklı yapılandırma okuyor ve kökteki yanlış
+      # cevap veriyordu.
+      - name: Tip denetimi
+        run: npx tsc -b
+
+      # 3. KAPI — paketleme. Tip denetiminden ayrı tutuluyor çünkü bu adım
+      # tsc'nin görmediği şeyleri de kırabiliyor: `generate-firebase-sw.mjs`
+      # altı Firebase değişkenini ZORUNLU tutuyor ve eksikse build'i patlatıyor.
+      # Yani bu adım aynı zamanda "env dosyaları tutarlı mı" kapısıdır.
+      - name: Paketle
+        run: npm run build
