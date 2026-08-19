@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Trash2, Ban, MessageSquare } from "lucide-react";
+import { Trash2, Ban, MessageSquare } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import {
   getAdminAdComplaints,
