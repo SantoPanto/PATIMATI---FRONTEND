@@ -195,3 +195,14 @@ export function getPublicAdById(
     },
   );
 }
+
+export interface AdCountersResponse {
+  activeAds: number;
+  happyEndings: number;
+}
+
+export function getPublicAdCounters(): Promise<AdCountersResponse> {
+  return request<AdCountersResponse>("/api/public/ads/counters", {
+    method: "GET",
+  });
+}
