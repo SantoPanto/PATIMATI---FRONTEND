@@ -325,8 +325,36 @@ export type UserComplaintAdminResponse = ComplaintResponse & {
   reportedUserEmail?: string;
 };
 
-export type AdoptionComplaintAdminResponse = ComplaintResponse & {
-  adoptionTitle?: string;
+// ==========================================
+// 7. Match Types (/api/matches)
+// ==========================================
+
+export type MatchResponseDTO = {
+  id?: number;
+  totalScore: number;
+  visualScore: number;
+  tagScore: number;
+  locationScore: number;
+  thresholdAtTime: number;
+  passedThreshold: boolean;
+  blockReason?: string | null;
+  createdAt?: string;
+  lostAdId?: number;
+  foundAdId?: number;
+  targetAdId?: number;
+  partnerAdId?: number;
+  partnerAd?: AdResponse;
+  sourceAd?: AdResponse;
+  targetAd?: AdResponse;
+  ad?: AdResponse;
+  matchedAd?: AdResponse;
+  title?: string;
+  petName?: string;
+  species?: Species | string;
+  breed?: string;
+  photoUrl?: string;
+  photoUrls?: string[];
+  location?: string;
 };
 
 export type ExternalPostAdminResponse = {
@@ -349,7 +377,7 @@ export type ExternalPostAdminResponse = {
 };
 
 // ==========================================
-// 7. Potential Match Types (/api/me/potential-matches)
+// 8. Potential Match Types (/api/me/potential-matches)
 // ==========================================
 
 export type PotentialMatchStatus =

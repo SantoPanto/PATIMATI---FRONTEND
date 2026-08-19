@@ -2,7 +2,7 @@ import {
   clearAuthStorage,
   getStoredToken,
 } from "./authStorage";
-import type { ComplaintResponse, UserComplaintRequestDTO } from "./types";
+import type { ComplaintResponse, MatchResponseDTO, UserComplaintRequestDTO } from "./types";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -167,6 +167,17 @@ export function reportUser(
     method: "POST",
     requiresAuth: true,
     body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * GET /api/matches/my-matches (Bearer)
+ * Fetch matches for the authenticated user's ads
+ */
+export function getMyMatches(): Promise<MatchResponseDTO[]> {
+  return request<MatchResponseDTO[]>("/api/matches/my-matches", {
+    method: "GET",
+    requiresAuth: true,
   });
 }
 

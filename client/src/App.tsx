@@ -19,6 +19,7 @@ import SettingsPage from "./pages/SettingsPage";
 import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
+import MyMatchesPage from "./pages/MyMatchesPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
@@ -77,6 +78,10 @@ function ProtectedProfilePage() {
 
 function ProtectedMyListingsPage() {
   return <RequireAuth component={MyListingsPage} mode="redirect" />;
+}
+
+function ProtectedMyMatchesPage() {
+  return <RequireAuth component={MyMatchesPage} mode="redirect" />;
 }
 
 function ProtectedSettingsPage() {
@@ -172,6 +177,7 @@ function App() {
         <Route path="/chat" component={ProtectedChatPage} />
 
         {/* Kullanıcı */}
+        <Route path="/my-matches" component={ProtectedMyMatchesPage} />
         <Route path="/profile/listings" component={ProtectedMyListingsPage} />
         <Route path="/profile" component={ProtectedProfilePage} />
         <Route path="/settings" component={ProtectedSettingsPage} />
