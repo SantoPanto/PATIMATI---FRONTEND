@@ -21,7 +21,45 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { request } from "../services/api";
+import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+
+const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
+  siyah: "BLACK",
+  black: "BLACK",
+  beyaz: "WHITE",
+  white: "WHITE",
+  gri: "GRAY",
+  gray: "GRAY",
+  grey: "GRAY",
+  kahverengi: "BROWN",
+  kahve: "BROWN",
+  brown: "BROWN",
+  turuncu: "ORANGE",
+  orange: "ORANGE",
+  krem: "CREAM",
+  cream: "CREAM",
+  altın: "GOLDEN",
+  altin: "GOLDEN",
+  golden: "GOLDEN",
+  bej: "BEIGE",
+  beige: "BEIGE",
+  diğer: "OTHER",
+  diger: "OTHER",
+  other: "OTHER",
+};
+
+function parseColorsFromText(text: string): PetColor[] {
+  if (!text || !text.trim()) return [];
+  const lower = text.toLowerCase();
+  const matched = new Set<PetColor>();
+  for (const [key, val] of Object.entries(TURKISH_COLOR_TO_ENUM)) {
+    if (lower.includes(key)) {
+      matched.add(val);
+    }
+  }
+  return Array.from(matched);
+}
 
 type Gender = "female" | "male" | "unknown";
 
@@ -395,11 +433,7 @@ export default function AdoptionCreatePage() {
       breed: form.breed.trim(),
       gender: CINSIYET_KARSILIGI[form.gender],
       ageGroup: form.ageGroup,
-      /*
-       * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
-       * metin var. Enum'a cevrilemedigi icin renk aciklamada kaliyor.
-       */
-      colors: [],
+      colors: parseColorsFromText(form.color),
       /*
        * coatPattern ve eyeColor DTO'da istege bagli gorunuyor ama
        * ads tablosunda NOT NULL ve AdoptionServiceImpl bunlari null

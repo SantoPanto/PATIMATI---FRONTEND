@@ -17,7 +17,10 @@ export async function createAd(
   ad: AdCreateRequest,
   images?: File[],
 ): Promise<AdResponse> {
-  const cleanedAd: Record<string, unknown> = { ...ad };
+  const cleanedAd: Record<string, unknown> = {
+    ...ad,
+    colors: Array.isArray(ad.colors) ? ad.colors : [],
+  };
   if (!cleanedAd.date || cleanedAd.date === "") {
     delete cleanedAd.date;
   }

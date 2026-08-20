@@ -142,7 +142,7 @@ export default function AdEditModal({
       coatPattern,
       eyeColor: eyeColor.trim() || undefined,
       microchipNumber: microchipNumber.trim() || undefined,
-      colors,
+      colors: Array.isArray(colors) ? colors : [],
       collarStatus,
       collarColor: collarColor.trim() || undefined,
       collarTagText: collarTagText.trim() || undefined,
