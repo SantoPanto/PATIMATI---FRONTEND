@@ -38,6 +38,7 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
 import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
+import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
 
 function ProtectedAddListingPage() {
   return (
@@ -154,6 +155,7 @@ function GuestForgotPasswordPage() {
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
+      <ForegroundNotificationToast />
       <Switch>
         {/* Ana Sayfa */}
         <Route path="/" component={HomePage} />

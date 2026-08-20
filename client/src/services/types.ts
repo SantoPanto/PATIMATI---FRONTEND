@@ -80,8 +80,8 @@ export type UpdateProfileRequest = {
   email: string;
   phone: string;
   city: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 // For frontend form compatibility
