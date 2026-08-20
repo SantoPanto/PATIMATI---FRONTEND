@@ -27,6 +27,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
 import { downloadLostPoster } from "../services/posters";
 import { createOrGetChatRoom } from "../services/messages";
+import { sanitizeRedirectPath } from "../services/auth";
 import type { AdResponse, AdType } from "../services/types";
 import {
   getAdImage,
@@ -93,7 +94,7 @@ function formatPattern(pattern?: string): string {
 export default function PetDetailPage() {
   const { id } = useParams<{ id?: string }>();
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [ad, setAd] = useState<AdResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -164,6 +165,23 @@ export default function PetDetailPage() {
 
   const openChat = async () => {
     if (!ad || !ad.ownerId) return;
+
+    // Girissiz kullanicida akis TAM BURADA kopuyordu: createOrGetChatRoom
+    // istemci tarafinda firlatiyor (services/api.ts), catch blogu bir alert
+    // basiyor ve kullanici ayni sayfada kaliyordu — donusumun olacagi yerde.
+    //
+    // Desen RequireAuth.goToLogin ile AYNI, bilerek: donus adresi tasinir,
+    // LoginPage onu okuyup giris sonrasi bu ilana geri getirir.
+    // `replace` KULLANILMIYOR — RequireAuth korumali sayfayi gecmiste
+    // birakmamak icin degistirir, burada ilan sayfasi zaten girissiz
+    // gorulebilir; geri tusu kullaniciyi ilana dondurmeli.
+    if (!isAuthenticated) {
+      const requestedPath = sanitizeRedirectPath(
+        `${window.location.pathname}${window.location.search}`,
+      );
+      navigate(`/login?redirect=${encodeURIComponent(requestedPath)}`);
+      return;
+    }
 
     const partnerId = Number(ad.ownerId);
     if (currentUserId && Number(currentUserId) === partnerId) {
