@@ -141,6 +141,13 @@ export type CoatPattern =
 
 export type PresenceStatus = "UNKNOWN" | "YES" | "NO";
 
+/**
+ * İlanın nasıl kapandığı. `active=false` TEK BAŞINA yetmiyor: "sahibi yayından
+ * kaldırdı" ile "hayvan bulundu" ikisi de `active=false` üretiyor.
+ * Backend karşılığı: entity/enums/AdResolutionStatus.
+ */
+export type AdResolutionStatus = "NONE" | "FOUND" | "ADOPTED";
+
 export type AiStatus =
   | "PENDING"
   | "DONE"
@@ -215,6 +222,12 @@ export type AdResponse = {
   isPosterAllowed?: boolean;
   showEmailOnPoster?: boolean;
   showPhoneOnPoster?: boolean;
+  /**
+   * İSTEĞE BAĞLI bilerek: alan backend #112 ile geliyor. O inmeden de ekran
+   * çalışsın diye `undefined` hâli "bilinmiyor" gibi ele alınıyor — eski
+   * davranışa düşer, kırılmaz.
+   */
+  resolutionStatus?: AdResolutionStatus;
 };
 
 export type PosterSettingsRequest = {
