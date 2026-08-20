@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Trash2, Ban, MessageSquare } from "lucide-react";
+import { Trash2, Ban, MessageSquare, CheckCircle } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
+import { resolveAdoptionComplaint } from "../services/complaints";
 import {
   getAdminAdComplaints,
   getAdminAdoptionComplaints,
@@ -109,6 +110,28 @@ export default function AdminComplaintsPage() {
     }
   };
 
+  // Şikayeti Çözme (Sahiplendirme Şikayeti)
+  const handleResolveComplaint = async (complaintId: number) => {
+    // Optimistic UI güncellemesi: Yerel state'teki statüyü anında COZULDU yap
+    const previousComplaints = complaints;
+    setComplaints((prev) =>
+      prev.map((c) =>
+        c.id === complaintId ? { ...c, status: "COZULDU" } : c,
+      ),
+    );
+
+    try {
+      setActionLoadingId(complaintId);
+      await resolveAdoptionComplaint(complaintId);
+    } catch (err) {
+      // Hata durumunda yerel state'i eski haline getir ve kullanıcıyı bilgilendir
+      setComplaints(previousComplaints);
+      alert(getUserErrorMessage(err, "Şikayet çözülürken bir hata oluştu."));
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   /**
    * Kullanıcı ile yönetici sohbetini açar.
    *
@@ -167,6 +190,19 @@ export default function AdminComplaintsPage() {
                 <Trash2 size={16} />
                 Şikayeti Kaldır
               </button>
+
+              {/* Sahiplendirme şikayetleri için Çözüldü yapma butonu */}
+              {item.tur === "sahiplendirme" && item.status !== "COZULDU" && (
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={() => handleResolveComplaint(item.id)}
+                  disabled={actionLoadingId === item.id}
+                >
+                  <CheckCircle size={16} />
+                  Şikayeti Çöz
+                </button>
+              )}
 
               {/* İlan ya da sahiplendirme şikayetiyse Askıya Al.
                   Sahiplendirme ilanları da `ads` tablosunda (V13 göçündeki

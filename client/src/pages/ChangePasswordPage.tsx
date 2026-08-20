@@ -134,7 +134,7 @@ export default function ChangePasswordPage() {
       });
 
       setSuccessMessage(
-        "Şifreniz başarıyla güncellendi. Profil sayfasına yönlendiriliyorsunuz.",
+        "Şifreniz başarıyla değiştirildi. Profil sayfasına yönlendiriliyorsunuz.",
       );
 
       setForm(initialForm);

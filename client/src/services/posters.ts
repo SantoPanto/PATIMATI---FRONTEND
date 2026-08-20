@@ -2,7 +2,7 @@ import { ApiError, API_BASE_URL } from "./api";
 import { getStoredToken } from "./authStorage";
 
 const LOST_POSTER_ENDPOINT =
-  import.meta.env.VITE_LOST_POSTER_ENDPOINT || "/api/ads/{id}/poster";
+  import.meta.env.VITE_LOST_POSTER_ENDPOINT || "/api/v1/ads/{id}/poster";
 
 function resolveEndpoint(template: string, id: number): string {
   return template.replace("{id}", encodeURIComponent(String(id)));
