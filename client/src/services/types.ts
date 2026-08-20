@@ -192,6 +192,7 @@ export type AdResponse = {
   earTagStatus: PresenceStatus;
   earNotchStatus: PresenceStatus;
   microchipped: boolean;
+  microchipNumber?: string;
   lostDate?: string;
   distinctiveMarks?: string;
   photoUrls: string[];

@@ -108,7 +108,7 @@ export function updateAd(
   adId: number,
   data: AdUpdateRequest,
 ): Promise<AdResponse> {
-  return request<AdResponse>(`/api/ads/${adId}`, {
+  return request<AdResponse>(`/api/v1/ads/${adId}`, {
     method: "PUT",
     requiresAuth: true,
     body: JSON.stringify(data),
