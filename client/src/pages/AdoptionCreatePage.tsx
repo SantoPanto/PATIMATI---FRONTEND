@@ -67,6 +67,8 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const today = new Date().toISOString().split("T")[0];
+
 export default function AdoptionCreatePage() {
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +76,7 @@ export default function AdoptionCreatePage() {
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -87,6 +90,7 @@ export default function AdoptionCreatePage() {
      */
     ageGroup: "UNKNOWN" as AgeGroup,
     color: "",
+    date: today,
     city: "",
     district: "",
     /*
@@ -306,6 +310,14 @@ export default function AdoptionCreatePage() {
       return "Irk/cins bilgisini girin.";
     }
 
+    if (!form.date) {
+      return "İlan tarihini seçin.";
+    }
+
+    if (form.date > today) {
+      return "Gelecekte bir tarih seçilemez.";
+    }
+
     if (!form.city.trim()) {
       return "Şehir bilgisini girin.";
     }
@@ -335,6 +347,7 @@ export default function AdoptionCreatePage() {
 
   const handleSubmit = async () => {
     setErrorMessage("");
+    setDateError("");
 
     const validationError = validateForm();
 
@@ -385,6 +398,8 @@ export default function AdoptionCreatePage() {
       breed: form.breed.trim(),
       gender: CINSIYET_KARSILIGI[form.gender],
       ageGroup: form.ageGroup,
+      date: form.date,
+      lostDate: form.date,
       /*
        * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
        * metin var. Enum'a cevrilemedigi icin renk aciklamada kaliyor.
@@ -449,8 +464,7 @@ export default function AdoptionCreatePage() {
 
       const govde = await response.text();
 
-      let sonuc: { id?: number; message?: string; error?: string } | null =
-        null;
+      let sonuc: Record<string, unknown> | null = null;
 
       try {
         sonuc = govde ? JSON.parse(govde) : null;
@@ -459,9 +473,29 @@ export default function AdoptionCreatePage() {
       }
 
       if (!response.ok) {
+        const invalidParams =
+          (sonuc?.invalid_params as unknown[]) ||
+          ((sonuc?.properties as Record<string, unknown>)?.invalid_params as unknown[]);
+
+        if (Array.isArray(invalidParams)) {
+          const dateParam = invalidParams.find((p: unknown) => {
+            if (p && typeof p === "object") {
+              const paramObj = p as Record<string, unknown>;
+              const name = (paramObj.name || paramObj.field) as string | undefined;
+              return name === "date" || name === "lostDate";
+            }
+            return false;
+          }) as Record<string, unknown> | undefined;
+
+          if (dateParam) {
+            const reason = (dateParam.reason || dateParam.message || dateParam.detail) as string | undefined;
+            setDateError(reason || "Tarih gelecekte bir tarih olamaz veya geçersizdir.");
+          }
+        }
+
         throw new Error(
-          sonuc?.message ||
-            sonuc?.error ||
+          (sonuc?.message as string) ||
+            (sonuc?.error as string) ||
             `Sahiplendirme ilanı oluşturulamadı (${response.status}).`,
         );
       }
@@ -726,6 +760,28 @@ export default function AdoptionCreatePage() {
                     placeholder="Örn. Beyaz - turuncu"
                     className={inputClass}
                   />
+                </Field>
+
+                <Field label="Tarih" required>
+                  <input
+                    type="date"
+                    value={form.date}
+                    max={today}
+                    onChange={(e) => {
+                      setDateError("");
+                      updateForm("date", e.target.value);
+                    }}
+                    className={`${inputClass} ${
+                      dateError
+                        ? "border-red-500 ring-2 ring-red-200"
+                        : ""
+                    }`}
+                  />
+                  {dateError && (
+                    <p className="mt-1 text-xs font-semibold text-red-600">
+                      {dateError}
+                    </p>
+                  )}
                 </Field>
               </div>
             </FormCard>

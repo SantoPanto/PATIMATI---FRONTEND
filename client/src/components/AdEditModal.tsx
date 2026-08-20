@@ -255,8 +255,9 @@ export default function AdEditModal({
               </div>
             </div>
           ) : (
-            /* Sahiplendirme (ADOPTION) İlanları Tam Form */
-            <form onSubmit={(e) => void handleSubmitAdoption(e)} className="space-y-6">
+            /* Sahiplendirme (ADOPTION) İlanları Tam Form & Afiş Ayarları */
+            <>
+              <form onSubmit={(e) => void handleSubmitAdoption(e)} className="space-y-6">
               <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                 <p className="text-sm text-slate-600">
                   <span className="font-semibold text-slate-900">İlan ID: </span>
@@ -508,7 +509,20 @@ export default function AdEditModal({
                 </button>
               </div>
             </form>
-          )}
+
+            <div className="mt-8 border-t border-slate-200 pt-6">
+              <h3 className="text-base font-bold text-slate-900 mb-4">
+                Afiş Ayarları Yönetimi
+              </h3>
+              <PosterSettingsForm
+                ad={ad}
+                onSuccess={handlePosterSettingsSuccess}
+                onCancel={onClose}
+                showTitle={false}
+              />
+            </div>
+          </>
+        )}
         </div>
       </section>
     </div>
