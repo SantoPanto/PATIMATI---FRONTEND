@@ -6,6 +6,8 @@ import {
   Eye,
   MapPin,
   PawPrint,
+  RotateCcw,
+  Settings,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -13,7 +15,8 @@ import { Link } from "wouter";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import { deleteAd, getMyAds } from "../services/ads";
+import PosterSettingsModal from "../components/PosterSettingsModal";
+import { deleteAd, getMyAds, republishAd } from "../services/ads";
 import type { AdResponse } from "../services/types";
 import {
   getAdDetailPath,
@@ -32,7 +35,10 @@ export default function MyListingsPage() {
   const [ads, setAds] = useState<AdResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successNotification, setSuccessNotification] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [republishingId, setRepublishingId] = useState<number | null>(null);
+  const [posterModalAd, setPosterModalAd] = useState<AdResponse | null>(null);
 
   const requestAds = useCallback(
     () =>
@@ -93,6 +99,44 @@ export default function MyListingsPage() {
     }
   };
 
+  /**
+   * Yayından kaldırılmış ilanı geri yayına alır.
+   *
+   * Yayından kaldırmanın aksine ONAY SORULMUYOR: bu işlem yıkıcı değil ve
+   * kullanıcı yanlışlıkla basarsa aynı karttaki "yayından kaldır" ile tek
+   * tıkta geri alabiliyor. Onay sormak, geri alınabilir bir işlemde sürtünme
+   * üretir.
+   */
+  const handleRepublish = async (ad: AdResponse) => {
+    try {
+      setRepublishingId(ad.id);
+      setErrorMessage("");
+      await republishAd(ad.id);
+      const page = await requestAds();
+      setAds(page.content);
+    } catch (error) {
+      // Yönetici tarafından askıya alınmış ilanlarda sunucu 403 döner; bu
+      // beklenen bir durum, kullanıcıya sunucunun kendi cümlesi gösteriliyor.
+      setErrorMessage(
+        getUserErrorMessage(error, "İlan yeniden yayınlanamadı."),
+      );
+    } finally {
+      setRepublishingId(null);
+    }
+  };
+
+  const handlePosterSettingsUpdate = (updatedAd: AdResponse) => {
+    setAds((currentAds) =>
+      currentAds.map((item) =>
+        item.id === updatedAd.id ? { ...item, ...updatedAd } : item,
+      ),
+    );
+    setSuccessNotification(`“${updatedAd.title}” ilanının afiş ayarları başarıyla kaydedildi.`);
+    setTimeout(() => {
+      setSuccessNotification("");
+    }, 4000);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <Header />
@@ -121,6 +165,12 @@ export default function MyListingsPage() {
           <FilterButton active={filter === "active"} onClick={() => selectFilter("active")}>Yayında</FilterButton>
           <FilterButton active={filter === "inactive"} onClick={() => selectFilter("inactive")}>Yayından Kaldırılan</FilterButton>
         </div>
+
+        {successNotification && (
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700" role="status">
+            {successNotification}
+          </div>
+        )}
 
         {errorMessage && (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700" role="alert">
@@ -161,7 +211,7 @@ export default function MyListingsPage() {
                     <p className="flex items-center gap-2"><CalendarDays size={16} />{getRelativeDate(ad.createdAt)}</p>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-[1fr_auto] gap-2 border-t border-slate-100 pt-4">
+                  <div className="mt-5 grid grid-cols-[1fr_auto_auto] gap-2 border-t border-slate-100 pt-4">
                     <Link
                       href={getAdDetailPath(ad)}
                       className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
@@ -170,7 +220,18 @@ export default function MyListingsPage() {
                       Görüntüle
                       <ChevronRight size={16} />
                     </Link>
-                    {ad.active && (
+
+                    <button
+                      type="button"
+                      onClick={() => setPosterModalAd(ad)}
+                      className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-700 transition hover:bg-slate-100"
+                      aria-label="Afiş Ayarları"
+                      title="Afiş Ayarları"
+                    >
+                      <Settings size={18} />
+                    </button>
+
+                    {ad.active ? (
                       <button
                         type="button"
                         onClick={() => void handleDelete(ad)}
@@ -180,6 +241,22 @@ export default function MyListingsPage() {
                       >
                         <Trash2 size={18} />
                       </button>
+                    ) : (
+                      /* Yayından kaldırılan ilanda önceden YALNIZ "Görüntüle"
+                         vardı; ilan yaşam döngüsü tek yönlüydü ve kullanıcı
+                         ilanını geri getiremiyordu. */
+                      <button
+                        type="button"
+                        onClick={() => void handleRepublish(ad)}
+                        disabled={republishingId === ad.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 px-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+                        aria-label="İlanı yeniden yayınla"
+                      >
+                        <RotateCcw size={17} />
+                        {republishingId === ad.id
+                          ? "Yayınlanıyor..."
+                          : "Yeniden yayınla"}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -187,6 +264,13 @@ export default function MyListingsPage() {
             ))}
           </div>
         )}
+
+        <PosterSettingsModal
+          isOpen={Boolean(posterModalAd)}
+          onClose={() => setPosterModalAd(null)}
+          ad={posterModalAd}
+          onSuccess={handlePosterSettingsUpdate}
+        />
       </main>
 
       <Footer />

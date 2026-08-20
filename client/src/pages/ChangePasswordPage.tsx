@@ -70,8 +70,11 @@ export default function ChangePasswordPage() {
   };
 
   const validateForm = (): string | null => {
+    if (!form.currentPassword.trim()) {
+      return "Mevcut şifre alanı zorunludur.";
+    }
+
     if (
-      !form.currentPassword.trim() ||
       !form.newPassword.trim() ||
       !form.confirmPassword.trim()
     ) {
@@ -80,6 +83,10 @@ export default function ChangePasswordPage() {
 
     if (form.newPassword.length < 8) {
       return "Yeni şifre en az 8 karakter olmalıdır.";
+    }
+
+    if (form.newPassword.length > 20) {
+      return "Yeni şifre en fazla 20 karakter olmalıdır.";
     }
 
     if (!/[A-ZÇĞİÖŞÜ]/.test(form.newPassword)) {
@@ -130,7 +137,7 @@ export default function ChangePasswordPage() {
       });
 
       setSuccessMessage(
-        "Şifreniz başarıyla güncellendi. Profil sayfasına yönlendiriliyorsunuz.",
+        "Şifreniz başarıyla değiştirildi. Profil sayfasına yönlendiriliyorsunuz.",
       );
 
       setForm(initialForm);
@@ -151,6 +158,12 @@ export default function ChangePasswordPage() {
     {
       label: "En az 8 karakter",
       valid: form.newPassword.length >= 8,
+    },
+    {
+      label: "En fazla 20 karakter",
+      valid:
+        form.newPassword.length > 0 &&
+        form.newPassword.length <= 20,
     },
     {
       label: "En az bir büyük harf",

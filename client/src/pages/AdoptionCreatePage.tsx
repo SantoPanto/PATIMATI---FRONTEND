@@ -28,8 +28,8 @@ import { getUserErrorMessage } from "../utils/errorMessage";
 
 type Gender = "female" | "male" | "unknown";
 
-/* Backend enum'u: UNKNOWN | BABY | YOUNG | ADULT */
-type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT";
+/* Backend enum'u: entity/enums/AgeGroup = UNKNOWN | BABY | YOUNG | ADULT | SENIOR */
+type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT" | "SENIOR";
 
 /*
  * Sayfa cinsiyeti kucuk harfle tutuyor, backend PetGender enum'u BUYUK
@@ -47,8 +47,18 @@ type SelectedImage = {
   preview: string;
 };
 
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı (19.08.2026). Ayrıntılı
+// gerekçe ve kaynak satırları AddListingPage.tsx'te; üç oluşturma formu da
+// AYNI sunucu kuralına tabi:
+//   en az 1    -> AdService.java:84 / AdoptionController @RequestPart required
+//   en fazla 3 -> S3ImageStorageServiceImpl.java:64 (etkin @Service)
+//   5 MB       -> application.yml spring.servlet.multipart.max-file-size
+// Önceden 5 ve 10 MB yazıyordu; ön yüz sunucunun reddedeceği seçimlere izin
+// veriyordu. Sunucu sınırı değişirse burası da değişmeli.
+const MIN_IMAGES = 1;
+const MAX_IMAGES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -72,7 +82,7 @@ export default function AdoptionCreatePage() {
     gender: "unknown" as Gender,
     /*
      * Backend yasi SERBEST METIN degil AgeGroup enum'u olarak tutuyor
-     * (UNKNOWN | BABY | YOUNG | ADULT) ve @NotNull. Alan bu yuzden
+     * (UNKNOWN | BABY | YOUNG | ADULT | SENIOR) ve @NotNull. Alan bu yuzden
      * metin kutusundan acilir listeye cevrildi.
      */
     ageGroup: "UNKNOWN" as AgeGroup,
@@ -161,7 +171,7 @@ export default function AdoptionCreatePage() {
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorMessage(
-          "Her fotoğraf en fazla 10 MB olabilir.",
+          `Her fotoğraf en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`,
         );
         continue;
       }
@@ -538,7 +548,8 @@ export default function AdoptionCreatePage() {
                   </strong>
 
                   <span className="mt-2 text-sm text-[#64748B]">
-                    En fazla 5 fotoğraf · JPG, PNG veya WEBP
+                    En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
+                    her biri {MAX_FILE_SIZE_MB} MB · JPG, PNG veya WEBP
                   </span>
                 </button>
               ) : (
@@ -675,6 +686,10 @@ export default function AdoptionCreatePage() {
 
                     <option value="ADULT">
                       Yetişkin
+                    </option>
+
+                    <option value="SENIOR">
+                      Yaşlı
                     </option>
                   </select>
                 </Field>
@@ -883,9 +898,18 @@ export default function AdoptionCreatePage() {
               </div>
             </label>
 
+            {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
+                formu baştan sona kontrol etmeye zorlar. */}
+            {images.length < MIN_IMAGES && (
+              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                <ImagePlus size={17} />
+                İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+              </p>
+            )}
+
             <button
               type="button"
-              disabled={isSubmitting}
+              disabled={isSubmitting || images.length < MIN_IMAGES}
               onClick={handleSubmit}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F97316] px-6 py-4 font-bold text-white shadow-lg shadow-orange-500/20 transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:bg-[#CBD5E1]"
             >

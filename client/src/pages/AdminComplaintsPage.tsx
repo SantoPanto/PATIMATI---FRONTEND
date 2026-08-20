@@ -1,22 +1,38 @@
 import { useEffect, useState } from "react";
-import { Trash2, Ban, MessageSquare } from "lucide-react";
+import { useLocation } from "wouter";
+import { Trash2, Ban, MessageSquare, CheckCircle } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
+import { resolveAdoptionComplaint } from "../services/complaints";
 import {
   getAdminAdComplaints,
   getAdminAdoptionComplaints,
   getAdminUserComplaints,
   deleteComplaint,
   suspendAd,
-  createAdminChatRoom,
 } from "../services/admin";
-import type { ComplaintResponse } from "../services/types";
+import type {
+  AdComplaintAdminResponse,
+  AdoptionComplaintAdminResponse,
+  UserComplaintAdminResponse,
+} from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
-type AdminComplaint = ComplaintResponse & {
-  title: string;
-};
+/**
+ * Üç ayrı uçtan gelen şikayetler tek listede gösteriliyor ama alanları
+ * FARKLI: ilan/sahiplendirme kaydında `adId`+`adTitle`, kullanıcı kaydında
+ * `reportedUserId` var. Eskiden hepsi tek bir tipe eziliyordu ve ekran
+ * ikisinde de olmayan `reportedAdId`'yi okuyordu.
+ *
+ * `tur` alanı ayırt edici: hangi düğmenin çizileceğine tip düzeyinde karar
+ * verilebiliyor, "alan var mı" tahminine gerek kalmıyor.
+ */
+type AdminComplaint =
+  | ({ tur: "ilan"; title: string } & AdComplaintAdminResponse)
+  | ({ tur: "sahiplendirme"; title: string } & AdoptionComplaintAdminResponse)
+  | ({ tur: "kullanici"; title: string } & UserComplaintAdminResponse);
 
 export default function AdminComplaintsPage() {
+  const [, navigate] = useLocation();
   const [complaints, setComplaints] = useState<AdminComplaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,22 +48,24 @@ export default function AdminComplaintsPage() {
       .then(([adComplaints, userComplaints, adoptionComplaints]) => {
         const ads: AdminComplaint[] = adComplaints.content.map((item) => ({
           ...item,
-          title: item.adTitle || `İlan #${item.reportedAdId ?? "-"}`,
+          tur: "ilan",
+          title: item.adTitle || `İlan #${item.adId}`,
         }));
 
         const users: AdminComplaint[] = userComplaints.content.map((item) => ({
           ...item,
+          tur: "kullanici",
           title:
+            item.reportedUserFullName ||
             item.reportedUserEmail ||
-            `Kullanıcı #${item.reportedUserId ?? "-"}`,
+            `Kullanıcı #${item.reportedUserId}`,
         }));
 
         const adoptions: AdminComplaint[] =
           adoptionComplaints.content.map((item) => ({
             ...item,
-            title:
-              item.adoptionTitle ||
-              `Sahiplendirme #${item.reportedAdId ?? "-"}`,
+            tur: "sahiplendirme",
+            title: item.adTitle || `Sahiplendirme #${item.adId}`,
           }));
 
         setComplaints([...ads, ...users, ...adoptions]);
@@ -92,20 +110,43 @@ export default function AdminComplaintsPage() {
     }
   };
 
-  // Kullanıcı ile admin sohbeti başlatma
-  const handleStartChat = async (userId?: number) => {
-    if (!userId) return;
+  // Şikayeti Çözme (Sahiplendirme Şikayeti)
+  const handleResolveComplaint = async (complaintId: number) => {
+    // Optimistic UI güncellemesi: Yerel state'teki statüyü anında COZULDU yap
+    const previousComplaints = complaints;
+    setComplaints((prev) =>
+      prev.map((c) =>
+        c.id === complaintId ? { ...c, status: "COZULDU" } : c,
+      ),
+    );
+
     try {
-      const res = await createAdminChatRoom(userId);
-      const chatId = res?.chatId || res?.roomId || res?.id;
-      if (chatId) {
-        window.location.href = `/chats/${chatId}`;
-      } else {
-        window.location.href = `/chats`;
-      }
+      setActionLoadingId(complaintId);
+      await resolveAdoptionComplaint(complaintId);
     } catch (err) {
-      alert(getUserErrorMessage(err, "Sohbet odası oluşturulamadı."));
+      // Hata durumunda yerel state'i eski haline getir ve kullanıcıyı bilgilendir
+      setComplaints(previousComplaints);
+      alert(getUserErrorMessage(err, "Şikayet çözülürken bir hata oluştu."));
+    } finally {
+      setActionLoadingId(null);
     }
+  };
+
+  /**
+   * Kullanıcı ile yönetici sohbetini açar.
+   *
+   * Eskiden `POST /api/admin/chats/create-with-user/{userId}` çağrılıyordu —
+   * backend'de böyle bir uç HİÇ YOK (`/api/admin` altında 10 uç var, hiçbiri
+   * sohbet değil). Sonra `/chats/{chatId}` adresine gidiliyordu; öyle bir rota
+   * da yok (rota `/chat/:userId`, TEKİL ve KULLANICI kimliğiyle) ⇒ düğme iki
+   * kere birden 404'e düşüyordu.
+   *
+   * Ayrı bir uca gerek yok: `/chat/:userId` ekranı odayı kendisi açıyor
+   * (`POST /api/messages/rooms/{partnerId}`). Yöneticinin o çağrıyı
+   * yapabilmesi için gereken ADMIN muafiyeti backend PR'ında eklendi.
+   */
+  const handleStartChat = (userId: number) => {
+    navigate(`/chat/${userId}`);
   };
 
   return (
@@ -150,20 +191,35 @@ export default function AdminComplaintsPage() {
                 Şikayeti Kaldır
               </button>
 
-              {/* İlan şikayetiyse Askıya Al */}
-              {item.reportedAdId && (
+              {/* Sahiplendirme şikayetleri için Çözüldü yapma butonu */}
+              {item.tur === "sahiplendirme" && item.status !== "COZULDU" && (
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={() => handleResolveComplaint(item.id)}
+                  disabled={actionLoadingId === item.id}
+                >
+                  <CheckCircle size={16} />
+                  Şikayeti Çöz
+                </button>
+              )}
+
+              {/* İlan ya da sahiplendirme şikayetiyse Askıya Al.
+                  Sahiplendirme ilanları da `ads` tablosunda (V13 göçündeki
+                  yabancı anahtar oraya bakıyor), aynı uç ikisini de askıya alır. */}
+              {item.tur !== "kullanici" && (
                 <button
                   className="button button--outline"
                   type="button"
-                  onClick={() => handleSuspendAd(item.reportedAdId)}
+                  onClick={() => handleSuspendAd(item.adId)}
                 >
                   <Ban size={16} />
                   İlanı Askıya Al
                 </button>
               )}
 
-              {/* Kullanıcı ile Sohbet Başlat (Şikayet eden veya edilen üzerinden) */}
-              {item.reportedUserId && (
+              {/* Kullanıcı şikayetiyse şikayet edilen kişiyle sohbet */}
+              {item.tur === "kullanici" && (
                 <button
                   className="button button--primary"
                   type="button"

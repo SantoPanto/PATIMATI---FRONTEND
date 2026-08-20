@@ -25,9 +25,10 @@ import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { request } from "../services/api";
 import { downloadLostPoster } from "../services/posters";
 import { createOrGetChatRoom } from "../services/messages";
-import type { AdResponse, AdType } from "../services/types";
+import type { AdResponse, AdType, Page } from "../services/types";
 import {
   getAdImage,
   getAdLocation,
@@ -66,25 +67,36 @@ function getAdTypeBadge(adType: AdType) {
   }
 }
 
-function formatCollarStatus(status: string, collarColor?: string): string {
-  if (status === "PRESENT") {
+function formatCollarStatus(
+  status: AdResponse["collarStatus"],
+  collarColor?: string,
+): string {
+  // Backend enum'u: entity/enums/PresenceStatus = UNKNOWN | YES | NO.
+  // Buradaki eski PRESENT / ABSENT degerleri backend'de HIC YOKTU: iki kosul da
+  // tutmadigi icin tasmali ilanlar bile "bilinmiyor" gorunuyordu.
+  if (status === "YES") {
     return collarColor ? `Tasmalı (${collarColor})` : "Tasmalı";
   }
-  if (status === "ABSENT") {
+  if (status === "NO") {
     return "Tasmasız";
   }
   return "Tasma durumu bilinmiyor";
 }
 
-function formatPattern(pattern?: string): string {
+function formatPattern(pattern?: AdResponse["coatPattern"]): string {
   if (!pattern) return "";
-  const patterns: Record<string, string> = {
+  // Backend enum'u: entity/enums/CoatPattern. Eskiden BICOLOR/TRICOLOR/TABBY/
+  // HARLEQUIN yaziyordu - dordu de backend'de yok; buna karsilik gercek
+  // degerlerin besi (UNKNOWN, STRIPED, PATCHED, CALICO, TORTOISESHELL) eksikti,
+  // o ilanlarda kullaniciya ham kod ("TORTOISESHELL") gosteriliyordu.
+  const patterns: Record<AdResponse["coatPattern"], string> = {
+    UNKNOWN: "Desen belirtilmemiş",
     SOLID: "Tek Renk",
-    BICOLOR: "Çift Renk",
-    TRICOLOR: "Üç Renk",
-    TABBY: "Tekir / Çizgili",
+    STRIPED: "Çizgili / Tekir",
     SPOTTED: "Benekli",
-    HARLEQUIN: "Alaca / Parçalı",
+    PATCHED: "Parçalı / Alaca",
+    CALICO: "Sarman / Üç Renk",
+    TORTOISESHELL: "Kaplumbağa Kabuğu",
     OTHER: "Diğer Desen",
   };
   return patterns[pattern] || pattern;
@@ -145,6 +157,55 @@ export default function PetDetailPage() {
     void fetchAdDetail();
   }, [fetchAdDetail]);
 
+  useEffect(() => {
+    if (!user || !isValidId) {
+      setIsFavorite(false);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadFavoriteStatus = async () => {
+      try {
+        const data = await request<Page<AdResponse>>(
+          "/api/favorites/me?size=100",
+          { requiresAuth: true },
+        );
+
+        if (isActive) {
+          setIsFavorite(data.content.some((favorite) => favorite.id === adId));
+        }
+      } catch {
+        if (isActive) setIsFavorite(false);
+      }
+    };
+
+    void loadFavoriteStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [adId, isValidId, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const previousFavoriteState = isFavorite;
+    setIsFavorite(!previousFavoriteState);
+
+    try {
+      await request(`/api/favorites/${adId}`, {
+        method: previousFavoriteState ? "DELETE" : "POST",
+        requiresAuth: true,
+      });
+    } catch {
+      setIsFavorite(previousFavoriteState);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -182,6 +243,11 @@ export default function PetDetailPage() {
 
   const handleDownloadPoster = async () => {
     if (!ad || ad.adType !== "LOST") {
+      return;
+    }
+
+    if (!isOwner && ad.isPosterAllowed === false) {
+      setPosterError("Bu ilan için afiş oluşturma kapalıdır");
       return;
     }
 
@@ -350,7 +416,7 @@ export default function PetDetailPage() {
                 <div className="absolute top-4 right-4 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsFavorite((prev) => !prev)}
+                    onClick={() => void handleToggleFavorite()}
                     className={`flex h-10 w-10 items-center justify-center rounded-full border shadow-md transition ${
                       isFavorite
                         ? "border-rose-500 bg-rose-500 text-white"
@@ -544,17 +610,34 @@ export default function PetDetailPage() {
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => void handleDownloadPoster()}
-                    disabled={isPosterDownloading}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                  <div
+                    className="relative group inline-block shrink-0"
+                    onClick={() => {
+                      if (!isOwner && ad.isPosterAllowed === false) {
+                        setPosterError("Bu ilan için afiş oluşturma kapalıdır");
+                      }
+                    }}
                   >
-                    <Download size={19} />
-                    {isPosterDownloading
-                      ? "PDF hazırlanıyor..."
-                      : "Kayıp Afişi İndir (PDF)"}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDownloadPoster()}
+                      disabled={isPosterDownloading || (!isOwner && ad.isPosterAllowed === false)}
+                      className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                      title={!isOwner && ad.isPosterAllowed === false ? "Bu ilan için afiş oluşturma kapalıdır" : undefined}
+                    >
+                      <Download size={19} />
+                      {isPosterDownloading
+                        ? "PDF hazırlanıyor..."
+                        : "Kayıp Afişi İndir (PDF)"}
+                    </button>
+
+                    {!isOwner && ad.isPosterAllowed === false && (
+                      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-md group-hover:block">
+                        Bu ilan için afiş oluşturma kapalıdır
+                        <div className="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {posterError && (
@@ -584,7 +667,11 @@ export default function PetDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div
+                className={`mt-6 grid gap-3 ${
+                  isOwner ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                }`}
+              >
                 {!isOwner ? (
                   <button
                     type="button"
@@ -609,14 +696,20 @@ export default function PetDetailPage() {
                   Haritada Gör
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsComplaintModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
-                >
-                  <Flag size={19} />
-                  Şikayet Et
-                </button>
+                {/* Sahip kendi ilanini sikayet edemez: sunucu da reddediyor
+                    (AdComplaintService: "Kullanici kendi ilanini sikayet
+                    edemez"), dugmenin durmasi kullaniciyi bos yere hataya
+                    goturuyordu. */}
+                {!isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsComplaintModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                  >
+                    <Flag size={19} />
+                    Şikayet Et
+                  </button>
+                )}
               </div>
             </div>
           </div>

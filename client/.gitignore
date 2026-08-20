@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- Ortam dosyalari ---
+# Bu klasor Vite'in proje koku; env dosyalari BURADAN okunur. Yukleme sirasi:
+#     .env -> .env.local -> .env.<mod> -> .env.<mod>.local   (sonraki ezer)
+#
+# Bilerek IZLENEN dosyalar (silinmesinler):
+#     .env             tum modlarda gecerli varsayilanlar
+#     .env.production  canli yapilandirma (VITE_API_URL=https://patimati.me)
+#     .env.example     kurulum sablonu
+#
+# ".local" dosyalari KISISEL gecersiz kilmalardir, ASLA izlenmez. Asagidaki
+# *.local kurali bunu zaten sagliyordu ama client/.env.local yine de zorla
+# eklenmisti (19.08'e kadar izleniyordu). Acikca yaziyoruz ki tekrar olmasin.
+.env.local
+.env.*.local

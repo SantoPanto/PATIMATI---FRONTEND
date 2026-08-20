@@ -57,3 +57,15 @@ export function createAdoptionComplaint(
     }),
   });
 }
+
+/**
+ * PATCH /api/v1/adoption-complaints/{id}/resolve (Bearer, Admin)
+ * Sahiplendirme şikayetini çözüldü olarak işaretler.
+ */
+export function resolveAdoptionComplaint(id: number): Promise<void> {
+  return request<void>(`/api/v1/adoption-complaints/${id}/resolve`, {
+    method: "PATCH",
+    requiresAuth: true,
+  });
+}
+

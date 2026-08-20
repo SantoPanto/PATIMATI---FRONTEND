@@ -38,9 +38,10 @@ export type {
 };
 
 export type ChangePasswordRequest = {
-  currentPassword: string;
+  oldPassword?: string;
+  currentPassword?: string;
   newPassword: string;
-  confirmPassword: string;
+  confirmPassword?: string;
 };
 
 export {
@@ -383,12 +384,16 @@ export function getUserList():
 export function changePassword(
   data: ChangePasswordRequest,
 ): Promise<void> {
+  const oldPassword = data.oldPassword || data.currentPassword || "";
   return request<void>(
-    "/api/auth/change-password",
+    "/api/v1/users/change-password",
     {
       method: "PUT",
       requiresAuth: true,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        oldPassword,
+        newPassword: data.newPassword,
+      }),
     },
   );
 }

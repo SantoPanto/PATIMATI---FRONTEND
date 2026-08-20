@@ -64,20 +64,26 @@ export default function MatchCard({ match }: MatchCardProps) {
   const isPassed = match.passedThreshold;
   const hasBlock = Boolean(match.blockReason && match.blockReason.trim().length > 0);
 
-  // Extract partner ad details from backend DTO (partnerAd is primary target)
+  // Backend sozlesmesi: dto/match/AdMatchResponseDTO.
+  // partnerAd bir AdSummaryDTO'dur (id, title, photoUrl, species, breed) - AdResponse DEGIL.
+  // Onceki surum burada backend'in hic gondermedigi 10 alani okuyordu
+  // (targetAd, matchedAd, ad, sourceAd, targetAdId, foundAdId, lostAdId,
+  // title, petName, breed, location, photoUrl, photoUrls); hepsi undefined
+  // kaldigi icin baslik "Eslesme #..."e, fotograf stok gorsele dusuyordu.
   const partnerAd = match.partnerAd;
-  const adObj = partnerAd || match.targetAd || match.matchedAd || match.ad || match.sourceAd;
-  const adId = match.partnerAdId || partnerAd?.id || match.targetAdId || match.foundAdId || match.lostAdId || adObj?.id;
-  
-  const title = partnerAd?.title || match.title || match.petName || adObj?.title || `Eşleşme #${match.id || "İlan"}`;
-  const breed = partnerAd?.breed || match.breed || adObj?.breed || (adObj?.species ? String(adObj.species) : "Belirtilmedi");
-  const locationText = partnerAd?.distinctiveMarks || match.location || (adObj?.latitude && adObj?.longitude ? "Konum Koordinatı Mevcut" : "Konum Belirtilmedi");
-  
+  const adId = match.partnerAdId ?? partnerAd?.id;
+
+  const title =
+    partnerAd?.title || match.partnerAdTitle || `Eşleşme #${match.id ?? "İlan"}`;
+  const breed =
+    partnerAd?.breed ||
+    (partnerAd?.species ? String(partnerAd.species) : "Belirtilmedi");
+  // Backend eslesme kaydinda METINSEL konum yok; gercekten var olan tek
+  // konum verisi konum skorudur.
+  const locationText = `Konum uyumu %${locationScorePct}`;
+
   const photoUrl = getImageUrl(
-    partnerAd?.photoUrls?.[0] ||
-    match.photoUrl ||
-    match.photoUrls?.[0] ||
-    adObj?.photoUrls?.[0] ||
+    partnerAd?.photoUrl ||
     "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600"
   );
 

@@ -180,12 +180,11 @@ export function deleteComplaint(complaintId: number): Promise<{ message: string 
   });
 }
 
-/**
- * POST /api/admin/chats/create-with-user/{userId}
+/*
+ * `createAdminChatRoom` SİLİNDİ (madde 17).
+ * `POST /api/admin/chats/create-with-user/{userId}` backend'de hiç yoktu:
+ * `/api/admin` altındaki 10 ucun hiçbiri sohbetle ilgili değil, "chats"
+ * dizgisi backend kaynağında hiç geçmiyor. Yönetici sohbeti ayrı bir uca
+ * ihtiyaç duymuyor — `/chat/:userId` ekranı odayı kendisi açıyor
+ * (`POST /api/messages/rooms/{partnerId}`).
  */
-export function createAdminChatRoom(userId: number): Promise<{ chatId?: number; roomId?: number } | any> {
-  return request(`/api/admin/chats/create-with-user/${userId}`, {
-    method: "POST",
-    requiresAuth: true,
-  });
-}

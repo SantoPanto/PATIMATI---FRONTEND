@@ -37,9 +37,18 @@ type SelectedImage = {
 type Gender = "UNKNOWN" | "MALE" | "FEMALE";
 type CollarStatus = "UNKNOWN" | "YES" | "NO";
 
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı (19.08.2026). Ayrıntılı
+// gerekçe ve kaynak satırları AddListingPage.tsx'te; üç oluşturma formu da
+// AYNI sunucu kuralına tabi:
+//   en az 1    -> AdService.java:84 (@RequestPart required = true)
+//   en fazla 3 -> S3ImageStorageServiceImpl.java:64 (etkin @Service)
+//   5 MB       -> application.yml spring.servlet.multipart.max-file-size
+// Önceden 5 ve 10 MB yazıyordu; ön yüz sunucunun reddedeceği seçimlere izin
+// veriyordu. Sunucu sınırı değişirse burası da değişmeli.
 const MIN_IMAGES = 1;
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -143,7 +152,7 @@ export default function FoundPetCreatePage() {
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorMessage(
-          "Her fotoğraf en fazla 10 MB olabilir.",
+          `Her fotoğraf en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`,
         );
         continue;
       }
@@ -560,7 +569,8 @@ export default function FoundPetCreatePage() {
                   </span>
 
                   <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">
-                    JPG, PNG veya WEBP · Maksimum 10 MB
+                    En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
+                    JPG, PNG veya WEBP · her biri {MAX_FILE_SIZE_MB} MB
                   </span>
                 </button>
               ) : (
@@ -936,10 +946,19 @@ export default function FoundPetCreatePage() {
               </div>
             </label>
 
+            {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
+                formu baştan sona kontrol etmeye zorlar. */}
+            {images.length < MIN_IMAGES && (
+              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                <ImagePlus size={17} />
+                İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+              </p>
+            )}
+
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || images.length < MIN_IMAGES}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:bg-[#CBD5E1] disabled:shadow-none"
             >
               {isSubmitting ? (
