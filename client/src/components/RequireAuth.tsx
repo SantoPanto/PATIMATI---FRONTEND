@@ -4,21 +4,48 @@ import { useLocation } from "wouter";
 
 import { useAuth } from "../contexts/AuthContext";
 import { sanitizeRedirectPath } from "../services/auth";
+import type { Role } from "../services/types";
 import AuthRequiredModal from "./Modal";
 
+/**
+ * KURAL (madde 28) - korumali rotalarin giris davranisi:
+ *
+ *   mode="modal"     Icerikten AKSIYON alarak gelinen sayfa. Kullanici bir
+ *                    ilana bakarken "Ilan Ver" / "Mesaj Gonder" gibi bir sey
+ *                    yapmaya calisiyordur; sayfadan koparilmaz, giris penceresi
+ *                    ustte acilir.
+ *   mode="redirect"  Kullanicinin DOGRUDAN kendi hesabina gittigi sayfa
+ *                    (profil, ayarlar, bildirimler, sikayetlerim, yonetim).
+ *                    Icerik yok, sayfada tutmanin anlami yok; /login'e gider.
+ *
+ * `mode` bilerek ZORUNLU: varsayilani olsaydi yeni bir korumali rota kurali
+ * sessizce ihlal edebilirdi. Her rota tercihini yazili olarak belirtir.
+ *
+ * Iki yol da donus adresini tasir: modaldaki giris dugmesi de `goToLogin`
+ * cagirir, o da /login?redirect=<sayfa> kurar (LoginPage bunu okuyup geri doner).
+ */
 type RequireAuthProps = {
   component: ComponentType;
+  /** Yalniz mode="modal" icin: modal kapatilinca nereye donulecek. */
   fallbackPath?: string;
-  mode?: "modal" | "redirect";
+  mode: "modal" | "redirect";
+  /**
+   * Verilirse giris yapmis olmak YETMEZ, kullanicinin rolu de bu olmalidir.
+   * Rolu tutmayan kullanici /unauthorized sayfasina gonderilir.
+   */
+  requiredRole?: Role;
 };
 
 export default function RequireAuth({
   component: ProtectedComponent,
   fallbackPath = "/",
-  mode = "modal",
+  mode,
+  requiredRole,
 }: RequireAuthProps) {
   const [, navigate] = useLocation();
-  const { isAuthenticated, isAuthLoading } = useAuth();
+  const { user, isAuthenticated, isAuthLoading } = useAuth();
+
+  const rolUyuyor = !requiredRole || user?.role === requiredRole;
 
   const closeModal = useCallback(() => {
     navigate(fallbackPath, { replace: true });
@@ -40,6 +67,13 @@ export default function RequireAuth({
     }
   }, [goToLogin, isAuthLoading, isAuthenticated, mode]);
 
+  useEffect(() => {
+    // Giris yapmis ama rolu tutmuyor: giris sayfasina degil, "yetkiniz yok"a.
+    if (!isAuthLoading && isAuthenticated && !rolUyuyor) {
+      navigate("/unauthorized", { replace: true });
+    }
+  }, [isAuthLoading, isAuthenticated, navigate, rolUyuyor]);
+
   if (isAuthLoading) {
     return (
       <div
@@ -52,6 +86,16 @@ export default function RequireAuth({
   }
 
   if (isAuthenticated) {
+    if (!rolUyuyor) {
+      return (
+        <div
+          className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+          role="status"
+        >
+          Yetki kontrol ediliyor...
+        </div>
+      );
+    }
     return <ProtectedComponent />;
   }
 
