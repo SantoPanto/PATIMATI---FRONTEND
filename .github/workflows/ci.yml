@@ -15,8 +15,11 @@ name: CI
 on:
   push:
     branches: [ "main", "develop" ]
+  # Hedef dal SÜZÜLMÜYOR — bilerek. Süzgeç "main/develop" iken bir isteğin
+  # üstüne oturan ikinci istek (yığılmış PR) HİÇ denetlenmiyordu: hedefi bir
+  # özellik dalı olduğu için iş akışı tetiklenmiyor, istek yeşil de kırmızı da
+  # görünmüyordu. Koşmayan bir kapı, kapı değildir.
   pull_request:
-    branches: [ "main", "develop" ]
 
 # Aynı dala yeni itme gelirse eskisini iptal et; kuyruk tıkanmasın.
 concurrency:
