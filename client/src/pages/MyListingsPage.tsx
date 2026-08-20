@@ -8,6 +8,7 @@ import {
   PawPrint,
   RotateCcw,
   Settings,
+  ShieldAlert,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -192,7 +193,11 @@ export default function MyListingsPage() {
                 <Link href={getAdDetailPath(ad)} className="relative block h-56 overflow-hidden bg-slate-100">
                   <img src={getAdImage(ad)} alt={ad.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" />
                   <span className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold ${ad.active ? "bg-emerald-500 text-white" : "bg-slate-700 text-white"}`}>
-                    {ad.active ? "Yayında" : "Yayından kaldırıldı"}
+                    {ad.active
+                      ? "Yayında"
+                      : ad.suspended
+                        ? "İnceleme altında"
+                        : "Yayından kaldırıldı"}
                   </span>
                 </Link>
 
@@ -241,6 +246,21 @@ export default function MyListingsPage() {
                       >
                         <Trash2 size={18} />
                       </button>
+                    ) : ad.suspended ? (
+                      /* ASKIDAKİ İLANDA DÜĞME ÇİZİLMEZ. Yönetici askıya
+                         alırken hem suspended hem active yazıyor, yani askıya
+                         alınan ilan da bu sekmeye düşüyor. Burada `active`e
+                         bakıp düğme çizilirse kullanıcı HER ZAMAN reddedilecek
+                         bir düğmeye basar (uç suspended'ı görüp 403 veriyor) ve
+                         ekranda sebep görünmez — ilanının incelemede olduğunu
+                         hiçbir yerden öğrenemez. */
+                      <span
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700"
+                        title="İlanınız yönetici incelemesinde. İnceleme bitene kadar yeniden yayınlanamaz."
+                      >
+                        <ShieldAlert size={17} />
+                        İnceleme altında
+                      </span>
                     ) : (
                       /* Yayından kaldırılan ilanda önceden YALNIZ "Görüntüle"
                          vardı; ilan yaşam döngüsü tek yönlüydü ve kullanıcı
