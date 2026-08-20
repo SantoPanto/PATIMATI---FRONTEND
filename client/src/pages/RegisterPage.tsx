@@ -56,7 +56,7 @@ export default function RegisterPage() {
       !password ||
       !passwordRepeat
     ) {
-      setErrorMessage("Tüm alanları doldurmalısın.");
+      setErrorMessage("Tüm alanları doldurmalısın");
       return;
     }
 
@@ -64,7 +64,7 @@ export default function RegisterPage() {
       normalizedFirstName.length < 2 ||
       normalizedFirstName.length > 40
     ) {
-      setErrorMessage("Ad 2 ile 40 karakter arasında olmalıdır.");
+      setErrorMessage("Ad 2 ile 40 karakter arasında olmalıdır");
       return;
     }
 
@@ -72,7 +72,7 @@ export default function RegisterPage() {
       normalizedLastName.length < 2 ||
       normalizedLastName.length > 40
     ) {
-      setErrorMessage("Soyad 2 ile 40 karakter arasında olmalıdır.");
+      setErrorMessage("Soyad 2 ile 40 karakter arasında olmalıdır");
       return;
     }
 
@@ -81,7 +81,7 @@ export default function RegisterPage() {
       normalizedEmail.length > 50
     ) {
       setErrorMessage(
-        "E-posta 5 ile 50 karakter arasında olmalıdır.",
+        "E posta 5 ile 50 karakter arasında olmalıdır",
       );
       return;
     }
@@ -89,7 +89,7 @@ export default function RegisterPage() {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(normalizedEmail)) {
-      setErrorMessage("Geçerli bir e-posta adresi girmelisin.");
+      setErrorMessage("Geçerli bir e posta adresi girmelisin");
       return;
     }
 
@@ -98,39 +98,38 @@ export default function RegisterPage() {
       normalizedPhone.length > 15
     ) {
       setErrorMessage(
-        "Telefon numarası 9 ile 15 karakter arasında olmalıdır.",
+        "Telefon numarası 9 ile 15 karakter arasında olmalıdır",
       );
       return;
     }
 
-   
     const phonePattern =
       /^(?:\+90\d{10}|0\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}|\d{10})(?:\s\+\d+)?$/;
 
     if (!phonePattern.test(normalizedPhone)) {
       setErrorMessage(
-        "Telefon numarası formatı geçersiz. Örnek: 05551234567",
+        "Telefon numarası formatı geçersiz Örnek 05551234567",
       );
       return;
     }
 
     if (password.length < 6 || password.length > 20) {
       setErrorMessage(
-        "Şifre 6 ile 20 karakter arasında olmalıdır.",
+        "Şifre 6 ile 20 karakter arasında olmalıdır",
       );
       return;
     }
 
     if (password !== passwordRepeat) {
       setErrorMessage(
-        "Girdiğin şifreler birbiriyle eşleşmiyor.",
+        "Girdiğin şifreler birbiriyle eşleşmiyor",
       );
       return;
     }
 
     if (!acceptedTerms) {
       setErrorMessage(
-        "Kullanım koşullarını ve gizlilik politikasını kabul etmelisin.",
+        "Kullanım koşullarını ve gizlilik politikasını kabul etmelisin",
       );
       return;
     }
@@ -146,17 +145,9 @@ export default function RegisterPage() {
         phone: normalizedPhone,
       });
 
-      /*
-       * Backend AuthResponse şu formatta dönüyor:
-       *
-       * {
-       *   token: "...",
-       *   user: { ... }
-       * }
-       */
       if (!data.token) {
         throw new Error(
-          "Kayıt başarılı ancak sunucudan oturum anahtarı alınamadı.",
+          "Kayıt başarılı ancak sunucudan oturum anahtarı alınamadı",
         );
       }
 
@@ -167,7 +158,7 @@ export default function RegisterPage() {
       navigate("/");
     } catch (error) {
       setErrorMessage(
-        getUserErrorMessage(error, "Kayıt sırasında bir sorun oluştu."),
+        getUserErrorMessage(error, "Kayıt sırasında bir sorun oluştu"),
       );
     } finally {
       setIsLoading(false);
@@ -214,15 +205,15 @@ export default function RegisterPage() {
               <h1 className="text-5xl font-extrabold leading-tight tracking-tight">
                 Birlikte daha fazla
                 <span className="block text-orange-500">
-                  dosta ulaşabiliriz.
+                  dosta ulaşabiliriz
                 </span>
               </h1>
 
               <p className="mt-6 max-w-md text-lg leading-8 text-slate-300">
-                İlan oluştur, bölgesel bildirimler al,
+                İlan oluştur bölgesel bildirimler al
                 hayvan sahipleriyle güvenli şekilde mesajlaş
                 ve dostlarımızın yuvalarına kavuşmasına
-                destek ol.
+                destek ol
               </p>
             </div>
 
@@ -232,8 +223,8 @@ export default function RegisterPage() {
               </strong>
 
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Kayıp, bulunan ve sahiplendirme ilanlarını
-                tek hesaptan yönet.
+                Kayıp bulunan ve sahiplendirme ilanlarını
+                tek hesaptan yönet
               </p>
             </div>
           </section>
@@ -257,7 +248,7 @@ export default function RegisterPage() {
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                Birkaç bilgiyle PATIMATI topluluğuna katıl.
+                Birkaç bilgiyle PATIMATI topluluğuna katıl
               </p>
             </div>
 
@@ -382,7 +373,7 @@ export default function RegisterPage() {
                 htmlFor="register-email"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                E-posta
+                E posta
               </label>
 
               <div className="relative mb-4">
@@ -427,7 +418,7 @@ export default function RegisterPage() {
                   onChange={(event) =>
                     setPassword(event.target.value)
                   }
-                  placeholder="6-20 karakter"
+                  placeholder="6 20 karakter"
                   autoComplete="new-password"
                   minLength={6}
                   maxLength={20}
@@ -498,7 +489,7 @@ export default function RegisterPage() {
 
                 <span>
                   Kullanım koşullarını ve gizlilik
-                  politikasını kabul ediyorum.
+                  politikasını kabul ediyorum
                 </span>
               </label>
 
@@ -517,13 +508,13 @@ export default function RegisterPage() {
                 className="flex h-12 w-full items-center justify-center rounded-xl bg-orange-500 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading
-                  ? "Hesap oluşturuluyor..."
+                  ? "Hesap oluşturuluyor"
                   : "Kayıt Ol"}
               </button>
             </form>
 
             <p className="mt-7 text-center text-sm text-slate-600">
-              Zaten hesabın var mı?{" "}
+              Zaten hesabın var mı{" "}
               <Link
                 href="/login"
                 className="font-bold text-orange-500 transition hover:text-orange-600"

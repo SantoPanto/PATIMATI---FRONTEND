@@ -26,15 +26,15 @@ export default function AboutPage() {
               Minik dostlarımızı
               <span className="text-[#F97316]">
                 {" "}
-                yeniden bir araya getiriyoruz.
+                yeniden bir araya getiriyoruz
               </span>
             </h1>
 
             <p className="mt-6 max-w-3xl text-lg leading-8 text-[#64748B]">
-              PATIMATI; kayıp, bulunan ve sahiplendirilecek
-              hayvanları doğru kişilerle buluşturmayı amaçlayan,
+              PATIMATI kayıp bulunan ve sahiplendirilecek
+              hayvanları doğru kişilerle buluşturmayı amaçlayan
               teknoloji ve topluluk gücünü bir araya getiren bir
-              platformdur.
+              platformdur
             </p>
           </div>
         </section>
@@ -44,19 +44,19 @@ export default function AboutPage() {
             <InfoCard
               icon={<PawPrint size={27} />}
               title="Kayıp dostları bul"
-              description="Kayıp ve bulunan hayvan ilanlarını tek noktada buluşturarak ailelerine ulaşmalarına yardımcı oluruz."
+              description="Kayıp ve bulunan hayvan ilanlarını tek noktada buluşturarak ailelerine ulaşmalarına yardımcı oluruz"
             />
 
             <InfoCard
               icon={<Heart size={27} />}
               title="Yeni yuvalar bul"
-              description="Sahiplendirilecek hayvanların güvenilir ve sevgi dolu ailelerle buluşmasını destekleriz."
+              description="Sahiplendirilecek hayvanların güvenilir ve sevgi dolu ailelerle buluşmasını destekleriz"
             />
 
             <InfoCard
               icon={<ShieldCheck size={27} />}
               title="Güvenli iletişim"
-              description="Kullanıcıların güvenli ve kontrollü biçimde iletişim kurabileceği bir yapı sunmayı hedefleriz."
+              description="Kullanıcıların güvenli ve kontrollü biçimde iletişim kurabileceği bir yapı sunmayı hedefleriz"
             />
           </div>
 
@@ -71,17 +71,17 @@ export default function AboutPage() {
               </h2>
 
               <p className="mt-5 leading-8 text-[#64748B]">
-                Geleneksel kayıp ilanlarının ötesine geçerek;
-                görsel eşleştirme, konum bilgisi, ilan yönetimi ve
+                Geleneksel kayıp ilanlarının ötesine geçerek
+                görsel eşleştirme konum bilgisi ilan yönetimi ve
                 topluluk desteğini tek platformda bir araya
-                getiriyoruz.
+                getiriyoruz
               </p>
 
               <p className="mt-4 leading-8 text-[#64748B]">
-                Amacımız sadece ilan yayınlamak değil; doğru bilgi,
+                Amacımız sadece ilan yayınlamak değil doğru bilgi
                 hızlı iletişim ve güvenli süreçlerle hayvanların
                 ailelerine ya da yeni yuvalarına ulaşmasını
-                kolaylaştırmak.
+                kolaylaştırmak
               </p>
             </div>
 
@@ -94,9 +94,9 @@ export default function AboutPage() {
 
               <p className="mt-4 leading-7 text-[#64748B]">
                 Bir kayıp hayvan ilanı ne kadar fazla kişiye
-                ulaşırsa bulunma ihtimali o kadar artar. PATIMATI,
+                ulaşırsa bulunma ihtimali o kadar artar PATIMATI
                 kullanıcıların birbirine destek olduğu güçlü bir
-                topluluk oluşturmayı hedefler.
+                topluluk oluşturmayı hedefler
               </p>
             </div>
           </div>

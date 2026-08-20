@@ -101,7 +101,7 @@ export default function HomePage() {
       } catch (error) {
         if (isActive) {
           setListingsError(
-            getUserErrorMessage(error, "İlanlar yüklenemedi."),
+            getUserErrorMessage(error, "İlanlar yüklenemedi"),
           );
         }
       } finally {
@@ -115,7 +115,7 @@ export default function HomePage() {
         setCounters(data);
       }
     } catch (error) {
-      console.error("Sayaç bilgileri alınamadı:", error);
+      console.error("Sayaç bilgileri alınamadı", error);
     }
   };
     void loadListings();
@@ -260,7 +260,7 @@ export default function HomePage() {
 
   const handleChangeLocation = () => {
     if (!navigator.geolocation) {
-      alert("Tarayıcınız konum özelliğini desteklemiyor.");
+      alert("Tarayıcınız konum özelliğini desteklemiyor");
       return;
     }
 
@@ -276,7 +276,7 @@ export default function HomePage() {
           );
 
           if (!response.ok) {
-            throw new Error("Konum bilgisi alınamadı.");
+            throw new Error("Konum bilgisi alınamadı");
           }
 
           const data = await response.json();
@@ -291,7 +291,7 @@ export default function HomePage() {
 
           setCurrentLocation(city);
         } catch (error) {
-          console.error("Konum adı alınamadı:", error);
+          console.error("Konum adı alınamadı", error);
 
           setCurrentLocation(
             `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
@@ -301,28 +301,28 @@ export default function HomePage() {
         }
       },
       (error) => {
-        console.error("Konum alınamadı:", error);
+        console.error("Konum alınamadı", error);
 
         setIsLocationLoading(false);
 
         if (error.code === error.PERMISSION_DENIED) {
           alert(
-            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.",
+            "Konum izni verilmedi Tarayıcı ayarlarından konum iznini açabilirsiniz",
           );
           return;
         }
 
         if (error.code === error.POSITION_UNAVAILABLE) {
-          alert("Konum bilgisi şu anda alınamıyor.");
+          alert("Konum bilgisi şu anda alınamıyor");
           return;
         }
 
         if (error.code === error.TIMEOUT) {
-          alert("Konum alınırken zaman aşımı oluştu.");
+          alert("Konum alınırken zaman aşımı oluştu");
           return;
         }
 
-        alert("Konumunuz alınamadı. Lütfen tekrar deneyin.");
+        alert("Konumunuz alınamadı Lütfen tekrar deneyin");
       },
       {
         enableHighAccuracy: true,
@@ -341,7 +341,7 @@ export default function HomePage() {
             padding: "80px 24px",
           }}
         >
-          Oturum kontrol ediliyor...
+          Oturum kontrol ediliyor
         </div>
       </div>
     );
@@ -365,12 +365,12 @@ export default function HomePage() {
 
               <h1>
                 Kaybolan dostlarımızı
-                <span> birlikte bulalım.</span>
+                <span> birlikte bulalım</span>
               </h1>
 
               <p>
-                Kayıp, bulunan ve sahiplendirilecek hayvan ilanlarını incele.
-                Yakınındaki dostlara ulaş ve güvenli iletişim kur.
+                Kayıp bulunan ve sahiplendirilecek hayvan ilanlarını incele
+                Yakınındaki dostlara ulaş ve güvenli iletişim kur
               </p>
 
               <div className="hero-search">
@@ -379,7 +379,7 @@ export default function HomePage() {
                 <input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="İsim, tür, konum veya ırk ara..."
+                  placeholder="İsim tür konum veya ırk ara"
                   aria-label="İlanlarda arama yap"
                 />
 
@@ -413,7 +413,7 @@ export default function HomePage() {
               <div className="hero-location">
                 <MapPin size={16} />
 
-                <span>Konumunuz:</span>
+                <span>Konumunuz</span>
 
                 <strong>
                   {isLocationLoading
@@ -446,8 +446,8 @@ export default function HomePage() {
                   </span>
 
                   <div>
-                    <strong>Mutlu haber!</strong>
-                    <p>Pamuk ailesine kavuştu.</p>
+                    <strong>Mutlu haber</strong>
+                    <p>Pamuk ailesine kavuştu</p>
                   </div>
 
                   <ShieldCheck size={22} />
@@ -483,11 +483,11 @@ export default function HomePage() {
           <div className="section-heading section-heading--center">
             <span className="section-eyebrow">Hızlı başlangıç</span>
 
-            <h2>Nasıl yardımcı olabiliriz?</h2>
+            <h2>Nasıl yardımcı olabiliriz</h2>
 
             <p>
               Durumuna uygun ilan türünü seçerek birkaç adımda paylaşım
-              oluşturabilirsin.
+              oluşturabilirsin
             </p>
           </div>
 
@@ -510,7 +510,7 @@ export default function HomePage() {
 
                 <p>
                   Fotoğrafını ve son görüldüğü konumu paylaşarak aramayı
-                  başlat.
+                  başlat
                 </p>
 
                 <span className="quick-action-card__link">
@@ -543,7 +543,7 @@ export default function HomePage() {
 
                 <p>
                   Bulduğun hayvanın bilgilerini paylaşarak ailesine
-                  ulaşmasına yardımcı ol.
+                  ulaşmasına yardımcı ol
                 </p>
 
                 <span className="quick-action-card__link">
@@ -577,7 +577,7 @@ export default function HomePage() {
                 <h3>Yeni yuva arıyorum</h3>
 
                 <p>
-                  Sahiplendirilecek dostun için güvenilir bir yuva bul.
+                  Sahiplendirilecek dostun için güvenilir bir yuva bul
                 </p>
 
                 <span className="quick-action-card__link">
@@ -605,8 +605,8 @@ export default function HomePage() {
                 <h2>Yakındaki ilanlar</h2>
 
                 <p>
-                  Konumuna yakın, güncel kayıp, bulunan ve sahiplendirme
-                  ilanları.
+                  Konumuna yakın güncel kayıp bulunan ve sahiplendirme
+                  ilanları
                 </p>
               </div>
 
@@ -666,7 +666,7 @@ export default function HomePage() {
                   <PawPrint size={28} />
                 </span>
                 <h3>İlanlar yükleniyor</h3>
-                <p>Sunucudaki güncel ilanlar getiriliyor...</p>
+                <p>Sunucudaki güncel ilanlar getiriliyor</p>
               </div>
             ) : listingsError ? (
               <div className="empty-listings" role="alert">
@@ -800,12 +800,12 @@ export default function HomePage() {
                   Yapay zekâ destekli arama
                 </span>
 
-                <h2>Fotoğrafla benzer dostları bul.</h2>
+                <h2>Fotoğrafla benzer dostları bul</h2>
 
                 <p>
-                  Kayıp veya bulduğun hayvanın fotoğrafını yükle.
-                  PATIMATI, mevcut ilanları karşılaştırarak en benzer
-                  sonuçları senin için sıralasın.
+                  Kayıp veya bulduğun hayvanın fotoğrafını yükle
+                  PATIMATI mevcut ilanları karşılaştırarak en benzer
+                  sonuçları senin için sıralasın
                 </p>
 
                 <div className="ai-match-card__features">
@@ -860,12 +860,12 @@ export default function HomePage() {
             <div className="safety-card__content">
               <span>Güvenli iletişim</span>
 
-              <h2>İletişim bilgilerin senin kontrolünde.</h2>
+              <h2>İletişim bilgilerin senin kontrolünde</h2>
 
               <p>
                 İlan sahipleriyle PATIMATI mesajlaşma sistemi
-                üzerinden iletişime geçebilirsin. Telefon numarası
-                gibi hassas bilgiler otomatik olarak filtrelenir.
+                üzerinden iletişime geçebilirsin Telefon numarası
+                gibi hassas bilgiler otomatik olarak filtrelenir
               </p>
             </div>
 
@@ -887,9 +887,9 @@ export default function HomePage() {
                 <h2>Daha fazla özellik için giriş yap</h2>
 
                 <p>
-                  İlan oluşturmak, mesajlaşmak, favori eklemek,
+                  İlan oluşturmak mesajlaşmak favori eklemek
                   bölgesel bildirim almak ve ilanlarını yönetmek için
-                  hesabına giriş yap.
+                  hesabına giriş yap
                 </p>
               </div>
 
@@ -914,7 +914,7 @@ export default function HomePage() {
                   href="/register"
                   className="create-account-link"
                 >
-                  Hesabın yok mu? Kayıt ol
+                  Hesabın yok mu Kayıt ol
                 </Link>
               </div>
             </div>
@@ -942,9 +942,9 @@ export default function HomePage() {
               </Link>
 
               <p className="mt-4 max-w-sm text-sm leading-6 text-[#64748B]">
-                Kayıp, bulunan ve sahiplendirilecek hayvanları
+                Kayıp bulunan ve sahiplendirilecek hayvanları
                 güvenli iletişim ile doğru kişilere ulaştıran
-                topluluk platformu.
+                topluluk platformu
               </p>
             </div>
 
@@ -1007,8 +1007,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 flex flex-col gap-3 border-t border-[#E2E8F0] pt-6 text-sm text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 PATIMATI. Tüm hakları saklıdır.</p>
-            <p>Minik dostlarımız için birlikte.</p>
+            <p>© 2026 PATIMATI Tüm hakları saklıdır</p>
+            <p>Minik dostlarımız için birlikte</p>
           </div>
         </div>
       </footer>
