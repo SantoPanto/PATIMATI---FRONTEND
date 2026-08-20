@@ -314,17 +314,47 @@ export type UserDetailForAdminDTO = UserResponseDTO & {
   createdAt?: string;
 };
 
-export type AdComplaintAdminResponse = ComplaintResponse & {
-  adTitle?: string;
+/**
+ * Üç admin şikayet kaydının ORTAK çekirdeği.
+ *
+ * Bu tipler eskiden `ComplaintResponse`'tan türetiliyordu ve oradan
+ * `reportedAdId` alanını miras alıyorlardı — ama o alan ADMIN cevaplarında
+ * YOK. `ComplaintResponse` şikayet OLUŞTURMA uçlarının cevabı
+ * (`POST /api/complaints/ad` vb.) ve orada `reportedAdId` doğru. Admin
+ * uçları `dto/admin/*AdminResponse` kayıtlarını döndürüyor; onlarda alanın
+ * adı `adId` ve yanında `adTitle` da geliyor.
+ *
+ * Sonuç: yönetici ekranı `#undefined` gösteriyordu ve "İlanı Askıya Al"
+ * düğmesi hiç çizilmiyordu (koşulu hep `undefined`'dı).
+ *
+ * `status` alanı bilerek `ComplaintResponse`'tan TÜRETİLİYOR: tek bir yerde
+ * tanımlı kalsın, ikisi ayrışmasın.
+ */
+type AdminComplaintCore = Pick<
+  ComplaintResponse,
+  "id" | "reporterId" | "reporterEmail" | "reason" | "description" | "status" | "createdAt"
+> & {
+  reporterFullName?: string;
 };
 
-export type UserComplaintAdminResponse = ComplaintResponse & {
+export type AdComplaintAdminResponse = AdminComplaintCore & {
+  adId: number;
+  adTitle: string;
+  adOwnerId?: number;
+  adOwnerFullName?: string;
+};
+
+/**
+ * Backend'de AYRI bir record (`AdoptionComplaintAdminResponse`) ama alanları
+ * `AdComplaintAdminResponse` ile birebir aynı. Ayrı isim, ekranların hangi
+ * ucu okuduğunu görünür tutuyor.
+ */
+export type AdoptionComplaintAdminResponse = AdComplaintAdminResponse;
+
+export type UserComplaintAdminResponse = AdminComplaintCore & {
+  reportedUserId: number;
+  reportedUserFullName?: string;
   reportedUserEmail?: string;
-};
-
-export type AdoptionComplaintAdminResponse = ComplaintResponse & {
-  adoptionTitle?: string;
-  adTitle?: string;
 };
 
 // ==========================================
