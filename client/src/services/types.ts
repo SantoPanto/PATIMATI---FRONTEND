@@ -200,6 +200,13 @@ export type AdResponse = {
   ownerId: number;
   ownerDisplayName: string;
   active: boolean;
+  /**
+   * Yonetici moderasyonu. `active` ile KARISTIRILMAMALI:
+   *   active=false + suspended=false -> SAHIP kendi ilanini yayindan kaldirdi
+   *   active=false + suspended=true  -> YONETICI inceleme icin askiya aldi
+   * Ikisi de active=false uretiyor; ayirt eden tek alan bu.
+   */
+  suspended: boolean;
   createdAt: string; // ISO-8601 UTC
   updatedAt: string; // ISO-8601 UTC
   aiStatus?: AiStatus;
