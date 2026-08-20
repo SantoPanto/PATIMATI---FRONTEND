@@ -17,14 +17,20 @@ export async function createAd(
   ad: AdCreateRequest,
   images?: File[],
 ): Promise<AdResponse> {
-  const formData = new FormData();
+  const cleanedAd: Record<string, unknown> = { ...ad };
+  if (!cleanedAd.date || cleanedAd.date === "") {
+    delete cleanedAd.date;
+  }
+  if (!cleanedAd.lostDate || cleanedAd.lostDate === "") {
+    delete cleanedAd.lostDate;
+  }
 
-  formData.append(
-    "ad",
-    new Blob([JSON.stringify(ad)], {
-      type: "application/json",
-    }),
-  );
+  const formData = new FormData();
+  const adBlob = new Blob([JSON.stringify(cleanedAd)], {
+    type: "application/json",
+  });
+
+  formData.append("ad", adBlob);
 
   if (images && images.length > 0) {
     images.forEach((file) => {
