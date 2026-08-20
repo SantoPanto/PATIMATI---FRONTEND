@@ -67,25 +67,36 @@ function getAdTypeBadge(adType: AdType) {
   }
 }
 
-function formatCollarStatus(status: string, collarColor?: string): string {
-  if (status === "PRESENT") {
+function formatCollarStatus(
+  status: AdResponse["collarStatus"],
+  collarColor?: string,
+): string {
+  // Backend enum'u: entity/enums/PresenceStatus = UNKNOWN | YES | NO.
+  // Buradaki eski PRESENT / ABSENT degerleri backend'de HIC YOKTU: iki kosul da
+  // tutmadigi icin tasmali ilanlar bile "bilinmiyor" gorunuyordu.
+  if (status === "YES") {
     return collarColor ? `Tasmalı (${collarColor})` : "Tasmalı";
   }
-  if (status === "ABSENT") {
+  if (status === "NO") {
     return "Tasmasız";
   }
   return "Tasma durumu bilinmiyor";
 }
 
-function formatPattern(pattern?: string): string {
+function formatPattern(pattern?: AdResponse["coatPattern"]): string {
   if (!pattern) return "";
-  const patterns: Record<string, string> = {
+  // Backend enum'u: entity/enums/CoatPattern. Eskiden BICOLOR/TRICOLOR/TABBY/
+  // HARLEQUIN yaziyordu - dordu de backend'de yok; buna karsilik gercek
+  // degerlerin besi (UNKNOWN, STRIPED, PATCHED, CALICO, TORTOISESHELL) eksikti,
+  // o ilanlarda kullaniciya ham kod ("TORTOISESHELL") gosteriliyordu.
+  const patterns: Record<AdResponse["coatPattern"], string> = {
+    UNKNOWN: "Desen belirtilmemiş",
     SOLID: "Tek Renk",
-    BICOLOR: "Çift Renk",
-    TRICOLOR: "Üç Renk",
-    TABBY: "Tekir / Çizgili",
+    STRIPED: "Çizgili / Tekir",
     SPOTTED: "Benekli",
-    HARLEQUIN: "Alaca / Parçalı",
+    PATCHED: "Parçalı / Alaca",
+    CALICO: "Sarman / Üç Renk",
+    TORTOISESHELL: "Kaplumbağa Kabuğu",
     OTHER: "Diğer Desen",
   };
   return patterns[pattern] || pattern;

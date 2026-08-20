@@ -1,0 +1,287 @@
+{
+  "_aciklama": "Backend enum'larının değer listesi + ön yüz karşılıklarının eşlemesi. `enumlar` bloğu ELLE DÜZENLENMEZ: arka yüz deposundaki enum-aynasi.json dosyasından KOPYALANIR (orada CI bayatlığını denetliyor). `eslesme` bloğu ön yüzün bilgisidir ve elle tutulur. Bekçi: enum-aynasi.test.ts.",
+  "enumlar": {
+    "AdResolutionStatus": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/AdResolutionStatus.java",
+      "degerler": [
+        "NONE",
+        "FOUND",
+        "ADOPTED"
+      ]
+    },
+    "AdType": {
+      "kaynak": "src/main/java/com/works/patimati/entity/Ad.java",
+      "degerler": [
+        "LOST",
+        "FOUND",
+        "ADOPTION"
+      ]
+    },
+    "AgeGroup": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/AgeGroup.java",
+      "degerler": [
+        "UNKNOWN",
+        "BABY",
+        "YOUNG",
+        "ADULT",
+        "SENIOR"
+      ]
+    },
+    "AiStatus": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/AiStatus.java",
+      "degerler": [
+        "PENDING",
+        "DONE",
+        "FAILED",
+        "APPROVED",
+        "REJECTED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "CoatPattern": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/CoatPattern.java",
+      "degerler": [
+        "UNKNOWN",
+        "SOLID",
+        "STRIPED",
+        "SPOTTED",
+        "PATCHED",
+        "CALICO",
+        "TORTOISESHELL",
+        "OTHER"
+      ]
+    },
+    "ComplaintReason": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/ComplaintReason.java",
+      "degerler": [
+        "SAHTE_ILAN",
+        "UYGUNSUZ_ICERIK",
+        "DOLANDIRICILIK",
+        "KOTU_DIL_KULLANIMI",
+        "DIGER"
+      ]
+    },
+    "ComplaintStatus": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/ComplaintStatus.java",
+      "degerler": [
+        "BEKLEMEDE",
+        "INCELEMEDE",
+        "COZULDU"
+      ]
+    },
+    "EyeColor": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/EyeColor.java",
+      "degerler": [
+        "UNKNOWN",
+        "BROWN",
+        "BLUE",
+        "GREEN",
+        "AMBER",
+        "HAZEL",
+        "HETEROCHROMIA",
+        "OTHER"
+      ]
+    },
+    "PetColor": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/PetColor.java",
+      "degerler": [
+        "BLACK",
+        "WHITE",
+        "GRAY",
+        "BROWN",
+        "ORANGE",
+        "CREAM",
+        "GOLDEN",
+        "BEIGE",
+        "OTHER"
+      ]
+    },
+    "PetGender": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/PetGender.java",
+      "degerler": [
+        "UNKNOWN",
+        "FEMALE",
+        "MALE"
+      ]
+    },
+    "PresenceStatus": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/PresenceStatus.java",
+      "degerler": [
+        "UNKNOWN",
+        "YES",
+        "NO"
+      ]
+    },
+    "PushResult": {
+      "kaynak": "src/main/java/com/works/patimati/notification/PushResult.java",
+      "degerler": [
+        "SENT",
+        "PUSH_DISABLED",
+        "NO_RECIPIENT",
+        "NO_TOKEN",
+        "FAILED"
+      ]
+    },
+    "Role": {
+      "kaynak": "src/main/java/com/works/patimati/entity/User.java",
+      "degerler": [
+        "GUEST",
+        "USER",
+        "ADMIN"
+      ]
+    },
+    "Species": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/Species.java",
+      "degerler": [
+        "CAT",
+        "DOG",
+        "UNKNOWN"
+      ]
+    }
+  },
+  "_kaynak": "PATIMATI---BACKEND / enum-aynasi.json (python scripts/enum-aynasi.py --uret)",
+  "eslesme": {
+    "AdResolutionStatus": {
+      "aynalanmiyor": "Kayıp ilanının nasıl sonuçlandığı sunucuda tutuluyor; ön yüz bugün hiçbir yerde okumuyor (ölçüldü: client/src altında 0 geçiş)."
+    },
+    "AdType": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "AdType",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "AdType",
+        "tur": "tam"
+      }
+    ],
+    "AgeGroup": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "AgeGroup",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "AgeGroup",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AdoptionCreatePage.tsx",
+        "tip": "AgeGroup",
+        "tur": "tam"
+      }
+    ],
+    "AiStatus": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "AiStatus",
+        "tur": "tam"
+      }
+    ],
+    "CoatPattern": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "CoatPattern",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "CoatPattern",
+        "tur": "tam"
+      }
+    ],
+    "ComplaintReason": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "ComplaintReason",
+        "tur": "tam"
+      }
+    ],
+    "ComplaintStatus": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "ComplaintStatus",
+        "tur": "tam"
+      }
+    ],
+    "EyeColor": [
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "EyeColor",
+        "tur": "tam",
+        "not": "Paylaşılan types.ts'te YOK; yalnız ilan formunda yaşıyor."
+      }
+    ],
+    "PetColor": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "PetColor",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "PetColor",
+        "tur": "tam"
+      }
+    ],
+    "PetGender": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "Gender",
+        "tur": "tam",
+        "not": "Tip ADI farklı (Gender ↔ PetGender). Eşleme burada yazılı olmasaydı ad farkı yüzünden karşılaştırmaya HİÇ girmezdi — PresenceStatus/StatusEnum vakası tam buydu."
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "PetGender",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AdoptionCreatePage.tsx",
+        "sabit": "CINSIYET_KARSILIGI",
+        "tur": "sozluk",
+        "sebep": "Sahiplendirme formu kendi küçük harfli sözlüğünü kullanıyor (unknown/female/male) ve göndermeden önce bu sabitle çeviriyor. Sözleşme tipin kendisi değil, sabitin DEĞERLERİ."
+      }
+    ],
+    "PresenceStatus": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "PresenceStatus",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "PresenceStatus",
+        "tur": "tam"
+      }
+    ],
+    "PushResult": {
+      "aynalanmiyor": "Sunucu içi bildirim sonucu; hiçbir uca konmuyor ve ön yüzde 0 geçişi var (ölçüldü)."
+    },
+    "Role": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "Role",
+        "tur": "tam"
+      }
+    ],
+    "Species": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "Species",
+        "tur": "tam"
+      },
+      {
+        "dosya": "src/pages/AddListingPage.tsx",
+        "tip": "Species",
+        "tur": "altkume",
+        "haric": [
+          "UNKNOWN"
+        ],
+        "sebep": "İlan formunda tür SEÇİLİYOR; 'bilinmiyor' bir seçenek değil, AI'nın türü belirleyemediği durumun karşılığı. Hariç tutulan değer burada AÇIKÇA yazılı olduğu için, backend'e yeni bir tür eklenirse bekçi yine kırmızı yanar."
+      }
+    ]
+  }
+}
