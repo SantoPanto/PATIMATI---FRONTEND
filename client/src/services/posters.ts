@@ -68,6 +68,10 @@ function getErrorMessage(data: unknown, status: number): string {
     }
   }
 
+  if (status === 403) {
+    return "Bu ilan için afiş oluşturma kapalıdır";
+  }
+
   if (status === 404) {
     return "Bu kayıp ilanı için PDF afiş servisi henüz hazır değil.";
   }

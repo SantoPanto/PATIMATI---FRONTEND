@@ -246,6 +246,11 @@ export default function PetDetailPage() {
       return;
     }
 
+    if (!isOwner && ad.isPosterAllowed === false) {
+      setPosterError("Bu ilan için afiş oluşturma kapalıdır");
+      return;
+    }
+
     setIsPosterDownloading(true);
     setPosterError(null);
 
@@ -605,17 +610,34 @@ export default function PetDetailPage() {
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => void handleDownloadPoster()}
-                    disabled={isPosterDownloading}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                  <div
+                    className="relative group inline-block shrink-0"
+                    onClick={() => {
+                      if (!isOwner && ad.isPosterAllowed === false) {
+                        setPosterError("Bu ilan için afiş oluşturma kapalıdır");
+                      }
+                    }}
                   >
-                    <Download size={19} />
-                    {isPosterDownloading
-                      ? "PDF hazırlanıyor..."
-                      : "Kayıp Afişi İndir (PDF)"}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDownloadPoster()}
+                      disabled={isPosterDownloading || (!isOwner && ad.isPosterAllowed === false)}
+                      className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                      title={!isOwner && ad.isPosterAllowed === false ? "Bu ilan için afiş oluşturma kapalıdır" : undefined}
+                    >
+                      <Download size={19} />
+                      {isPosterDownloading
+                        ? "PDF hazırlanıyor..."
+                        : "Kayıp Afişi İndir (PDF)"}
+                    </button>
+
+                    {!isOwner && ad.isPosterAllowed === false && (
+                      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-md group-hover:block">
+                        Bu ilan için afiş oluşturma kapalıdır
+                        <div className="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {posterError && (

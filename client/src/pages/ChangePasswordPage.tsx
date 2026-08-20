@@ -70,8 +70,11 @@ export default function ChangePasswordPage() {
   };
 
   const validateForm = (): string | null => {
+    if (!form.currentPassword.trim()) {
+      return "Mevcut şifre alanı zorunludur.";
+    }
+
     if (
-      !form.currentPassword.trim() ||
       !form.newPassword.trim() ||
       !form.confirmPassword.trim()
     ) {
