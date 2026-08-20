@@ -803,16 +803,26 @@ export default function AddListingPage() {
         longitude: Number(longitude),
       };
 
+      /*
+       * ⚠ Tarih YALNIZ `lostDate` olarak gönderilir. `date` alanı sunucuda
+       * `lostDate`'in @JsonAlias'ıdır; ikisi birden gönderilirse Jackson aynı
+       * record bileşenine ikinci kez yazmaya çalışır, geri düşecek bir setter
+       * bulamaz ve isteğin TAMAMINI reddeder:
+       *
+       *   No fallback setter/field defined for creator property 'lostDate'
+       *   (through reference chain: AdCreateRequest["date"])
+       *
+       * Ölçüldü (21.08, canlı): POST /api/ads iki denemede de 500 döndü ve
+       * hiç ilan oluşmadı. Takma ad sunucuda KALIYOR — yalnız `date` gönderen
+       * eski bir istemci varsa o çalışmaya devam eder; kıran şey ikisini
+       * BİRLİKTE göndermekti.
+       */
       if (lostDate && lostDate.trim() !== "") {
         ad.lostDate = lostDate;
-        ad.date = lostDate;
       }
 
       if (!ad.lostDate || ad.lostDate === "") {
         delete ad.lostDate;
-      }
-      if (!ad.date || ad.date === "") {
-        delete ad.date;
       }
 
       /*
