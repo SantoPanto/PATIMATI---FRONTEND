@@ -85,6 +85,30 @@ export function extractRfc7807Details(error: unknown): string | null {
   return null;
 }
 
+export function extractInvalidParams(
+  error: unknown,
+): Array<{ name?: string; field?: string; reason?: string; message?: string; detail?: string }> | null {
+  if (error instanceof ApiError && error.data && typeof error.data === "object") {
+    const data = error.data as Record<string, unknown>;
+
+    const invalidParams =
+      (data.properties && typeof data.properties === "object"
+        ? (data.properties as Record<string, unknown>).invalid_params
+        : undefined) || data.invalid_params;
+
+    if (Array.isArray(invalidParams)) {
+      return invalidParams as Array<{
+        name?: string;
+        field?: string;
+        reason?: string;
+        message?: string;
+        detail?: string;
+      }>;
+    }
+  }
+  return null;
+}
+
 /**
  * Herhangi bir catch(error) bloğunda kullanıcıya gösterilecek Türkçe,
  * anlaşılır bir mesaj üretir. Ham/teknik ayrıntı yalnızca console'a

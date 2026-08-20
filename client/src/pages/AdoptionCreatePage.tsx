@@ -20,11 +20,8 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import {
-  API_BASE_URL,
-  getStoredToken,
-} from "../services/auth";
-import { getUserErrorMessage } from "../utils/errorMessage";
+import { request } from "../services/api";
+import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 
 type Gender = "female" | "male" | "unknown";
 
@@ -452,67 +449,11 @@ export default function AdoptionCreatePage() {
     });
 
     try {
-      const token = getStoredToken();
-
-      if (!token) {
-        throw new Error(
-          "İlan açmak için giriş yapmalısınız.",
-        );
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/adoptions`,
-        {
-          method: "POST",
-          body: formData,
-
-          /*
-           * Content-Type BILEREK verilmiyor: multipart sinir (boundary)
-           * degerini tarayici uretmeli.
-           */
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const govde = await response.text();
-
-      let sonuc: Record<string, unknown> | null = null;
-
-      try {
-        sonuc = govde ? JSON.parse(govde) : null;
-      } catch {
-        sonuc = null;
-      }
-
-      if (!response.ok) {
-        const invalidParams =
-          (sonuc?.invalid_params as unknown[]) ||
-          ((sonuc?.properties as Record<string, unknown>)?.invalid_params as unknown[]);
-
-        if (Array.isArray(invalidParams)) {
-          const dateParam = invalidParams.find((p: unknown) => {
-            if (p && typeof p === "object") {
-              const paramObj = p as Record<string, unknown>;
-              const name = (paramObj.name || paramObj.field) as string | undefined;
-              return name === "date" || name === "lostDate";
-            }
-            return false;
-          }) as Record<string, unknown> | undefined;
-
-          if (dateParam) {
-            const reason = (dateParam.reason || dateParam.message || dateParam.detail) as string | undefined;
-            setDateError(reason || "Tarih gelecekte bir tarih olamaz veya geçersizdir.");
-          }
-        }
-
-        throw new Error(
-          (sonuc?.message as string) ||
-            (sonuc?.error as string) ||
-            `Sahiplendirme ilanı oluşturulamadı (${response.status}).`,
-        );
-      }
+      await request("/api/adoptions", {
+        method: "POST",
+        requiresAuth: true,
+        body: formData,
+      });
 
       /*
        * /adoption/:id su an sahte veriyle calisan bir sayfa; oraya
@@ -522,6 +463,20 @@ export default function AdoptionCreatePage() {
       navigate("/adoption");
     } catch (error) {
       console.error("Sahiplendirme ilanı oluşturma hatası:", error);
+
+      const invalidParams = extractInvalidParams(error);
+      if (invalidParams) {
+        const dateParam = invalidParams.find((p) => {
+          const name = p.name || p.field;
+          return name === "date" || name === "lostDate";
+        });
+
+        if (dateParam) {
+          const reason = dateParam.reason || dateParam.message || dateParam.detail;
+          setDateError(reason || "Tarih gelecekte bir tarih olamaz veya geçersizdir.");
+        }
+      }
+
       setErrorMessage(
         getUserErrorMessage(error, "İlan oluşturulurken bir hata oluştu."),
       );
