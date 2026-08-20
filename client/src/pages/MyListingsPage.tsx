@@ -6,6 +6,7 @@ import {
   Eye,
   MapPin,
   PawPrint,
+  RotateCcw,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -13,7 +14,7 @@ import { Link } from "wouter";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import { deleteAd, getMyAds } from "../services/ads";
+import { deleteAd, getMyAds, republishAd } from "../services/ads";
 import type { AdResponse } from "../services/types";
 import {
   getAdDetailPath,
@@ -33,6 +34,7 @@ export default function MyListingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [republishingId, setRepublishingId] = useState<number | null>(null);
 
   const requestAds = useCallback(
     () =>
@@ -90,6 +92,32 @@ export default function MyListingsPage() {
       );
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  /**
+   * Yayından kaldırılmış ilanı geri yayına alır.
+   *
+   * Yayından kaldırmanın aksine ONAY SORULMUYOR: bu işlem yıkıcı değil ve
+   * kullanıcı yanlışlıkla basarsa aynı karttaki "yayından kaldır" ile tek
+   * tıkta geri alabiliyor. Onay sormak, geri alınabilir bir işlemde sürtünme
+   * üretir.
+   */
+  const handleRepublish = async (ad: AdResponse) => {
+    try {
+      setRepublishingId(ad.id);
+      setErrorMessage("");
+      await republishAd(ad.id);
+      const page = await requestAds();
+      setAds(page.content);
+    } catch (error) {
+      // Yönetici tarafından askıya alınmış ilanlarda sunucu 403 döner; bu
+      // beklenen bir durum, kullanıcıya sunucunun kendi cümlesi gösteriliyor.
+      setErrorMessage(
+        getUserErrorMessage(error, "İlan yeniden yayınlanamadı."),
+      );
+    } finally {
+      setRepublishingId(null);
     }
   };
 
@@ -170,7 +198,7 @@ export default function MyListingsPage() {
                       Görüntüle
                       <ChevronRight size={16} />
                     </Link>
-                    {ad.active && (
+                    {ad.active ? (
                       <button
                         type="button"
                         onClick={() => void handleDelete(ad)}
@@ -179,6 +207,22 @@ export default function MyListingsPage() {
                         aria-label="İlanı yayından kaldır"
                       >
                         <Trash2 size={18} />
+                      </button>
+                    ) : (
+                      /* Yayından kaldırılan ilanda önceden YALNIZ "Görüntüle"
+                         vardı; ilan yaşam döngüsü tek yönlüydü ve kullanıcı
+                         ilanını geri getiremiyordu. */
+                      <button
+                        type="button"
+                        onClick={() => void handleRepublish(ad)}
+                        disabled={republishingId === ad.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 px-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+                        aria-label="İlanı yeniden yayınla"
+                      >
+                        <RotateCcw size={17} />
+                        {republishingId === ad.id
+                          ? "Yayınlanıyor..."
+                          : "Yeniden yayınla"}
                       </button>
                     )}
                   </div>

@@ -114,11 +114,33 @@ export function updateAd(
   });
 }
 
+/**
+ * İlanı yayından kaldırır.
+ *
+ * ⚠ Adı "delete" ama sunucu ilanı SİLMİYOR, pasifleştiriyor
+ * (AdService.deactivateAd -> active = false). Karşılığı `republishAd`.
+ */
 export function deleteAd(
   adId: number,
 ): Promise<void> {
   return request<void>(`/api/ads/${adId}`, {
     method: "DELETE",
+    requiresAuth: true,
+  });
+}
+
+/**
+ * Yayından kaldırılmış ilanı yeniden yayına alır.
+ *
+ * `updateAd` bunu YAPAMAZ: AdUpdateRequest'te `active` alanı yok ve sunucudaki
+ * güncelleme akışı yalnız aktif ilanı buluyor. Bu yüzden ayrı bir uç var.
+ * Yönetici tarafından askıya alınmış ilanlarda sunucu 403 döner.
+ */
+export function republishAd(
+  adId: number,
+): Promise<AdResponse> {
+  return request<AdResponse>(`/api/ads/${adId}/republish`, {
+    method: "PUT",
     requiresAuth: true,
   });
 }
