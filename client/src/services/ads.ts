@@ -5,6 +5,7 @@ import type {
   AdType,
   AdUpdateRequest,
   Page,
+  PosterSettingsRequest,
   ResolveLostAdRequest,
 } from "./types";
 
@@ -226,6 +227,17 @@ export interface AdCountersResponse {
 export function getPublicAdCounters(): Promise<AdCountersResponse> {
   return request<AdCountersResponse>("/api/public/ads/counters", {
     method: "GET",
+  });
+}
+
+export function updatePosterSettings(
+  adId: number,
+  data: PosterSettingsRequest,
+): Promise<AdResponse> {
+  return request<AdResponse>(`/api/v1/ads/${adId}/poster-settings`, {
+    method: "PATCH",
+    requiresAuth: true,
+    body: JSON.stringify(data),
   });
 }
 

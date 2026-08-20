@@ -204,6 +204,15 @@ export type AdResponse = {
   updatedAt: string; // ISO-8601 UTC
   aiStatus?: AiStatus;
   aiIsPet?: boolean;
+  isPosterAllowed?: boolean;
+  showEmailOnPoster?: boolean;
+  showPhoneOnPoster?: boolean;
+};
+
+export type PosterSettingsRequest = {
+  isPosterAllowed: boolean;
+  showEmailOnPoster: boolean;
+  showPhoneOnPoster: boolean;
 };
 
 export type ResolveLostAdRequest = {
