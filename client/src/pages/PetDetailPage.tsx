@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   Download,
+  Edit3,
   Eye,
   Flag,
   Heart,
@@ -23,6 +24,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
+import AdEditModal from "../components/AdEditModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
 import { request } from "../services/api";
@@ -115,6 +117,7 @@ export default function PetDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPosterDownloading, setIsPosterDownloading] = useState(false);
   const [posterError, setPosterError] = useState<string | null>(null);
 
@@ -122,7 +125,8 @@ export default function PetDetailPage() {
   const isValidId = !Number.isNaN(adId) && adId > 0;
 
   const currentUserId = user?.id ?? user?.uid;
-  const isOwner = Boolean(currentUserId && ad?.ownerId && Number(currentUserId) === Number(ad.ownerId));
+  const adOwnerId = ad?.ownerId ?? (ad as unknown as { user?: { id?: number } })?.user?.id;
+  const isOwner = Boolean(currentUserId && adOwnerId && Number(currentUserId) === Number(adOwnerId));
 
 
   const fetchAdDetail = useCallback(async () => {
@@ -700,9 +704,14 @@ export default function PetDetailPage() {
                     Mesaj Gönder
                   </button>
                 ) : (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold flex items-center justify-center">
-                    Kendi ilanınız
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
+                  >
+                    <Edit3 size={19} />
+                    İlanı Düzenle
+                  </button>
                 )}
 
                 <button
@@ -737,13 +746,24 @@ export default function PetDetailPage() {
       <Footer />
 
       {ad && (
-        <ComplaintModal
-          isOpen={isComplaintModalOpen}
-          onClose={() => setIsComplaintModalOpen(false)}
-          targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
-          targetId={ad.id}
-          targetTitle={ad.title}
-        />
+        <>
+          <ComplaintModal
+            isOpen={isComplaintModalOpen}
+            onClose={() => setIsComplaintModalOpen(false)}
+            targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
+            targetId={ad.id}
+            targetTitle={ad.title}
+          />
+
+          <AdEditModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            ad={ad}
+            onSuccess={(updatedAd) =>
+              setAd((prev) => (prev ? { ...prev, ...updatedAd } : updatedAd))
+            }
+          />
+        </>
       )}
     </div>
   );
