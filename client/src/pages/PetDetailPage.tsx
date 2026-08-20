@@ -25,9 +25,10 @@ import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { request } from "../services/api";
 import { downloadLostPoster } from "../services/posters";
 import { createOrGetChatRoom } from "../services/messages";
-import type { AdResponse, AdType } from "../services/types";
+import type { AdResponse, AdType, Page } from "../services/types";
 import {
   getAdImage,
   getAdLocation,
@@ -144,6 +145,55 @@ export default function PetDetailPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ilan id'si degistiginde sunucudan veri cekmek (dis sistemle senkronizasyon), fetchAdDetail kendi ici setIsLoading/setError cagirir
     void fetchAdDetail();
   }, [fetchAdDetail]);
+
+  useEffect(() => {
+    if (!user || !isValidId) {
+      setIsFavorite(false);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadFavoriteStatus = async () => {
+      try {
+        const data = await request<Page<AdResponse>>(
+          "/api/favorites/me?size=100",
+          { requiresAuth: true },
+        );
+
+        if (isActive) {
+          setIsFavorite(data.content.some((favorite) => favorite.id === adId));
+        }
+      } catch {
+        if (isActive) setIsFavorite(false);
+      }
+    };
+
+    void loadFavoriteStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [adId, isValidId, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const previousFavoriteState = isFavorite;
+    setIsFavorite(!previousFavoriteState);
+
+    try {
+      await request(`/api/favorites/${adId}`, {
+        method: previousFavoriteState ? "DELETE" : "POST",
+        requiresAuth: true,
+      });
+    } catch {
+      setIsFavorite(previousFavoriteState);
+    }
+  };
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -350,7 +400,7 @@ export default function PetDetailPage() {
                 <div className="absolute top-4 right-4 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsFavorite((prev) => !prev)}
+                    onClick={() => void handleToggleFavorite()}
                     className={`flex h-10 w-10 items-center justify-center rounded-full border shadow-md transition ${
                       isFavorite
                         ? "border-rose-500 bg-rose-500 text-white"
