@@ -228,3 +228,5 @@ export function getPublicAdCounters(): Promise<AdCountersResponse> {
     method: "GET",
   });
 }
+
+export { downloadLostPoster, downloadLostPoster as downloadAdPoster } from "./posters";

@@ -6,3 +6,5 @@ export * from "./adoptions";
 export * from "./messages";
 export * from "./complaints";
 export * from "./admin";
+export * from "./posters";
+
