@@ -28,8 +28,8 @@ import { getUserErrorMessage } from "../utils/errorMessage";
 
 type Gender = "female" | "male" | "unknown";
 
-/* Backend enum'u: UNKNOWN | BABY | YOUNG | ADULT */
-type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT";
+/* Backend enum'u: entity/enums/AgeGroup = UNKNOWN | BABY | YOUNG | ADULT | SENIOR */
+type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT" | "SENIOR";
 
 /*
  * Sayfa cinsiyeti kucuk harfle tutuyor, backend PetGender enum'u BUYUK
@@ -82,7 +82,7 @@ export default function AdoptionCreatePage() {
     gender: "unknown" as Gender,
     /*
      * Backend yasi SERBEST METIN degil AgeGroup enum'u olarak tutuyor
-     * (UNKNOWN | BABY | YOUNG | ADULT) ve @NotNull. Alan bu yuzden
+     * (UNKNOWN | BABY | YOUNG | ADULT | SENIOR) ve @NotNull. Alan bu yuzden
      * metin kutusundan acilir listeye cevrildi.
      */
     ageGroup: "UNKNOWN" as AgeGroup,
@@ -686,6 +686,10 @@ export default function AdoptionCreatePage() {
 
                     <option value="ADULT">
                       Yetişkin
+                    </option>
+
+                    <option value="SENIOR">
+                      Yaşlı
                     </option>
                   </select>
                 </Field>

@@ -11,14 +11,20 @@ export interface ReportUserModalProps {
   onSuccess?: () => void;
 }
 
+// Backend'in kabul ettigi TEK liste: entity/enums/ComplaintReason.
+// Burada olmayan bir deger gonderilirse sunucu 400 dondurur; onceki listedeki
+// SPAM / HARASSMENT / SCAM / INAPPROPRIATE_CONTENT / OTHER degerlerinin hicbiri
+// backend'de yoktu, yani alti sebebin besi (varsayilan dahil) hata veriyordu.
 const REASON_OPTIONS: { value: ComplaintReason; label: string }[] = [
-  { value: "SPAM", label: "Spam / İstenmeyen Mesaj" },
-  { value: "HARASSMENT", label: "Taciz / Rahatsız Edici Davranış" },
-  { value: "SCAM", label: "Dolandırıcılık / Sahtekarlık Şüphesi" },
-  { value: "INAPPROPRIATE_CONTENT", label: "Uygunsuz / Hakaret İçeren İçerik" },
   { value: "KOTU_DIL_KULLANIMI", label: "Kötü / Saldırgan Dil Kullanımı" },
-  { value: "OTHER", label: "Diğer Sebepler" },
+  { value: "UYGUNSUZ_ICERIK", label: "Uygunsuz / Hakaret İçeren İçerik" },
+  { value: "DOLANDIRICILIK", label: "Dolandırıcılık / Sahtekârlık Şüphesi" },
+  { value: "SAHTE_ILAN", label: "Sahte İlan" },
+  { value: "DIGER", label: "Diğer Sebepler" },
 ];
+
+/** Acilisitaki varsayilan sebep - listenin ilk maddesiyle ayni olmali. */
+const VARSAYILAN_SEBEP: ComplaintReason = "KOTU_DIL_KULLANIMI";
 
 export default function ReportUserModal({
   isOpen,
@@ -27,7 +33,7 @@ export default function ReportUserModal({
   reportedUserName,
   onSuccess,
 }: ReportUserModalProps) {
-  const [reason, setReason] = useState<ComplaintReason>("SPAM");
+  const [reason, setReason] = useState<ComplaintReason>(VARSAYILAN_SEBEP);
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +44,7 @@ export default function ReportUserModal({
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
-      setReason("SPAM");
+      setReason(VARSAYILAN_SEBEP);
       setDescription("");
       setError(null);
       setSuccess(false);
