@@ -82,6 +82,10 @@ export default function ChangePasswordPage() {
       return "Yeni şifre en az 8 karakter olmalıdır.";
     }
 
+    if (form.newPassword.length > 20) {
+      return "Yeni şifre en fazla 20 karakter olmalıdır.";
+    }
+
     if (!/[A-ZÇĞİÖŞÜ]/.test(form.newPassword)) {
       return "Yeni şifre en az bir büyük harf içermelidir.";
     }
@@ -151,6 +155,12 @@ export default function ChangePasswordPage() {
     {
       label: "En az 8 karakter",
       valid: form.newPassword.length >= 8,
+    },
+    {
+      label: "En fazla 20 karakter",
+      valid:
+        form.newPassword.length > 0 &&
+        form.newPassword.length <= 20,
     },
     {
       label: "En az bir büyük harf",
