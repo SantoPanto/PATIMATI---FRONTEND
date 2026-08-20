@@ -424,6 +424,13 @@ export default function FoundPetCreatePage() {
       ad.lostDate = form.foundDate;
     }
 
+    if (!ad.date || ad.date === "") {
+      delete ad.date;
+    }
+    if (!ad.lostDate || ad.lostDate === "") {
+      delete ad.lostDate;
+    }
+
     /*
      * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor,
      * yani JSON bir Blob olarak gonderilmeli. Kalip AddListingPage'den
@@ -755,7 +762,8 @@ export default function FoundPetCreatePage() {
               <Field label="Bulunma tarihi" required>
                 <input
                   type="date"
-                  value={form.foundDate}
+                  required
+                  value={form.foundDate || ""}
                   max={today}
                   onChange={(event) => {
                     setDateError("");

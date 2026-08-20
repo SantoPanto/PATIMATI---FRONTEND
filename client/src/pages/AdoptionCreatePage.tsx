@@ -427,6 +427,13 @@ export default function AdoptionCreatePage() {
       ad.lostDate = form.date;
     }
 
+    if (!ad.date || ad.date === "") {
+      delete ad.date;
+    }
+    if (!ad.lostDate || ad.lostDate === "") {
+      delete ad.lostDate;
+    }
+
     /*
      * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor
      * (images required=true). Kalip AddListingPage'den.
@@ -772,7 +779,8 @@ export default function AdoptionCreatePage() {
                 <Field label="Tarih" required>
                   <input
                     type="date"
-                    value={form.date}
+                    required
+                    value={form.date || ""}
                     max={today}
                     onChange={(e) => {
                       setDateError("");
