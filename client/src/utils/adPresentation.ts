@@ -12,6 +12,7 @@ export { getImageUrl, getMediaUrl };
 const speciesLabels: Record<Species, string> = {
   CAT: "Kedi",
   DOG: "Köpek",
+  UNKNOWN: "Belirtilmemiş",
 };
 
 const genderLabels: Record<Gender, string> = {
