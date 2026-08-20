@@ -32,6 +32,14 @@ const TECHNICAL_MESSAGE_PATTERNS: RegExp[] = [
   /constraint violation/i,
   /rejected value/i,
   /stack ?trace/i,
+  /type definition/i,
+  /deserialization/i,
+  /cannot deserialize/i,
+  /jackson/i,
+  /class java/i,
+  /java\.lang/i,
+  /full authentication is required/i,
+  /unauthorized/i,
   /^\[object /i,
   /^\s*[{[]/, // ham JSON gövdesi
 ];
@@ -78,7 +86,11 @@ export function extractRfc7807Details(error: unknown): string | null {
       }
     }
 
-    if (typeof data.detail === "string" && data.detail.trim().length > 0) {
+    if (
+      typeof data.detail === "string" &&
+      data.detail.trim().length > 0 &&
+      !looksTechnical(data.detail)
+    ) {
       return data.detail;
     }
   }
@@ -123,20 +135,7 @@ export function getUserErrorMessage(
   error: unknown,
   fallback: string = GENERIC_ERROR_MESSAGE,
 ): string {
-  const rfcDetails = extractRfc7807Details(error);
-  if (rfcDetails) {
-    return rfcDetails;
-  }
-
-  if (error instanceof TypeError) {
-    return NETWORK_ERROR_MESSAGE;
-  }
-
   if (error instanceof ApiError) {
-    if (error.status === 404) {
-      return NOT_FOUND_MESSAGE;
-    }
-
     if (error.status === 401) {
       return UNAUTHORIZED_MESSAGE;
     }
@@ -144,6 +143,19 @@ export function getUserErrorMessage(
     if (error.status === 403) {
       return FORBIDDEN_MESSAGE;
     }
+
+    if (error.status === 404) {
+      return NOT_FOUND_MESSAGE;
+    }
+  }
+
+  const rfcDetails = extractRfc7807Details(error);
+  if (rfcDetails) {
+    return rfcDetails;
+  }
+
+  if (error instanceof TypeError) {
+    return NETWORK_ERROR_MESSAGE;
   }
 
   if (error instanceof Error && !looksTechnical(error.message)) {

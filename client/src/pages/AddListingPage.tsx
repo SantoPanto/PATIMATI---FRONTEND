@@ -769,7 +769,7 @@ export default function AddListingPage() {
 
         breed: breed.trim(),
 
-        colors,
+        colors: Array.isArray(colors) ? colors : [],
 
         gender,
 
