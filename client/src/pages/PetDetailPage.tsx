@@ -69,6 +69,35 @@ function getAdTypeBadge(adType: AdType) {
   }
 }
 
+function getPosterInfo(adType?: AdType) {
+  switch (adType) {
+    case "LOST":
+      return {
+        title: "Kayıp Afişi",
+        description: "QR kodlu kayıp afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Kayıp Afişi İndir (PDF)",
+      };
+    case "FOUND":
+      return {
+        title: "Bulundu Afişi",
+        description: "QR kodlu bulundu afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Bulundu Afişi İndir (PDF)",
+      };
+    case "ADOPTION":
+      return {
+        title: "Sahiplendirme Afişi",
+        description: "QR kodlu sahiplendirme afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Sahiplendirme Afişi İndir (PDF)",
+      };
+    default:
+      return {
+        title: "Afiş",
+        description: "QR kodlu afişi PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Afiş İndir (PDF)",
+      };
+  }
+}
+
 function formatCollarStatus(
   status: AdResponse["collarStatus"],
   collarColor?: string,
@@ -246,7 +275,7 @@ export default function PetDetailPage() {
   };
 
   const handleDownloadPoster = async () => {
-    if (!ad || ad.adType !== "LOST") {
+    if (!ad) {
       return;
     }
 
@@ -261,11 +290,11 @@ export default function PetDetailPage() {
     try {
       await downloadLostPoster(ad.id);
     } catch (err) {
-      console.error("Kayıp afişi indirilirken hata oluştu:", err);
+      console.error("Afiş indirilirken hata oluştu:", err);
       setPosterError(
         getUserErrorMessage(
           err,
-          "Kayıp afişi indirilirken bir sorun oluştu.",
+          "Afiş indirilirken bir sorun oluştu.",
         ),
       );
     } finally {
@@ -601,16 +630,16 @@ export default function PetDetailPage() {
               </div>
             )}
 
-            {/* Kayıp Afişi PDF - yalnızca LOST ilanlarda gösterilir */}
-            {ad.adType === "LOST" && (
+            {/* Dynamic Afiş İndirme PDF Kartı (LOST, FOUND, ADOPTION) */}
+            {ad && (
               <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-base font-bold text-slate-900">
-                      Kayıp Afişi
+                      {getPosterInfo(ad.adType).title}
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                      QR kodlu kayıp afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.
+                      {getPosterInfo(ad.adType).description}
                     </p>
                   </div>
 
@@ -632,7 +661,7 @@ export default function PetDetailPage() {
                       <Download size={19} />
                       {isPosterDownloading
                         ? "PDF hazırlanıyor..."
-                        : "Kayıp Afişi İndir (PDF)"}
+                        : getPosterInfo(ad.adType).buttonText}
                     </button>
 
                     {!isOwner && ad.isPosterAllowed === false && (
