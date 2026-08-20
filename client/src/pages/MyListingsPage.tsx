@@ -5,6 +5,7 @@ import {
   CirclePlus,
   Eye,
   MapPin,
+  PartyPopper,
   PawPrint,
   RotateCcw,
   Settings,
@@ -17,6 +18,7 @@ import { Link } from "wouter";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import PosterSettingsModal from "../components/PosterSettingsModal";
+import ResolveFoundModal from "../components/ResolveFoundModal";
 import { deleteAd, getMyAds, republishAd } from "../services/ads";
 import type { AdResponse } from "../services/types";
 import {
@@ -40,6 +42,7 @@ export default function MyListingsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [republishingId, setRepublishingId] = useState<number | null>(null);
   const [posterModalAd, setPosterModalAd] = useState<AdResponse | null>(null);
+  const [bulunduModalAd, setBulunduModalAd] = useState<AdResponse | null>(null);
 
   const requestAds = useCallback(
     () =>
@@ -124,6 +127,31 @@ export default function MyListingsPage() {
     } finally {
       setRepublishingId(null);
     }
+  };
+
+  /**
+   * Kayip ilani "bulundu" olarak kapandiginda listeyi sunucudan tazeler.
+   *
+   * Yerelde alan guncellemek YETMEZ: sunucu ilani pasiflestiriyor ve
+   * `resolutionStatus` yaziyor; ikincisini `AdResponse` hic tasimiyor. Yerel
+   * kopyayi elle duzeltmek, ekranin sunucudan farkli bir gercegi gostermesine
+   * yol acardi.
+   */
+  const handleResolvedFound = (resolvedAd: AdResponse) => {
+    setSuccessNotification(
+      `“${resolvedAd.title}” ilanı bulundu olarak kapatıldı. Mutlu sonlar!`,
+    );
+    setTimeout(() => {
+      setSuccessNotification("");
+    }, 4000);
+
+    void requestAds()
+      .then((page) => setAds(page.content))
+      .catch((error: unknown) => {
+        setErrorMessage(
+          getUserErrorMessage(error, "İlan listesi yenilenemedi."),
+        );
+      });
   };
 
   const handlePosterSettingsUpdate = (updatedAd: AdResponse) => {
@@ -279,6 +307,22 @@ export default function MyListingsPage() {
                       </button>
                     )}
                   </div>
+
+                  {/* Yalniz KAYIP ve YAYINDA olan ilanda cizilir: sunucu
+                      (AdService.resolveLostAd) uc kosulu da ariyor — sahiplik,
+                      aktiflik, LOST tipi. Askidaki ilan `active=false`
+                      oldugundan burada zaten gorunmez; kosul genisletilirse
+                      kullanici HER ZAMAN reddedilecek bir dugmeye basar. */}
+                  {ad.adType === "LOST" && ad.active && (
+                    <button
+                      type="button"
+                      onClick={() => setBulunduModalAd(ad)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <PartyPopper size={17} />
+                      Hayvanımı buldum
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -290,6 +334,13 @@ export default function MyListingsPage() {
           onClose={() => setPosterModalAd(null)}
           ad={posterModalAd}
           onSuccess={handlePosterSettingsUpdate}
+        />
+
+        <ResolveFoundModal
+          isOpen={Boolean(bulunduModalAd)}
+          onClose={() => setBulunduModalAd(null)}
+          ad={bulunduModalAd}
+          onSuccess={handleResolvedFound}
         />
       </main>
 

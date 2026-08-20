@@ -223,8 +223,22 @@ export type PosterSettingsRequest = {
   showPhoneOnPoster: boolean;
 };
 
+/**
+ * Kayip ilanini "bulundu" diye kapatma istegi.
+ *
+ * Iki alan da ISTEGE BAGLI: kullanici hayvanini kendi bulmus olabilir. Sunucu
+ * `foundAdId` gonderildiginde ilanin gercekten FOUND tipinde oldugunu dogrular,
+ * degilse istegin TAMAMINI reddeder — bu yuzden istemci bagi ancak dogruladigi
+ * ilan icin gonderir.
+ *
+ * Backend karsiligi: dto/ad/ResolveLostAdRequest (foundAdId backend #105 ile
+ * geldi; alani tanimayan eski sunucu istegi reddetmez, alani yok sayar).
+ */
 export type ResolveLostAdRequest = {
+  /** Hayvani bulan kullanici. Odul puani buna yaziliyor. */
   finderId?: number;
+  /** Eslesen BULUNDU ilaninin kimligi. `resolved_by_ad_id` alanini doldurur. */
+  foundAdId?: number;
 };
 
 // ==========================================
