@@ -7,6 +7,7 @@ import {
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
+  CalendarDays,
   Camera,
   CheckCircle2,
   ChevronRight,
@@ -154,6 +155,8 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const today = new Date().toISOString().split("T")[0];
+
 const COLOR_LABELS: Record<PetColor, string> = {
   BLACK: "Siyah",
   WHITE: "Beyaz",
@@ -268,9 +271,9 @@ export default function AddListingPage() {
   const [microchipNumber, setMicrochipNumber] =
     useState("");
 
-  /* ------------------------------ Lost info ----------------------------- */
+  /* ------------------------------ Date & Info --------------------------- */
 
-  const [lostDate, setLostDate] = useState("");
+  const [lostDate, setLostDate] = useState(today);
 
   const [distinctiveMarks, setDistinctiveMarks] =
     useState("");
@@ -714,8 +717,12 @@ export default function AddListingPage() {
       return "Geçerli bir boylam değeri giriniz.";
     }
 
-    if (adType === "LOST" && !lostDate) {
-      return "Kayıp ilanı için kayıp tarihi zorunludur.";
+    if (!lostDate || lostDate.trim() === "") {
+      return "Tarih bilgisi zorunludur.";
+    }
+
+    if (lostDate > today) {
+      return "Gelecekte bir tarih seçilemez.";
     }
 
     return null;
@@ -751,7 +758,7 @@ export default function AddListingPage() {
        * ai_species, etc. are NOT sent here because Spring's
        * AdCreateRequest does not accept them.
        */
-      const ad = {
+      const ad: Record<string, unknown> = {
         title: title.trim(),
 
         description: description.trim(),
@@ -788,11 +795,6 @@ export default function AddListingPage() {
             .replace(/\s+/g, "")
             .trim(),
 
-        lostDate:
-          adType === "LOST" && lostDate && lostDate.trim() !== ""
-            ? lostDate
-            : null,
-
         distinctiveMarks:
           distinctiveMarks.trim(),
 
@@ -800,6 +802,18 @@ export default function AddListingPage() {
 
         longitude: Number(longitude),
       };
+
+      if (lostDate && lostDate.trim() !== "") {
+        ad.lostDate = lostDate;
+        ad.date = lostDate;
+      }
+
+      if (!ad.lostDate || ad.lostDate === "") {
+        delete ad.lostDate;
+      }
+      if (!ad.date || ad.date === "") {
+        delete ad.date;
+      }
 
       /*
        * Spring Boot expects:
@@ -916,11 +930,6 @@ export default function AddListingPage() {
   /* ---------------------------------------------------------------------- */
   /* Render helpers                                                         */
   /* ---------------------------------------------------------------------- */
-
-  const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
 
   const inputClass =
     "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10";
@@ -1852,44 +1861,50 @@ export default function AddListingPage() {
           </section>
 
           {/* ---------------------------------------------------------------- */}
-          {/* LOST DATE                                                         */}
+          {/* DATE SECTION (RENDERED FOR ALL AD TYPES: LOST, FOUND, ADOPTION)  */}
           {/* ---------------------------------------------------------------- */}
 
-          {adType === "LOST" && (
-            <section className={cardClass}>
-              <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
-                <Search
-                  size={20}
-                  className="text-[#7c5cff]"
-                />
-                Kayıp Bilgileri
-              </h2>
+          <section className={cardClass}>
+            <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
+              <CalendarDays
+                size={20}
+                className="text-[#7c5cff]"
+              />
+              {adType === "LOST"
+                ? "Kayıp Bilgileri"
+                : adType === "FOUND"
+                  ? "Bulunma Bilgileri"
+                  : "İlan / Sahiplendirme Tarihi"}
+            </h2>
 
-              <div>
-                <label
-                  htmlFor="lost-date"
-                  className={labelClass}
-                >
-                  Kayıp Tarihi
-                </label>
+            <div>
+              <label
+                htmlFor="lost-date"
+                className={labelClass}
+              >
+                {adType === "LOST"
+                  ? "Kayıp Tarihi"
+                  : adType === "FOUND"
+                    ? "Bulunma Tarihi"
+                    : "İlan Tarihi"}
+              </label>
 
-                <input
-                  id="lost-date"
-                  type="date"
-                  value={lostDate}
-                  max={today}
-                  onChange={(event) =>
-                    setLostDate(
-                      event.target.value,
-                    )
-                  }
-                  disabled={disabled}
-                  required
-                  className={inputClass}
-                />
-              </div>
-            </section>
-          )}
+              <input
+                id="lost-date"
+                type="date"
+                value={lostDate || ""}
+                max={today}
+                onChange={(event) =>
+                  setLostDate(
+                    event.target.value,
+                  )
+                }
+                disabled={disabled}
+                required
+                className={inputClass}
+              />
+            </div>
+          </section>
 
           {/* ---------------------------------------------------------------- */}
           {/* LOCATION                                                          */}
