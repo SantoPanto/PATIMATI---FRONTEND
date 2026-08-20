@@ -789,7 +789,7 @@ export default function AddListingPage() {
             .trim(),
 
         lostDate:
-          adType === "LOST"
+          adType === "LOST" && lostDate && lostDate.trim() !== ""
             ? lostDate
             : null,
 

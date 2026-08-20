@@ -57,12 +57,15 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const today = new Date().toISOString().split("T")[0];
+
 export default function FoundPetCreatePage() {
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dateError, setDateError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocationLoading, setIsLocationLoading] =
     useState(false);
@@ -72,7 +75,7 @@ export default function FoundPetCreatePage() {
     breed: "",
     gender: "UNKNOWN" as Gender,
     color: "",
-    foundDate: "",
+    foundDate: today,
     city: "",
     district: "",
     locationDescription: "",
@@ -380,7 +383,7 @@ export default function FoundPetCreatePage() {
       (form.species === "CAT" ? "Kedi" : "Köpek")
     } — ${form.city.trim() || "konum belirtilmedi"}`;
 
-    const ad = {
+    const ad: Record<string, unknown> = {
       /*
        * title backend'de @NotBlank ama formda boyle bir alan yok;
        * tur + konumdan turetiliyor (150 karakter siniri var).
@@ -411,6 +414,15 @@ export default function FoundPetCreatePage() {
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
     };
+
+    /*
+     * Payload temizligi: date veya lostDate alani bos ("") ise
+     * backend'e "" GONDERTILMEZ. Yalnizca doluysa eklenir.
+     */
+    if (form.foundDate && form.foundDate.trim() !== "") {
+      ad.date = form.foundDate;
+      ad.lostDate = form.foundDate;
+    }
 
     /*
      * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor,
@@ -458,8 +470,7 @@ export default function FoundPetCreatePage() {
 
       const govde = await response.text();
 
-      let sonuc: { id?: number; message?: string; error?: string } | null =
-        null;
+      let sonuc: Record<string, unknown> | null = null;
 
       try {
         sonuc = govde ? JSON.parse(govde) : null;
@@ -468,9 +479,29 @@ export default function FoundPetCreatePage() {
       }
 
       if (!response.ok) {
+        const invalidParams =
+          (sonuc?.invalid_params as unknown[]) ||
+          ((sonuc?.properties as Record<string, unknown>)?.invalid_params as unknown[]);
+
+        if (Array.isArray(invalidParams)) {
+          const dateParam = invalidParams.find((p: unknown) => {
+            if (p && typeof p === "object") {
+              const paramObj = p as Record<string, unknown>;
+              const name = (paramObj.name || paramObj.field) as string | undefined;
+              return name === "date" || name === "lostDate" || name === "foundDate";
+            }
+            return false;
+          }) as Record<string, unknown> | undefined;
+
+          if (dateParam) {
+            const reason = (dateParam.reason || dateParam.message || dateParam.detail) as string | undefined;
+            setDateError(reason || "Tarih alanı boş bırakılamaz veya gelecekte bir tarih olamaz.");
+          }
+        }
+
         throw new Error(
-          sonuc?.message ||
-            sonuc?.error ||
+          (sonuc?.message as string) ||
+            (sonuc?.error as string) ||
             `Buldum ilanı oluşturulamadı (${response.status}).`,
         );
       }
@@ -725,14 +756,25 @@ export default function FoundPetCreatePage() {
                 <input
                   type="date"
                   value={form.foundDate}
-                  onChange={(event) =>
+                  max={today}
+                  onChange={(event) => {
+                    setDateError("");
                     updateForm(
                       "foundDate",
                       event.target.value,
-                    )
-                  }
-                  className={inputClass}
+                    );
+                  }}
+                  className={`${inputClass} ${
+                    dateError
+                      ? "border-red-500 ring-2 ring-red-200"
+                      : ""
+                  }`}
                 />
+                {dateError && (
+                  <p className="mt-1 text-xs font-semibold text-red-600">
+                    {dateError}
+                  </p>
+                )}
               </Field>
 
               <div>

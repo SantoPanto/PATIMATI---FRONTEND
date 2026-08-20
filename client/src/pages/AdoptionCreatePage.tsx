@@ -391,15 +391,13 @@ export default function AdoptionCreatePage() {
       .filter(Boolean)
       .join("\n");
 
-    const ad = {
+    const ad: Record<string, unknown> = {
       title: form.title.trim().slice(0, 150),
       description: aciklama,
       species: form.species,
       breed: form.breed.trim(),
       gender: CINSIYET_KARSILIGI[form.gender],
       ageGroup: form.ageGroup,
-      date: form.date,
-      lostDate: form.date,
       /*
        * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
        * metin var. Enum'a cevrilemedigi icin renk aciklamada kaliyor.
@@ -419,6 +417,15 @@ export default function AdoptionCreatePage() {
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
     };
+
+    /*
+     * Payload temizligi: date veya lostDate alani bos ("") ise
+     * backend'e "" GONDERTILMEZ. Yalnizca doluysa eklenir.
+     */
+    if (form.date && form.date.trim() !== "") {
+      ad.date = form.date;
+      ad.lostDate = form.date;
+    }
 
     /*
      * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor
