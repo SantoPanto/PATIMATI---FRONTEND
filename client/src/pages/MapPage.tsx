@@ -10,7 +10,7 @@ import { Link } from "wouter";
 import { Filter, MapPin, PawPrint, Search, X } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
-import Header from "../components/Header";
+import MainLayout from "../components/MainLayout";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
@@ -168,8 +168,7 @@ export default function MapPage() {
   }, [selectedAd, adsWithCoordinates]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <Header />
+    <MainLayout showFooter={true} className="map-page-layout">
       <TeamShell className="map-page">
       <header className="center-header">
         <TeamBack href="/" />
@@ -413,6 +412,6 @@ export default function MapPage() {
         </section>
       )}
     </TeamShell>
-    </div>
+    </MainLayout>
   );
 }

@@ -11,6 +11,7 @@ import {
   Eye,
   Flag,
   Heart,
+  Info,
   MapPin,
   MessageCircle,
   PawPrint,
@@ -701,6 +702,20 @@ export default function PetDetailPage() {
 
             {/* İlan Sahibi & İletişim Kartı */}
             <div className="rounded-3xl border border-orange-100 bg-orange-50/60 p-6 shadow-sm sm:p-8">
+              {isOwner && (
+                <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900 shadow-xs">
+                  <Info size={20} className="mt-0.5 shrink-0 text-amber-600" />
+                  <div>
+                    <strong className="block text-sm font-bold text-amber-900">
+                      Bu ilan size aittir.
+                    </strong>
+                    <p className="mt-0.5 text-xs text-amber-700">
+                      Kendi ilanınız olduğu için mesaj gönderme ve sahiplenme butonları devre dışı bırakılmıştır. İlanınızı aşağıdaki butondan düzenleyebilirsiniz.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F97316] font-bold text-white shadow-md">
@@ -730,7 +745,7 @@ export default function PetDetailPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
                   >
                     <MessageCircle size={19} />
-                    Mesaj Gönder
+                    {ad.adType === "ADOPTION" ? "Sahiplenmek İçin İletişime Geç" : "Mesaj Gönder"}
                   </button>
                 ) : (
                   <button

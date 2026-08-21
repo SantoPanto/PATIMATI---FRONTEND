@@ -210,7 +210,7 @@ function App() {
 
         <Route
           path="/adoption/:id"
-          component={AdoptionDetailPage}
+          component={PetDetailPage}
         />
 
         <Route path="/adoption" component={Adoption} />
