@@ -1,31 +1,29 @@
-﻿import { Link, useLocation } from "wouter";
-import {
-  ArrowLeft,
-  ChevronRight,
-  MapPin,
-  PawPrint,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { useLocation } from "wouter";
+import { ArrowLeft, Search, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import MatchedAdCard from "../components/MatchedAdCard";
+import type { MatchedAdResponseDTO } from "../services/types";
 
-type MatchResult = {
-  id: number;
-  name: string;
-  animal: string;
-  breed: string;
-  location: string;
-  distance: string;
-  similarity: number;
-  type: "lost" | "found";
-  image: string;
-};
+export default function AiMatchResultsPage() {
+  const [, navigate] = useLocation();
+  const [matchResults, setMatchResults] = useState<MatchedAdResponseDTO[]>([]);
 
-import { useEffect, useState } from "react";
-
-export default function AiMatchResultsPage() { const [, navigate] = useLocation(); const [mockResults, setMockResults] = useState<MatchResult[]>([]); useEffect(() => { const stored = sessionStorage.getItem("aiMatchResults"); if (stored) { try { const parsed = JSON.parse(stored); const mapped = parsed.map((item: any) => ({ id: item.ad.id, name: item.ad.title || "İlan", animal: item.ad.species === "CAT" ? "Kedi" : "Köpek", breed: item.ad.breed || "Bilinmiyor", location: (item.ad.district && item.ad.city) ? `${item.ad.district}, ${item.ad.city}` : "Bilinmiyor", distance: "-", similarity: item.score, type: item.ad.listingType === "FOUND" ? "found" : "lost", image: (item.ad.photos && item.ad.photos.length > 0) ? item.ad.photos[0].photoUrl : "https://via.placeholder.com/400" })); setMockResults(mapped); } catch (e) { console.error(e); } } }, []);
+  useEffect(() => {
+    const stored = sessionStorage.getItem("aiMatchResults");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setMatchResults(parsed);
+        }
+      } catch (e) {
+        console.error("Eşleştirme sonuçları ayrıştırılamadı:", e);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
@@ -67,7 +65,7 @@ export default function AiMatchResultsPage() { const [, navigate] = useLocation(
 
                 <div className="mt-1 flex items-end gap-2">
                   <strong className="text-3xl font-black text-[#0F172A]">
-                    {mockResults.length}
+                    {matchResults.length}
                   </strong>
 
                   <span className="pb-1 text-sm text-[#94A3B8]">
@@ -103,97 +101,12 @@ export default function AiMatchResultsPage() { const [, navigate] = useLocation(
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mockResults.map((result, index) => (
-              <article
-                key={result.id}
-                className="overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="relative h-64 overflow-hidden bg-[#F1F5F9]">
-                  <img
-                    src={result.image}
-                    alt={result.name}
-                    className="h-full w-full object-cover transition duration-500 hover:scale-105"
-                  />
-
-                  <div className="absolute left-4 top-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-white ${
-                        result.similarity >= 90
-                          ? "bg-[#16A34A]"
-                          : result.similarity >= 80
-                            ? "bg-[#F97316]"
-                            : "bg-[#2563EB]"
-                      }`}
-                    >
-                      <Sparkles size={14} />
-                      %{result.similarity} benzer
-                    </span>
-                  </div>
-
-                  {index === 0 && (
-                    <span className="absolute right-4 top-4 rounded-full bg-[#0F172A]/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur">
-                      En güçlü eşleşme
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-[#0F172A]">
-                        {result.name}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-[#64748B]">
-                        {result.animal} · {result.breed}
-                      </p>
-                    </div>
-
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
-                      <PawPrint size={22} />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex items-center gap-2 rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm text-[#64748B]">
-                    <MapPin size={17} className="text-[#F97316]" />
-
-                    <span className="flex-1">{result.location}</span>
-
-                    <strong className="text-[#334155]">
-                      {result.distance}
-                    </strong>
-                  </div>
-
-                  <div className="mt-5">
-                    <div className="mb-2 flex items-center justify-between text-xs font-semibold">
-                      <span className="text-[#64748B]">
-                        Görsel benzerlik
-                      </span>
-
-                      <span className="text-[#0F172A]">
-                        %{result.similarity}
-                      </span>
-                    </div>
-
-                    <div className="h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
-                      <div
-                        className="h-full rounded-full bg-[#F97316]"
-                        style={{
-                          width: `${result.similarity}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/pet/${result.id}`}
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white transition hover:bg-[#EA580C]"
-                  >
-                    İlanı incele
-                    <ChevronRight size={18} />
-                  </Link>
-                </div>
-              </article>
+            {matchResults.map((match, index) => (
+              <MatchedAdCard
+                key={match.ad?.id || index}
+                match={match}
+                variant="grid"
+              />
             ))}
           </div>
 
@@ -216,4 +129,3 @@ export default function AiMatchResultsPage() { const [, navigate] = useLocation(
     </div>
   );
 }
-
