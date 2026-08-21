@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import { startGoogleOAuth } from "../services/auth";
@@ -65,6 +65,9 @@ export default function HomePage() {
   const [, navigate] = useLocation();
 
   const [searchValue, setSearchValue] = useState("");
+  // Arama/filtre sonuçlarının yaşadığı bölüm — Enter ve "N sonucu göster"
+  // buraya kaydırır ki süzmenin bir karşılığı ekranda görünsün.
+  const resultsSectionRef = useRef<HTMLElement | null>(null);
   const [listings, setListings] = useState<PetListing[]>([]);
   const [isListingsLoading, setIsListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState("");
@@ -213,6 +216,13 @@ export default function HomePage() {
 
   const requireAuth = (targetPath: string) => {
     navigate(targetPath);
+  };
+
+  const scrollToResults = () => {
+    resultsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const toggleFavorite = (listingId: number) => {
@@ -383,14 +393,26 @@ export default function HomePage() {
                 Yakınındaki dostlara ulaş ve güvenli iletişim kur
               </p>
 
-              <div className="hero-search">
+              {/* form + onSubmit: Enter'ın bir karşılığı olsun diye. Kutu
+                  yazarken aşağıdaki "Yakındaki ilanlar" listesini süzüyordu
+                  ama liste ekranın dışında kaldığı için kullanıcı hiçbir
+                  tepki görmüyor ve aramayı bozuk sanıyordu (canlıda ekipten
+                  gelen gerçek şikayet, 21.08). */}
+              <form
+                className="hero-search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  scrollToResults();
+                }}
+              >
                 <Search size={21} aria-hidden="true" />
 
                 <input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="İsim tür konum veya ırk ara"
+                  placeholder="İsim, tür veya ırk ara"
                   aria-label="İlanlarda arama yap"
+                  enterKeyHint="search"
                 />
 
                 <button
@@ -402,7 +424,19 @@ export default function HomePage() {
                   <SlidersHorizontal size={19} />
                   <span>Filtrele</span>
                 </button>
-              </div>
+              </form>
+
+              {searchValue.trim().length > 0 && (
+                <button
+                  type="button"
+                  className="hero-search-feedback"
+                  onClick={scrollToResults}
+                >
+                  {filteredListings.length === 0
+                    ? "Aramana uyan ilan yok — filtreleri genişletmeyi dene"
+                    : `${filteredListings.length} ilan bulundu — sonuçlara in`}
+                </button>
+              )}
 
               <div className="hero-actions">
                 <button
@@ -604,7 +638,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="listings-section">
+        <section className="listings-section" ref={resultsSectionRef}>
           <div className="page-container">
             <div className="section-heading-row">
               <div className="section-heading">
@@ -1072,7 +1106,13 @@ export default function HomePage() {
             <button
               type="button"
               className="filter-apply-button"
-              onClick={() => setIsFilterOpen(false)}
+              onClick={() => {
+                setIsFilterOpen(false);
+                // "N sonucu göster" sonuçları GÖSTERMELİ: panel kapanınca
+                // sayfa sonuç listesine iner (eskiden yalnız kapanıyordu ve
+                // sonuçlar ekran dışında kalıyordu).
+                scrollToResults();
+              }}
             >
               {filteredListings.length} sonucu göster
             </button>

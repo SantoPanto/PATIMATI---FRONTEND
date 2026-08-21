@@ -341,6 +341,29 @@ img {
   transform: translateY(-1px);
 }
 
+/* Arama kutusunun hemen altındaki canlı geri bildirim satırı: kaç ilan
+   süzüldüğünü söyler ve tıklanınca sonuçlara kaydırır. Kutu yazarken
+   sayfanın altındaki listeyi süzüyor ama bunu gösteren hiçbir şey yoktu —
+   kullanıcılar aramayı bozuk sanıyordu. */
+.hero-search-feedback {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.12);
+  color: var(--primary, #f97316);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.hero-search-feedback:hover {
+  background: rgba(249, 115, 22, 0.2);
+}
+
 .hero-location {
   display: flex;
   align-items: center;
