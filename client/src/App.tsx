@@ -18,7 +18,6 @@ import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
-import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
 import MyMatchesPage from "./pages/MyMatchesPage";
