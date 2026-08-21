@@ -14,8 +14,7 @@ export function formatMatchScore(score: number | undefined | null): number {
 }
 
 /** Standart varsayılan (placeholder) görsel */
-const DEFAULT_PLACEHOLDER =
-  "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600";
+const DEFAULT_PLACEHOLDER = "/favicon.svg";
 
 interface MatchedAdCardProps {
   match: MatchedAdResponseDTO;
@@ -32,7 +31,7 @@ export default function MatchedAdCard({
   const scorePct = formatMatchScore(score);
 
   // photoUrls[0] değerini güvenli şekilde al, boş veya geçersizse placeholder kullan
-  const rawPhoto = ad?.photoUrls?.[0];
+  const rawPhoto = ad?.photoUrls?.find((url) => Boolean(url?.trim()));
   const initialPhotoUrl = rawPhoto ? getImageUrl(rawPhoto) : DEFAULT_PLACEHOLDER;
   const [imgSrc, setImgSrc] = useState<string>(initialPhotoUrl);
 

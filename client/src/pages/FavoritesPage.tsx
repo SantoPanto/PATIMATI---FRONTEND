@@ -47,15 +47,37 @@ export default function FavoritesPage() {
     const loadFavorites = async () => {
       try {
         setLoading(true);
-        const data = await request<Page<AdResponse>>(
+        const data = await request<Page<any>>(
           "/api/favorites/me?size=50",
           { requiresAuth: true },
         );
 
+        const rawList = data.content || [];
+        const normalizedAds: AdResponse[] = rawList
+          .map((item: any) => {
+            // Backend returns item.ad if wrapped in Favorite object, or item directly if AdResponse
+            const adObj: AdResponse | null = item?.ad || item?.pet || item?.listing || (item?.id && item?.adType ? item : null);
+            if (!adObj) return null;
+
+            const rawPhoto = adObj.photoUrls?.find((url: string) => Boolean(url?.trim()));
+
+            // Debugging console.log
+            console.log("Favorite Ad Image URL:", {
+              adId: adObj.id,
+              title: adObj.title,
+              photoUrls: adObj.photoUrls,
+              rawPhoto: rawPhoto || "Görsel Bulunamadı",
+            });
+
+            return adObj;
+          })
+          .filter((ad): ad is AdResponse => ad !== null);
+
         if (isActive) {
-          setFavorites(data.content || []);
+          setFavorites(normalizedAds);
         }
-      } catch {
+      } catch (err) {
+        console.error("Favoriler yüklenirken hata oluştu:", err);
         if (isActive) setFavorites([]);
       } finally {
         if (isActive) setLoading(false);

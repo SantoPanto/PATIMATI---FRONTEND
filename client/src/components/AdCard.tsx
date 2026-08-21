@@ -10,15 +10,11 @@ import {
   Trash2,
 } from "lucide-react";
 import type { AdResponse, AdType } from "../services/types";
-import { getImageUrl } from "../utils/imageUrl";
 import {
   getAdLocation,
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
-
-const DEFAULT_PLACEHOLDER =
-  "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600";
 
 const categoryStyles: Record<AdType, { label: string; classNames: string }> = {
   LOST: { label: "Kayıp", classNames: "bg-rose-100 text-rose-700 border-rose-200" },
@@ -43,35 +39,41 @@ export default function AdCard({
   onRemoveFavorite,
   onToggleFavorite,
 }: AdCardProps) {
-  const rawPhoto = ad.photoUrls?.find((url) => Boolean(url?.trim()));
-  const initialPhotoUrl = rawPhoto ? getImageUrl(rawPhoto) : DEFAULT_PLACEHOLDER;
-  const [imgSrc, setImgSrc] = useState<string>(initialPhotoUrl);
+  const rawPhoto = ad?.photoUrls?.find((url) => Boolean(url?.trim()));
+  const [hasError, setHasError] = useState(false);
 
   const handleImageError = () => {
-    if (imgSrc !== DEFAULT_PLACEHOLDER) {
-      setImgSrc(DEFAULT_PLACEHOLDER);
+    if (!hasError) {
+      setHasError(true);
     }
   };
 
-  const badgeConfig = categoryStyles[ad.adType] || {
+  const badgeConfig = categoryStyles[ad?.adType] || {
     label: "İlan",
     classNames: "bg-slate-100 text-slate-700 border-slate-200",
   };
 
-  const detailPath = `/pet/${ad.id}`;
+  const detailPath = `/pet/${ad?.id}`;
 
   return (
     <article className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
       <div>
         {/* Image Container */}
         <div className="relative h-56 overflow-hidden bg-[#F1F5F9]">
-          <img
-            src={imgSrc}
-            alt={ad.title}
-            onError={handleImageError}
-            loading="lazy"
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          />
+          {rawPhoto && !hasError ? (
+            <img
+              src={rawPhoto}
+              alt={ad.title || "İlan Görseli"}
+              onError={handleImageError}
+              loading="lazy"
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 text-slate-400">
+              <PawPrint size={40} className="text-slate-300" />
+              <span className="mt-1 text-xs font-semibold text-slate-400">Görsel Yok</span>
+            </div>
+          )}
 
           {/* Top Badges & Favorite Action */}
           <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3.5">
