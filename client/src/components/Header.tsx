@@ -28,7 +28,7 @@ export default function Header() {
   };
 
   return (
-    <header className="home-header">
+    <header className="home-header sticky top-0 z-[1050] w-full">
       <div className="page-container home-header__content">
         {isAdmin && (
           <Link
