@@ -39,6 +39,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
 import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
+import ScrollToTop from "./components/ScrollToTop";
 
 function ProtectedAddListingPage() {
   return (
@@ -155,6 +156,7 @@ function GuestForgotPasswordPage() {
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
+      <ScrollToTop />
       <ForegroundNotificationToast />
       <Switch>
         {/* Ana Sayfa */}
