@@ -19,6 +19,7 @@ import Header from "../components/Header";
 import ComplaintModal from "../components/ComplaintModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdoptionById } from "../services/adoptions";
+import { getPublicAdById } from "../services/ads";
 import { createOrGetChatRoom } from "../services/messages";
 import type { AdResponse } from "../services/types";
 import {
@@ -47,7 +48,6 @@ export default function AdoptionDetailPage() {
   const currentUserId = user?.id ?? user?.uid;
   const isOwner = Boolean(currentUserId && ad?.ownerId && Number(currentUserId) === Number(ad.ownerId));
 
-
   useEffect(() => {
     let isActive = true;
 
@@ -61,10 +61,18 @@ export default function AdoptionDetailPage() {
       try {
         setIsLoading(true);
         setErrorMessage("");
-        const response = await getPublicAdoptionById(adId);
 
-        if (response.adType !== "ADOPTION" || !response.active) {
-          throw new Error("Bu sahiplendirme ilanı artık yayında değil.");
+        let response: AdResponse | null = null;
+
+        try {
+          response = await getPublicAdoptionById(adId);
+        } catch {
+          // Fallback to getPublicAdById
+          response = await getPublicAdById(adId);
+        }
+
+        if (!response) {
+          throw new Error("Bu sahiplendirme ilanı bulunamadı.");
         }
 
         if (isActive) setAd(response);
