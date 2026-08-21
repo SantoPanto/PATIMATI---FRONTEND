@@ -44,6 +44,28 @@ export type ChangePasswordRequest = {
   confirmPassword?: string;
 };
 
+function normalizeCoordinate(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): number | null {
+  const coordinate =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : null;
+
+  return (
+    coordinate !== null &&
+    Number.isFinite(coordinate) &&
+    coordinate >= minimum &&
+    coordinate <= maximum
+  )
+    ? coordinate
+    : null;
+}
+
 export {
   clearAuthStorage,
   getStoredToken,
@@ -75,19 +97,8 @@ export function normalizeUser(
     phone,
     phoneNumber: phone,
 
-    latitude:
-      typeof user.latitude === "number"
-        ? user.latitude
-        : typeof user.latitude === "string"
-          ? parseFloat(user.latitude)
-          : null,
-
-    longitude:
-      typeof user.longitude === "number"
-        ? user.longitude
-        : typeof user.longitude === "string"
-          ? parseFloat(user.longitude)
-          : null,
+    latitude: normalizeCoordinate(user.latitude, -90, 90),
+    longitude: normalizeCoordinate(user.longitude, -180, 180),
   };
 }
 

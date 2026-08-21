@@ -21,9 +21,24 @@ export async function createAd(
     ...ad,
     colors: Array.isArray(ad.colors) ? ad.colors : [],
   };
-  if (!cleanedAd.date || cleanedAd.date === "") {
-    delete cleanedAd.date;
-  }
+  /*
+   * ⚠ `date` KOŞULSUZ düşürülür — boş olduğu için değil, DOLU olduğu için.
+   *
+   * Sunucuda `date`, `lostDate`'in @JsonAlias'ıdır. İkisi birden gönderilirse
+   * Jackson aynı record bileşenine ikinci kez yazmaya çalışır, geri düşecek
+   * bir setter bulamaz ve isteğin TAMAMINI reddeder:
+   *
+   *   No fallback setter/field defined for creator property 'lostDate'
+   *   (through reference chain: AdCreateRequest["date"])
+   *
+   * Ölçüldü (21.08, canlı): POST /api/ads iki denemede de 500 döndü ve hiç
+   * ilan oluşmadı. Kısıt buraya gömülü çünkü arıza yolu burası: gövdenin
+   * telde aldığı son biçim. Çağıran sayfa yanlışlıkla `date` koysa bile
+   * istek sağ çıkar. Takma ad sunucuda KALIYOR, yalnız `date` gönderen eski
+   * bir istemci etkilenmez.
+   */
+  delete cleanedAd.date;
+
   if (!cleanedAd.lostDate || cleanedAd.lostDate === "") {
     delete cleanedAd.lostDate;
   }

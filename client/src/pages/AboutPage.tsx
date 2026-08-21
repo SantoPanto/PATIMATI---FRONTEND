@@ -26,15 +26,15 @@ export default function AboutPage() {
               Minik dostlarımızı
               <span className="text-[#F97316]">
                 {" "}
-                yeniden bir araya getiriyoruz.
+                yeniden bir araya getiriyoruz
               </span>
             </h1>
 
             <p className="mt-6 max-w-3xl text-lg leading-8 text-[#64748B]">
-              PATIMATI; kayıp, bulunan ve sahiplendirilecek
-              hayvanları doğru kişilerle buluşturmayı amaçlayan,
+              PATIMATI kayıp bulunan ve sahiplendirilecek
+              hayvanları doğru kişilerle buluşturmayı amaçlayan
               teknoloji ve topluluk gücünü bir araya getiren bir
-              platformdur.
+              platformdur
             </p>
           </div>
         </section>
@@ -44,19 +44,19 @@ export default function AboutPage() {
             <InfoCard
               icon={<PawPrint size={27} />}
               title="Kayıp dostları bul"
-              description="Kayıp ve bulunan hayvan ilanlarını tek noktada buluşturarak ailelerine ulaşmalarına yardımcı oluruz."
+              description="Kayıp ve bulunan hayvan ilanlarını tek noktada buluşturarak ailelerine ulaşmalarına yardımcı oluruz"
             />
 
             <InfoCard
               icon={<Heart size={27} />}
               title="Yeni yuvalar bul"
-              description="Sahiplendirilecek hayvanların güvenilir ve sevgi dolu ailelerle buluşmasını destekleriz."
+              description="Sahiplendirilecek hayvanların güvenilir ve sevgi dolu ailelerle buluşmasını destekleriz"
             />
 
             <InfoCard
               icon={<ShieldCheck size={27} />}
               title="Güvenli iletişim"
-              description="Kullanıcıların güvenli ve kontrollü biçimde iletişim kurabileceği bir yapı sunmayı hedefleriz."
+              description="Kullanıcıların güvenli ve kontrollü biçimde iletişim kurabileceği bir yapı sunmayı hedefleriz"
             />
           </div>
 
@@ -71,17 +71,17 @@ export default function AboutPage() {
               </h2>
 
               <p className="mt-5 leading-8 text-[#64748B]">
-                Geleneksel kayıp ilanlarının ötesine geçerek;
-                görsel eşleştirme, konum bilgisi, ilan yönetimi ve
+                Geleneksel kayıp ilanlarının ötesine geçerek
+                görsel eşleştirme konum bilgisi ilan yönetimi ve
                 topluluk desteğini tek platformda bir araya
-                getiriyoruz.
+                getiriyoruz
               </p>
 
               <p className="mt-4 leading-8 text-[#64748B]">
-                Amacımız sadece ilan yayınlamak değil; doğru bilgi,
+                Amacımız sadece ilan yayınlamak değil doğru bilgi
                 hızlı iletişim ve güvenli süreçlerle hayvanların
                 ailelerine ya da yeni yuvalarına ulaşmasını
-                kolaylaştırmak.
+                kolaylaştırmak
               </p>
             </div>
 
@@ -94,10 +94,70 @@ export default function AboutPage() {
 
               <p className="mt-4 leading-7 text-[#64748B]">
                 Bir kayıp hayvan ilanı ne kadar fazla kişiye
-                ulaşırsa bulunma ihtimali o kadar artar. PATIMATI,
+                ulaşırsa bulunma ihtimali o kadar artar PATIMATI
                 kullanıcıların birbirine destek olduğu güçlü bir
-                topluluk oluşturmayı hedefler.
+                topluluk oluşturmayı hedefler
               </p>
+            </div>
+          </div>
+
+          {/* Yeni Eklenen Sosyal Medya Paylaşım ve Takip Alanı */}
+          <div className="mt-10 flex flex-col items-center justify-center rounded-3xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm sm:p-12">
+            <h2 className="text-2xl font-bold text-[#0F172A] sm:text-3xl">
+              Daha fazla cana ulaşmak için paylaşın
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
+              Topluluğumuzun gücü, sesimizi duyurabildiğimiz kadar büyüktür.
+              Instagram hesabımızı takip edebilir, ilanlarımızı kendi sosyal
+              medya hesaplarınızda paylaşarak minik dostlarımızın yeni
+              yuvalarını veya ailelerini bulmalarına destek olabilirsiniz.
+            </p>
+
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <a
+                href="https://www.instagram.com/patimatibuu/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] px-6 font-semibold text-white shadow-sm transition hover:opacity-90 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={20}
+                  height={20}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
+                Instagram'da Bizi Takip Et
+              </a>
+
+              {/* TODO: X hesabı açıldığında aşağıdaki yorum satırı kaldırılıp href güncellenecek */}
+              {/*
+              <a
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-12 items-center gap-2 rounded-xl bg-black px-6 font-semibold text-white shadow-sm transition hover:bg-gray-800 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-gray-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={20}
+                  height={20}
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                X'te Bizi Takip Et
+              </a>
+              */}
             </div>
           </div>
         </section>

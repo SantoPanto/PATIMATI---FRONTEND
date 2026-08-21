@@ -7,15 +7,19 @@ name: CI
 # tip listesine eklendi) — çünkü denetimi koşturan bir kapı olmayınca "yeşil"
 # diye bir ölçüt de yoktu.
 #
-# Bu iş akışı üç adımı da KAPI yapar: kurulum -> tip denetimi -> paketleme.
-# Üçü ayrı adım, çünkü hangisinin kırıldığı tek bakışta görünsün istiyoruz;
+# Bu iş akışı dört adımı da KAPI yapar: kurulum -> tip denetimi -> testler ->
+# paketleme.
+# Dördü ayrı adım, çünkü hangisinin kırıldığı tek bakışta görünsün istiyoruz;
 # `npm run build` zaten tsc'yi de çağırıyor ama kırıldığında sebebi karışıyor.
 
 on:
   push:
     branches: [ "main", "develop" ]
+  # Hedef dal SÜZÜLMÜYOR — bilerek. Süzgeç "main/develop" iken bir isteğin
+  # üstüne oturan ikinci istek (yığılmış PR) HİÇ denetlenmiyordu: hedefi bir
+  # özellik dalı olduğu için iş akışı tetiklenmiyor, istek yeşil de kırmızı da
+  # görünmüyordu. Koşmayan bir kapı, kapı değildir.
   pull_request:
-    branches: [ "main", "develop" ]
 
 # Aynı dala yeni itme gelirse eskisini iptal et; kuyruk tıkanmasın.
 concurrency:
@@ -57,7 +61,15 @@ jobs:
       - name: Tip denetimi
         run: npx tsc -b
 
-      # 3. KAPI — paketleme. Tip denetiminden ayrı tutuluyor çünkü bu adım
+      # 3. KAPI — testler. Tip denetiminin GOREMEDIGI sey burada olculuyor:
+      # bir dalin hangi kosulda calistigi. Olculdu — 20.08'de korumali rota
+      # kapisinin calisma ani davranisina yazilan bir mutasyon KACTI, cunku
+      # depoda kosucu yoktu ve tek olcu `tsc`ydi. `vitest run` izleme kipine
+      # DUSMEZ; kipe duserse is akisi zaman asimina kadar asili kalirdi.
+      - name: Testler
+        run: npm test
+
+      # 4. KAPI — paketleme. Tip denetiminden ayrı tutuluyor çünkü bu adım
       # tsc'nin görmediği şeyleri de kırabiliyor: `generate-firebase-sw.mjs`
       # altı Firebase değişkenini ZORUNLU tutuyor ve eksikse build'i patlatıyor.
       # Yani bu adım aynı zamanda "env dosyaları tutarlı mı" kapısıdır.

@@ -32,10 +32,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  // Giriş ekranındaki sayaçlar. Buradaki sayılar 19.08.2026'ya kadar SABİTTİ
-  // ("1.248+" aktif ilan, "386" mutlu kavuşma) ve gerçeğin onlarca katıydı —
-  // ölçüm anında veritabanında 37 ilan vardı, kavuşma hiç yoktu. Site halka
-  // açık olduğu için bu yanıltıcı beyandı. HomePage ile AYNI uç kullanılıyor.
   const [counters, setCounters] = useState({ activeAds: 0, happyEndings: 0 });
   const oauthCallbackHandled = useRef(false);
 
@@ -54,8 +50,6 @@ export default function LoginPage() {
           setCounters(data);
         }
       } catch (error) {
-        // Sayaç alınamazsa giriş ekranı çalışmaya devam etsin: sayılar 0 kalır.
-        // Uydurma sayıya geri DÖNÜLMEZ — yanlış sayı, sayı yokluğundan kötüdür.
         console.error("Sayaç bilgileri alınamadı:", error);
       }
     };
@@ -91,7 +85,7 @@ export default function LoginPage() {
         if (!currentUser) {
           clearAuthStorage();
           setErrorMessage(
-            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.",
+            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı Lütfen tekrar deneyin",
           );
           setIsOAuthLoading(false);
           return;
@@ -111,7 +105,7 @@ export default function LoginPage() {
     setErrorMessage("");
 
     if (!email.trim() || !password.trim()) {
-      setErrorMessage("E-posta ve şifre alanlarını doldurmalısın.");
+      setErrorMessage("E posta ve şifre alanlarını doldurmalısın");
       return;
     }
 
@@ -128,7 +122,7 @@ export default function LoginPage() {
       navigate(redirectPath);
     } catch (error) {
       setErrorMessage(
-        getUserErrorMessage(error, "Giriş sırasında bir sorun oluştu."),
+        getUserErrorMessage(error, "Giriş sırasında bir sorun oluştu"),
       );
     } finally {
       setIsLoading(false);
@@ -175,15 +169,15 @@ export default function LoginPage() {
               </span>
 
               <h1 className="text-5xl font-extrabold leading-tight tracking-tight">
-                Bir ilan,
+                Bir ilan
                 <span className="block text-orange-500">
-                  bir dostun hayatını değiştirebilir.
+                  bir dostun hayatını değiştirebilir
                 </span>
               </h1>
 
               <p className="mt-6 max-w-md text-lg leading-8 text-slate-300">
-                Kayıp ve bulunan hayvan ilanlarına ulaş, yakınındaki ilanları
-                haritada gör ve güvenli şekilde iletişim kur.
+                Kayıp ve bulunan hayvan ilanlarına ulaş yakınındaki ilanları
+                haritada gör ve güvenli şekilde iletişim kur
               </p>
             </div>
 
@@ -244,8 +238,8 @@ export default function LoginPage() {
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                İlan oluşturmak, mesajlaşmak ve bildirim almak için hesabına
-                giriş yap.
+                İlan oluşturmak mesajlaşmak ve bildirim almak için hesabına
+                giriş yap
               </p>
             </div>
 
@@ -259,14 +253,14 @@ export default function LoginPage() {
                 G
               </span>
               {isOAuthLoading
-                ? "Google hesabı doğrulanıyor..."
+                ? "Google hesabı doğrulanıyor"
                 : "Google ile giriş yap"}
             </button>
 
             <div className="my-6 flex items-center gap-4">
               <span className="h-px flex-1 bg-slate-200" />
               <span className="text-xs font-medium text-slate-400">
-                veya e-posta ile
+                veya e posta ile
               </span>
               <span className="h-px flex-1 bg-slate-200" />
             </div>
@@ -276,7 +270,7 @@ export default function LoginPage() {
                 htmlFor="login-email"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                E-posta
+                E posta
               </label>
 
               <div className="relative mb-4">
@@ -362,7 +356,7 @@ export default function LoginPage() {
                 disabled={isLoading || isOAuthLoading}
                 className="flex h-12 w-full items-center justify-center rounded-xl bg-orange-500 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}
+                {isLoading ? "Giriş yapılıyor" : "Giriş Yap"}
               </button>
             </form>
 
@@ -375,7 +369,7 @@ export default function LoginPage() {
             </button>
 
             <p className="mt-7 text-center text-sm text-slate-600">
-              Hesabın yok mu?{" "}
+              Hesabın yok mu{" "}
               <Link
                 href="/register"
                 className="font-bold text-orange-500 transition hover:text-orange-600"

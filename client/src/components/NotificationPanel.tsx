@@ -5,12 +5,14 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useLocation } from "wouter";
 
+import { useAuth } from "../contexts/AuthContext";
 import type { InAppNotification } from "../services/notifications";
 import {
   getNotificationSnapshot,
+  loadNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
   subscribeToNotifications,
@@ -70,7 +72,7 @@ export function NotificationList({
         </h3>
         <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
           Yeni bildirimler bu oturumda geldikçe burada görünür. Kalıcı bildirim
-          geçmişi mevcut değil.
+          geçmişiniz sunucuda saklanır.
         </p>
       </div>
     );
@@ -153,6 +155,35 @@ export default function NotificationPanel({
   error = null,
 }: NotificationPanelProps) {
   const [, navigate] = useLocation();
+  const { isAuthenticated } = useAuth();
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let isActive = true;
+    void loadNotifications()
+      .catch(() => {
+        if (isActive) {
+          setHistoryError("Bildirimler yüklenirken bir hata oluştu");
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setHistoryLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated]);
+
+  const effectiveLoading = isLoading || historyLoading;
+  const effectiveError = error || historyError;
   const notifications = useSyncExternalStore(
     subscribeToNotifications,
     getNotificationSnapshot,
@@ -216,11 +247,11 @@ export default function NotificationPanel({
       </div>
 
       <div className="min-h-0 overflow-y-auto">
-        {isLoading ? (
+        {effectiveLoading ? (
           <div className="px-5 py-10 text-center text-sm text-slate-500">
             Bildirimler yükleniyor...
           </div>
-        ) : error ? (
+        ) : effectiveError ? (
           <div
             className="px-5 py-10 text-center text-sm text-rose-600"
             role="alert"
