@@ -162,29 +162,40 @@ const THEME_CONFIGS: Record<CreateAdType, ThemeConfig> = {
   },
 };
 
-const TABS: { type: CreateAdType; label: string; route: string; icon: React.ReactNode }[] = [
+export interface TabConfig {
+  type: CreateAdType;
+  label: string;
+  route: string;
+  matchPaths: string[];
+  icon: React.ReactNode;
+}
+
+export const TABS: TabConfig[] = [
   {
     type: "lost",
     label: "Kayıp",
     route: "/lost/create",
+    matchPaths: ["/lost/create", "/add-listing"],
     icon: <Search size={16} />,
   },
   {
     type: "found",
     label: "Bulundu",
     route: "/found/create",
+    matchPaths: ["/found/create"],
     icon: <MapPin size={16} />,
   },
   {
     type: "adopt",
     label: "Sahiplendirme",
     route: "/adopt/create",
+    matchPaths: ["/adopt/create", "/adoption/create"],
     icon: <Heart size={16} />,
   },
 ];
 
 interface CreateAdLayoutProps {
-  activeType: CreateAdType;
+  activeType?: CreateAdType;
   children: React.ReactNode;
 }
 
@@ -192,8 +203,18 @@ export default function CreateAdLayout({
   activeType,
   children,
 }: CreateAdLayoutProps) {
-  const [, navigate] = useLocation();
-  const config = THEME_CONFIGS[activeType];
+  const [location, navigate] = useLocation();
+
+  // Determine active tab based on URL pathname, or fallback to activeType prop
+  const currentTab =
+    TABS.find((tab) =>
+      tab.matchPaths.some((path) => location.startsWith(path)),
+    ) ||
+    TABS.find((tab) => tab.type === activeType) ||
+    TABS[0];
+
+  const activeTabType = currentTab.type;
+  const config = THEME_CONFIGS[activeTabType];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
@@ -221,7 +242,7 @@ export default function CreateAdLayout({
                 className="inline-flex items-center gap-1 rounded-2xl border border-[#E2E8F0] bg-white/90 p-1.5 shadow-sm backdrop-blur-xs"
               >
                 {TABS.map((tab) => {
-                  const isActive = tab.type === activeType;
+                  const isActive = tab.type === activeTabType;
                   return (
                     <Link
                       key={tab.type}

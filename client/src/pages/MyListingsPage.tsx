@@ -182,7 +182,7 @@ export default function MyListingsPage() {
           </div>
 
           <Link
-            href="/add-listing"
+            href="/lost/create"
             className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 font-bold text-white transition hover:bg-orange-600"
           >
             <CirclePlus size={19} />
