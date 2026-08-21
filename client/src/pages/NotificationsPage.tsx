@@ -1,264 +1,78 @@
-import { useEffect, useState } from "react";
+import { BellOff, CheckCheck } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useLocation } from "wouter";
+
+import { NotificationList } from "../components/NotificationPanel";
+import { useAuth } from "../contexts/AuthContext";
 import {
-  BellOff,
-  ExternalLink,
-  PawPrint,
-  Sparkles,
-  X,
-} from "lucide-react";
-import { Link } from "wouter";
-import { TeamBack, TeamButton, TeamShell } from "../components/TeamUI";
-import {
-  decideOnMatch,
-  getMyPotentialMatches,
-} from "../services/potentialMatches";
-import type {
-  PotentialMatchDecision,
-  PotentialMatchSummaryResponse,
-} from "../services/types";
-import { getUserErrorMessage } from "../utils/errorMessage";
+  getNotificationSnapshot,
+  loadNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  subscribeToNotifications,
+} from "../services/notifications";
+import type { InAppNotification } from "../services/notifications";
+import { TeamBack, TeamShell } from "../components/TeamUI";
 
-const DECIDABLE_STATUSES = new Set(["PENDING", "NOTIFIED", "VIEWED"]);
-
-function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
+function getNotificationHref(
+  notification: InAppNotification,
+): string | null {
+  if (
+    notification.data.type === "AI_MATCH" &&
+    notification.data.adId
+  ) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
   }
 
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function getCategoryLabel(
-  category: PotentialMatchSummaryResponse["counterparty"]["category"],
-): string {
-  switch (category) {
-    case "LOST":
-      return "Kayıp";
-    case "FOUND":
-      return "Bulunan";
-    case "ADOPTION":
-      return "Sahiplendirme";
-    default:
-      return "Instagram kaydı";
-  }
-}
-
-function getAdTypeLabel(
-  adType: PotentialMatchSummaryResponse["counterparty"]["adType"],
-): string {
-  switch (adType) {
-    case "LOST":
-      return "Kayıp";
-    case "FOUND":
-      return "Bulunan";
-    case "ADOPTION":
-      return "Sahiplendirme";
-    default:
-      return "İlan";
-  }
-}
-
-function getHedgedDescription(
-  match: PotentialMatchSummaryResponse,
-): string {
-  if (match.counterparty.kind === "EXTERNAL") {
-    return "Instagram'dan alınan bir kayıt, ilanınızdaki hayvana benziyor. Kesin bir eşleşme değildir — kaydı inceleyip aynı hayvan olup olmadığını siz değerlendirebilirsiniz.";
-  }
-
-  return "Evcil hayvanınıza benzeyen bir ilan tespit ettik. Kesin bir eşleşme değildir — ilanı inceleyip aynı hayvan olup olmadığını siz değerlendirebilirsiniz.";
-}
-
-function getStatusLabel(status: PotentialMatchSummaryResponse["status"]): string {
-  switch (status) {
-    case "CONFIRMED":
-      return "Onayladınız";
-    case "REJECTED":
-      return "Uygun değil işaretlediniz";
-    case "EXPIRED":
-      return "Süresi doldu";
-    case "NOTIFICATION_FAILED":
-      return "Bildirim iletilemedi";
-    default:
-      return status;
-  }
-}
-
-function MatchCard({
-  match,
-  onDecide,
-  deciding,
-}: {
-  match: PotentialMatchSummaryResponse;
-  onDecide: (recipientId: number, decision: PotentialMatchDecision) => void;
-  deciding: boolean;
-}) {
-  const { counterparty } = match;
-  const isExternal = counterparty.kind === "EXTERNAL";
-  const scorePercent = Math.round(match.finalScore * 100);
-  const canDecide = DECIDABLE_STATUSES.has(match.status);
-
-  const title = isExternal
-    ? getCategoryLabel(counterparty.category)
-    : counterparty.title || "İlan";
-
-  const detailHref = !isExternal ? `/pet/${counterparty.id}` : undefined;
-
-  return (
-    <article className="content-card">
-      <div className="content-card__top">
-        <div className="flex items-center gap-2">
-          <span className="pill pill--warning inline-flex items-center gap-1">
-            {isExternal ? (
-              <>
-                <Sparkles size={13} />
-                Instagram kaydı
-              </>
-            ) : (
-              <>
-                <PawPrint size={13} />
-                {getAdTypeLabel(counterparty.adType)}
-              </>
-            )}
-          </span>
-
-          <span className="muted text-xs">%{scorePercent} benzerlik</span>
-        </div>
-
-        <span className="muted text-xs">{formatDateTime(match.createdAt)}</span>
-      </div>
-
-      <div className="flex gap-3">
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#FFF7ED]">
-          {counterparty.photoUrl ? (
-            <img
-              src={counterparty.photoUrl}
-              alt={title}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-[#F97316]">
-              <PawPrint size={28} />
-            </div>
-          )}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate">{title}</h3>
-          {!isExternal && counterparty.species && (
-            <p className="muted text-sm">
-              {counterparty.species}
-              {counterparty.breed ? ` · ${counterparty.breed}` : ""}
-            </p>
-          )}
-          <p className="text-sm">{getHedgedDescription(match)}</p>
-        </div>
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {canDecide ? (
-          <>
-            <TeamButton
-              disabled={deciding}
-              onClick={() => onDecide(match.recipientId, "CONFIRMED")}
-            >
-              Bu benim hayvanım
-            </TeamButton>
-
-            <TeamButton
-              variant="outline"
-              disabled={deciding}
-              onClick={() => onDecide(match.recipientId, "REJECTED")}
-            >
-              <span className="inline-flex items-center gap-1">
-                <X size={15} />
-                Bu değil
-              </span>
-            </TeamButton>
-          </>
-        ) : (
-          <span className="pill">{getStatusLabel(match.status)}</span>
-        )}
-
-        {isExternal && counterparty.sourceUrl ? (
-          <a
-            href={counterparty.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button button--outline inline-flex items-center gap-1"
-          >
-            <ExternalLink size={15} />
-            Instagram'da görüntüle
-          </a>
-        ) : detailHref ? (
-          <Link href={detailHref} className="button button--outline">
-            İlanı görüntüle
-          </Link>
-        ) : null}
-      </div>
-    </article>
-  );
+  return null;
 }
 
 export default function NotificationsPage() {
-  const [matches, setMatches] = useState<PotentialMatchSummaryResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [, navigate] = useLocation();
+  const { isAuthenticated } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const notifications = useSyncExternalStore(
+    subscribeToNotifications,
+    getNotificationSnapshot,
+    getNotificationSnapshot,
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    if (!isAuthenticated) {
+      return;
+    }
 
-    getMyPotentialMatches()
-      .then((data) => {
-        if (!cancelled) {
-          setMatches(data);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(getUserErrorMessage(err, "Bildirimler yüklenemedi."));
+    let isActive = true;
+    void loadNotifications()
+      .catch(() => {
+        if (isActive) {
+          setError(true);
         }
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
+        if (isActive) {
+          setIsLoading(false);
         }
       });
 
     return () => {
-      cancelled = true;
+      isActive = false;
     };
-  }, []);
+  }, [isAuthenticated]);
 
-  const handleDecide = (
-    recipientId: number,
-    decision: PotentialMatchDecision,
-  ) => {
-    setDecidingId(recipientId);
+  const handleSelect = (notification: InAppNotification) => {
+    markNotificationAsRead(notification.id);
 
-    decideOnMatch(recipientId, decision)
-      .then((updated) => {
-        setMatches((current) =>
-          current.map((item) =>
-            item.recipientId === recipientId ? updated : item,
-          ),
-        );
-      })
-      .catch((err) => {
-        setError(getUserErrorMessage(err, "İşlem tamamlanamadı."));
-      })
-      .finally(() => {
-        setDecidingId(null);
-      });
+    const href = getNotificationHref(notification);
+    if (href) {
+      navigate(href);
+    }
   };
+
+  const unreadCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
 
   return (
     <TeamShell className="screen">
@@ -268,30 +82,53 @@ export default function NotificationsPage() {
       </header>
 
       <section className="card-stack">
-        {loading && <p className="muted">Bildirimler yükleniyor...</p>}
+        <article className="content-card overflow-hidden p-0">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+            <p className="text-sm text-slate-500">
+              {unreadCount > 0
+                ? `${unreadCount} okunmamış bildirim`
+                : "Tüm bildirimler okundu"}
+            </p>
 
-        {error && <p className="muted">{error}</p>}
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllNotificationsAsRead}
+                className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-orange-500"
+              >
+                <CheckCheck size={15} aria-hidden="true" />
+                Tümünü okundu işaretle
+              </button>
+            )}
+          </div>
 
-        {!loading && !error && matches.length === 0 && (
-          <article className="content-card">
-            <div className="content-card__top">
-              <BellOff size={18} />
+          {isLoading ? (
+            <div className="px-6 py-16 text-center text-sm text-slate-500">
+              Bildirimler yükleniyor...
             </div>
-            <h3>Henüz bildiriminiz yok</h3>
-            <p>Yeni bildirimleriniz burada listelenecek.</p>
-          </article>
-        )}
-
-        {!loading &&
-          !error &&
-          matches.map((match) => (
-            <MatchCard
-              key={match.recipientId}
-              match={match}
-              onDecide={handleDecide}
-              deciding={decidingId === match.recipientId}
+          ) : error ? (
+            <div className="px-6 py-16 text-center text-sm text-rose-600" role="alert">
+              Bildirimler yüklenirken bir hata oluştu.
+            </div>
+          ) : notifications.length > 0 ? (
+            <NotificationList
+              notifications={notifications}
+              onSelect={handleSelect}
             />
-          ))}
+          ) : (
+            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+                <BellOff size={25} aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 text-base font-bold text-slate-900">
+                Henüz bildiriminiz yok
+              </h3>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                Yeni bildirimleriniz burada görünür ve hesabınızda saklanır.
+              </p>
+            </div>
+          )}
+        </article>
       </section>
     </TeamShell>
   );

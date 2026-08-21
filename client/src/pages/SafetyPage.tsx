@@ -23,17 +23,17 @@ export default function SafetyPage() {
             </span>
 
             <h1 className="mt-6 max-w-4xl text-4xl font-bold sm:text-5xl">
-              Güvenli iletişim,
+              Güvenli iletişim
               <span className="text-[#2563EB]">
                 {" "}
-                doğru teslim.
+                doğru teslim
               </span>
             </h1>
 
             <p className="mt-5 max-w-3xl text-lg leading-8 text-[#64748B]">
-              Kayıp, bulunan veya sahiplendirilecek bir hayvan için
+              Kayıp bulunan veya sahiplendirilecek bir hayvan için
               iletişim kurarken birkaç temel güvenlik adımına dikkat
-              etmek hem seni hem de hayvanı korur.
+              etmek hem seni hem de hayvanı korur
             </p>
           </div>
         </section>
@@ -43,25 +43,25 @@ export default function SafetyPage() {
             <SafetyCard
               icon={<UserCheck size={25} />}
               title="Sahibi doğrula"
-              description="Hayvanı teslim etmeden önce eski fotoğraf, veteriner kaydı, mikroçip bilgisi veya yalnızca gerçek sahibinin bilebileceği özellikleri sor."
+              description="Hayvanı teslim etmeden önce eski fotoğraf veteriner kaydı mikroçip bilgisi veya yalnızca gerçek sahibinin bilebileceği özellikleri sor"
             />
 
             <SafetyCard
               icon={<MessageCircle size={25} />}
               title="Platform üzerinden iletişim kur"
-              description="İlk iletişimde mümkün olduğunca kişisel bilgilerini paylaşmadan PATIMATI mesajlaşma sistemini kullan."
+              description="İlk iletişimde mümkün olduğunca kişisel bilgilerini paylaşmadan PATIMATI mesajlaşma sistemini kullan"
             />
 
             <SafetyCard
               icon={<ShieldCheck size={25} />}
               title="Güvenli yerde buluş"
-              description="Teslim veya görüşme için kalabalık ve güvenli bir konum tercih et. Mümkünse yanında başka biri olsun."
+              description="Teslim veya görüşme için kalabalık ve güvenli bir konum tercih et Mümkünse yanında başka biri olsun"
             />
 
             <SafetyCard
               icon={<AlertTriangle size={25} />}
               title="Şüpheli taleplere dikkat et"
-              description="Para, kart bilgisi, doğrulama kodu veya gereksiz kişisel bilgi isteyen kullanıcılara karşı dikkatli ol."
+              description="Para kart bilgisi doğrulama kodu veya gereksiz kişisel bilgi isteyen kullanıcılara karşı dikkatli ol"
             />
           </div>
 
@@ -78,10 +78,10 @@ export default function SafetyPage() {
                 </h2>
 
                 <p className="mt-3 leading-7 text-[#15803D]">
-                  Emin olmadığın bir kişiye hayvanı teslim etme.
+                  Emin olmadığın bir kişiye hayvanı teslim etme
                   Sahiplik bilgilerini doğrula ve sahiplendirme
                   durumunda yaşam koşulları hakkında mutlaka bilgi
-                  al.
+                  al
                 </p>
               </div>
             </div>

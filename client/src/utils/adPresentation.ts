@@ -5,12 +5,14 @@ import type {
   Gender,
   Species,
 } from "../services/types";
+import { getImageUrl, getMediaUrl } from "./imageUrl";
 
-const FALLBACK_IMAGE = "/favicon.svg";
+export { getImageUrl, getMediaUrl };
 
 const speciesLabels: Record<Species, string> = {
   CAT: "Kedi",
   DOG: "Köpek",
+  UNKNOWN: "Belirtilmemiş",
 };
 
 const genderLabels: Record<Gender, string> = {
@@ -33,6 +35,18 @@ const adTypeLabels: Record<AdType, string> = {
   ADOPTION: "Sahiplendirme",
 };
 
+/**
+ * Sunucu cins bilinmiyorken `MIXED_OR_UNKNOWN` yazıyor (AdMapper'daki
+ * `UNKNOWN_BREED` sabiti). Ham hâliyle basılınca kartta "Kedi ·
+ * MIXED_OR_UNKNOWN" görünüyordu — ölçüldü, 21.08 canlı.
+ */
+export function getBreedLabel(breed?: string | null): string {
+  if (!breed || !breed.trim() || breed === "MIXED_OR_UNKNOWN") {
+    return "Cins belirtilmemiş";
+  }
+  return breed;
+}
+
 export function getSpeciesLabel(species: Species): string {
   return speciesLabels[species] ?? "Hayvan";
 }
@@ -50,7 +64,8 @@ export function getAdTypeLabel(adType: AdType): string {
 }
 
 export function getAdImage(ad: AdResponse): string {
-  return ad.photoUrls?.find((url) => Boolean(url?.trim())) || FALLBACK_IMAGE;
+  const firstPhoto = ad.photoUrls?.find((url) => Boolean(url?.trim()));
+  return getImageUrl(firstPhoto);
 }
 
 export function getAdLocation(ad: AdResponse): string {

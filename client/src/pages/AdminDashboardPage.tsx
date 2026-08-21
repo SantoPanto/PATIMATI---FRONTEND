@@ -982,7 +982,7 @@ export default function AdminDashboardPage() {
                               #{c.id}
                             </td>
                             <td className="px-6 py-4 font-bold text-blue-600">
-                              {c.adTitle || `İlan #${c.reportedAdId}`}
+                              {c.adTitle || `İlan #${c.adId}`}
                             </td>
                             <td className="px-6 py-4 text-slate-600">
                               {c.reporterEmail}
@@ -1086,7 +1086,7 @@ export default function AdminDashboardPage() {
                             #{c.id}
                           </td>
                           <td className="px-6 py-4 font-bold text-blue-600">
-                            {c.adoptionTitle || `Sahiplendirme #${c.reportedAdId}`}
+                            {c.adTitle || `Sahiplendirme #${c.adId}`}
                           </td>
                           <td className="px-6 py-4 text-slate-600">
                             {c.reporterEmail}

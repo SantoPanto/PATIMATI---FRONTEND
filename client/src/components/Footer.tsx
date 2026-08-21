@@ -11,8 +11,12 @@ export default function Footer() {
             <span><PawPrint size={23} /></span>
             <strong>PATI<em>MATI</em></strong>
           </Link>
-          <p>Kayıp, bulunan ve sahiplendirilecek hayvanları doğru kişilere ulaştıran topluluk platformu.</p>
+
+          <p>
+            Kayıp bulunan ve sahiplendirilecek hayvanları doğru kişilere ulaştıran topluluk platformu
+          </p>
         </div>
+
         <nav className="pm-footer__links" aria-label="Alt menü">
           <Link href="/listings">İlanlar</Link>
           <Link href="/map">Harita</Link>
@@ -20,9 +24,10 @@ export default function Footer() {
           <Link href="/about">Hakkımızda</Link>
         </nav>
       </div>
+
       <div className="pm-container pm-footer__bottom">
-        <span>© 2026 PATIMATI. Tüm hakları saklıdır.</span>
-        <span>Minik dostlarımız için birlikte.</span>
+        <span>© 2026 PATIMATI Tüm hakları saklıdır</span>
+        <span>Minik dostlarımız için birlikte</span>
       </div>
     </footer>
   );

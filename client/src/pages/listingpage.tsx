@@ -11,6 +11,7 @@ import {
 import Header from "../components/Header";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
+import { getImageUrl } from "../utils/imageUrl";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
@@ -132,7 +133,7 @@ function getPrimaryImage(ad: AdResponse): string | null {
     (url) => typeof url === "string" && url.trim().length > 0,
   );
 
-  return firstValidUrl || null;
+  return firstValidUrl ? getImageUrl(firstValidUrl) : null;
 }
 
 function PetListingCard({ ad }: { ad: AdResponse }) {
@@ -142,7 +143,7 @@ function PetListingCard({ ad }: { ad: AdResponse }) {
   const subtitle = [
     getSpeciesLabel(ad.species),
     ad.breed?.trim() || "Cins belirtilmemiş",
-  ].join(" · ");
+  ].join(" ");
 
   return (
     <article className="pet-listing-card">
@@ -196,7 +197,6 @@ function PetListingCard({ ad }: { ad: AdResponse }) {
 
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B]">
           <span>{getGenderLabel(ad.gender)}</span>
-          <span>·</span>
           <span>{getAgeGroupLabel(ad.ageGroup)}</span>
         </div>
 
@@ -247,7 +247,10 @@ export default function ListingsPage() {
       setTotalElements(0);
 
       setError(
-        getUserErrorMessage(requestError, "İlanlar yüklenirken bir hata oluştu."),
+        getUserErrorMessage(
+          requestError,
+          "İlanlar yüklenirken bir hata oluştu",
+        ),
       );
     } finally {
       setIsLoading(false);
@@ -294,8 +297,8 @@ export default function ListingsPage() {
             <h1>Tüm ilanlar</h1>
 
             <p>
-              Kayıp, bulunan ve sahiplendirme ilanlarını keşfet.
-              Sana en uygun dostu bulmak için ilanları incele.
+              Kayıp bulunan ve sahiplendirme ilanlarını keşfet
+              Sana en uygun dostu bulmak için ilanları incele
             </p>
           </div>
 
@@ -327,13 +330,13 @@ export default function ListingsPage() {
               <div>
                 <strong className="text-[#0F172A]">
                   {isLoading
-                    ? "İlanlar yükleniyor..."
+                    ? "İlanlar yükleniyor"
                     : `${totalElements} ilan`}
                 </strong>
 
                 {!isLoading && totalPages > 0 && (
                   <p className="mt-1 text-sm text-[#64748B]">
-                    Sayfa {page + 1} / {totalPages}
+                    Sayfa {page + 1} {totalPages}
                   </p>
                 )}
               </div>
@@ -398,7 +401,7 @@ export default function ListingsPage() {
 
                 <p>
                   Şu anda seçtiğin filtreye uygun aktif bir ilan
-                  bulunmuyor. Başka bir ilan türünü deneyebilirsin.
+                  bulunmuyor Başka bir ilan türünü deneyebilirsin
                 </p>
 
                 {activeFilter !== "ALL" && (
@@ -428,7 +431,7 @@ export default function ListingsPage() {
                 </button>
 
                 <span className="min-w-24 text-center text-sm font-medium text-[#64748B]">
-                  {page + 1} / {totalPages}
+                  {page + 1} {totalPages}
                 </span>
 
                 <button

@@ -33,7 +33,7 @@ function MyMatchesContent() {
       setMatches(Array.isArray(data) ? data : []);
     } catch (error) {
       setErrorMessage(
-        getUserErrorMessage(error, "Eşleşmeleriniz yüklenirken bir hata oluştu.")
+        getUserErrorMessage(error, "Eşleşmeleriniz yüklenirken bir hata oluştu")
       );
     } finally {
       setIsLoading(false);
@@ -52,7 +52,7 @@ function MyMatchesContent() {
       .catch((error) => {
         if (isMounted) {
           setErrorMessage(
-            getUserErrorMessage(error, "Eşleşmeleriniz yüklenirken bir hata oluştu.")
+            getUserErrorMessage(error, "Eşleşmeleriniz yüklenirken bir hata oluştu")
           );
         }
       })
@@ -86,18 +86,19 @@ function MyMatchesContent() {
         <Header />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Header & Actions */}
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600">
                 <Sparkles size={14} />
                 YAPAY ZEKA EŞLEŞTİRME SYSTEMİ
               </div>
+
               <h1 className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl">
                 Eşleşmelerim
               </h1>
+
               <p className="mt-2 text-base text-slate-500 max-w-2xl">
-                Kayıp ve bulunan dostlarımız için yapay zeka tarafından tespit edilen olasılık ve görsel benzerlik eşleşmelerini takip edin.
+                Kayıp ve bulunan dostlarımız için yapay zeka tarafından tespit edilen olasılık ve görsel benzerlik eşleşmelerini takip edin
               </p>
             </div>
 
@@ -122,7 +123,6 @@ function MyMatchesContent() {
             </div>
           </div>
 
-          {/* Filter Tabs */}
           <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -134,7 +134,7 @@ function MyMatchesContent() {
                     : "bg-white text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Tümü ({matches.length})
+                Tümü {matches.length}
               </button>
 
               <button
@@ -146,7 +146,7 @@ function MyMatchesContent() {
                     : "bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
                 }`}
               >
-                Yüksek İhtimal ({passedCount})
+                Yüksek İhtimal {passedCount}
               </button>
 
               <button
@@ -158,17 +158,16 @@ function MyMatchesContent() {
                     : "bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-700"
                 }`}
               >
-                Düşük / Engellenen ({lowCount})
+                Düşük Engellenen {lowCount}
               </button>
             </div>
 
             <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
               <Filter size={14} />
-              <span>Otomatik sıralama: En yüksek skor</span>
+              <span>Otomatik sıralama En yüksek skor</span>
             </div>
           </div>
 
-          {/* Error Message Alert */}
           {errorMessage && (
             <div
               className="mt-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 shadow-xs"
@@ -178,6 +177,7 @@ function MyMatchesContent() {
                 <AlertCircle size={20} className="shrink-0 text-rose-600" />
                 <span>{errorMessage}</span>
               </div>
+
               <button
                 type="button"
                 onClick={() => void loadMatches()}
@@ -188,7 +188,6 @@ function MyMatchesContent() {
             </div>
           )}
 
-          {/* Main Content Area */}
           {isLoading ? (
             <div className="mt-8 grid gap-5 md:grid-cols-2">
               <SkeletonMatchCard />
@@ -201,16 +200,19 @@ function MyMatchesContent() {
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                 <Zap size={32} />
               </div>
+
               <h3 className="mt-4 text-xl font-bold text-slate-900">
                 {filter === "all"
                   ? "Henüz Bir Eşleşme Bulunmuyor"
                   : "Bu Kriterde Eşleşme Bulunamadı"}
               </h3>
+
               <p className="mt-2 mx-auto max-w-md text-sm text-slate-500">
                 {filter === "all"
-                  ? "Sistemimiz yeni ilanları sürekli tarar ve yüksek benzerlik tespit ettiğinde burada listeler."
-                  : "Filtre kriterlerinizi değiştirebilir veya tüm eşleşmeleri görüntüleyebilirsiniz."}
+                  ? "Sistemimiz yeni ilanları sürekli tarar ve yüksek benzerlik tespit ettiğinde burada listeler"
+                  : "Filtre kriterlerinizi değiştirebilir veya tüm eşleşmeleri görüntüleyebilirsiniz"}
               </p>
+
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 {filter !== "all" && (
                   <button
@@ -221,6 +223,7 @@ function MyMatchesContent() {
                     Tüm Eşleşmeleri Göster
                   </button>
                 )}
+
                 <Link
                   href="/add-listing"
                   className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
@@ -244,9 +247,6 @@ function MyMatchesContent() {
   );
 }
 
-/**
- * Skeleton Loader Component for loading state
- */
 function SkeletonMatchCard() {
   return (
     <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
@@ -254,16 +254,20 @@ function SkeletonMatchCard() {
         <div className="h-5 w-32 rounded-lg bg-slate-200" />
         <div className="h-4 w-20 rounded-lg bg-slate-200" />
       </div>
+
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 shrink-0 rounded-2xl bg-slate-200" />
+
           <div className="space-y-2">
             <div className="h-5 w-40 rounded-md bg-slate-200" />
             <div className="h-3 w-28 rounded-md bg-slate-200" />
           </div>
         </div>
+
         <div className="h-12 w-20 rounded-2xl bg-slate-200" />
       </div>
+
       <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
         <div className="h-4 w-28 rounded-md bg-slate-200" />
         <div className="h-8 w-24 rounded-xl bg-slate-200" />
@@ -274,7 +278,7 @@ function SkeletonMatchCard() {
 
 export default function MyMatchesPage() {
   return (
-    <ErrorBoundary title="Eşleşmelerim sayfası yüklenirken bir hata oluştu.">
+    <ErrorBoundary title="Eşleşmelerim sayfası yüklenirken bir hata oluştu">
       <MyMatchesContent />
     </ErrorBoundary>
   );

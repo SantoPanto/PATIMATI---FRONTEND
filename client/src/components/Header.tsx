@@ -1,6 +1,5 @@
 import {
   Bell,
-  ChevronDown,
   LogOut,
   PawPrint,
   ShieldAlert,
@@ -49,20 +48,6 @@ export default function Header() {
 
   const isAdmin = user?.role === "ADMIN";
 
-  const userDisplayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.email ||
-    "Kullanıcı";
-
-  const userInitials =
-    [user?.firstName, user?.lastName]
-      .filter(Boolean)
-      .map((value) => value?.charAt(0).toLocaleUpperCase("tr-TR"))
-      .join("")
-      .slice(0, 2) ||
-    user?.email?.charAt(0).toLocaleUpperCase("tr-TR") ||
-    "P";
-
   const handleLogout = async () => {
     await logout();
     navigate("/");
@@ -103,7 +88,11 @@ export default function Header() {
         <nav className="desktop-navigation" aria-label="Ana navigasyon">
           <Link
             href="/"
-            className={isActive("/") ? "navigation-link active" : "navigation-link"}
+            className={
+              isActive("/")
+                ? "navigation-link active"
+                : "navigation-link"
+            }
           >
             Ana Sayfa
           </Link>
@@ -122,7 +111,9 @@ export default function Header() {
           <Link
             href="/map"
             className={
-              isActive("/map") ? "navigation-link active" : "navigation-link"
+              isActive("/map")
+                ? "navigation-link active"
+                : "navigation-link"
             }
           >
             Harita
@@ -153,25 +144,12 @@ export default function Header() {
                 {hasPendingMatch && <span className="notification-dot" />}
               </button>
 
-              <Link href="/profile" className="header-profile">
-                <span className="header-profile__avatar">
-                  {userInitials ? (
-                    userInitials
-                  ) : (
-                    <UserRound size={19} />
-                  )}
-                </span>
-
-                <span className="header-profile__content">
-                  <small>Hoş geldin</small>
-                  <strong>{userDisplayName}</strong>
-                </span>
-
-                <ChevronDown
-                  className="header-profile__chevron"
-                  size={17}
-                  aria-hidden="true"
-                />
+              <Link
+                href="/profile"
+                className="header-profile-icon"
+                aria-label="Profili görüntüle"
+              >
+                <UserRound size={22} strokeWidth={2} />
               </Link>
 
               <button

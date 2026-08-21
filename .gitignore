@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- Ortam dosyalari ---
+# Uygulama client/ altindan build ediliyor; Vite env dosyalarini PROJE KOKUNDEN
+# (yani client/'tan) okur. Kokte duran .env* dosyalari hicbir sey yapmaz ama
+# "hangisi gecerli" karisikligi uretir - 19.08'de tam bu oldu, 9 env dosyasi
+# birikti. Kokte env dosyasi TUTULMAZ.
+/.env
+/.env.*

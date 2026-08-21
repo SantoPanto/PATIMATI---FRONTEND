@@ -68,7 +68,7 @@ export async function listenForForegroundMessages(
 
   const messaging = getMessaging(firebaseApp);
 
-  return onMessage(messaging, (payload) => {
+  return onMessage(messaging, (payload: MessagePayload) => {
     callback(payload);
   });
 }

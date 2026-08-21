@@ -5,7 +5,11 @@ import {
   CirclePlus,
   Eye,
   MapPin,
+  PartyPopper,
   PawPrint,
+  RotateCcw,
+  Settings,
+  ShieldAlert,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -13,13 +17,16 @@ import { Link } from "wouter";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import { deleteAd, getMyAds } from "../services/ads";
+import PosterSettingsModal from "../components/PosterSettingsModal";
+import ResolveFoundModal from "../components/ResolveFoundModal";
+import { deleteAd, getMyAds, republishAd } from "../services/ads";
 import type { AdResponse } from "../services/types";
 import {
   getAdDetailPath,
   getAdImage,
   getAdLocation,
   getAdTypeLabel,
+  getBreedLabel,
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
@@ -32,7 +39,11 @@ export default function MyListingsPage() {
   const [ads, setAds] = useState<AdResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successNotification, setSuccessNotification] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [republishingId, setRepublishingId] = useState<number | null>(null);
+  const [posterModalAd, setPosterModalAd] = useState<AdResponse | null>(null);
+  const [bulunduModalAd, setBulunduModalAd] = useState<AdResponse | null>(null);
 
   const requestAds = useCallback(
     () =>
@@ -93,6 +104,69 @@ export default function MyListingsPage() {
     }
   };
 
+  /**
+   * Yayından kaldırılmış ilanı geri yayına alır.
+   *
+   * Yayından kaldırmanın aksine ONAY SORULMUYOR: bu işlem yıkıcı değil ve
+   * kullanıcı yanlışlıkla basarsa aynı karttaki "yayından kaldır" ile tek
+   * tıkta geri alabiliyor. Onay sormak, geri alınabilir bir işlemde sürtünme
+   * üretir.
+   */
+  const handleRepublish = async (ad: AdResponse) => {
+    try {
+      setRepublishingId(ad.id);
+      setErrorMessage("");
+      await republishAd(ad.id);
+      const page = await requestAds();
+      setAds(page.content);
+    } catch (error) {
+      // Yönetici tarafından askıya alınmış ilanlarda sunucu 403 döner; bu
+      // beklenen bir durum, kullanıcıya sunucunun kendi cümlesi gösteriliyor.
+      setErrorMessage(
+        getUserErrorMessage(error, "İlan yeniden yayınlanamadı."),
+      );
+    } finally {
+      setRepublishingId(null);
+    }
+  };
+
+  /**
+   * Kayip ilani "bulundu" olarak kapandiginda listeyi sunucudan tazeler.
+   *
+   * Yerelde alan guncellemek YETMEZ: sunucu ilani pasiflestiriyor ve
+   * `resolutionStatus` yaziyor; ikincisini `AdResponse` hic tasimiyor. Yerel
+   * kopyayi elle duzeltmek, ekranin sunucudan farkli bir gercegi gostermesine
+   * yol acardi.
+   */
+  const handleResolvedFound = (resolvedAd: AdResponse) => {
+    setSuccessNotification(
+      `“${resolvedAd.title}” ilanı bulundu olarak kapatıldı. Mutlu sonlar!`,
+    );
+    setTimeout(() => {
+      setSuccessNotification("");
+    }, 4000);
+
+    void requestAds()
+      .then((page) => setAds(page.content))
+      .catch((error: unknown) => {
+        setErrorMessage(
+          getUserErrorMessage(error, "İlan listesi yenilenemedi."),
+        );
+      });
+  };
+
+  const handlePosterSettingsUpdate = (updatedAd: AdResponse) => {
+    setAds((currentAds) =>
+      currentAds.map((item) =>
+        item.id === updatedAd.id ? { ...item, ...updatedAd } : item,
+      ),
+    );
+    setSuccessNotification(`“${updatedAd.title}” ilanının afiş ayarları başarıyla kaydedildi.`);
+    setTimeout(() => {
+      setSuccessNotification("");
+    }, 4000);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <Header />
@@ -122,6 +196,12 @@ export default function MyListingsPage() {
           <FilterButton active={filter === "inactive"} onClick={() => selectFilter("inactive")}>Yayından Kaldırılan</FilterButton>
         </div>
 
+        {successNotification && (
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700" role="status">
+            {successNotification}
+          </div>
+        )}
+
         {errorMessage && (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700" role="alert">
             {errorMessage}
@@ -142,7 +222,15 @@ export default function MyListingsPage() {
                 <Link href={getAdDetailPath(ad)} className="relative block h-56 overflow-hidden bg-slate-100">
                   <img src={getAdImage(ad)} alt={ad.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" loading="lazy" />
                   <span className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold ${ad.active ? "bg-emerald-500 text-white" : "bg-slate-700 text-white"}`}>
-                    {ad.active ? "Yayında" : "Yayından kaldırıldı"}
+                    {ad.active
+                      ? "Yayında"
+                      : ad.suspended
+                        ? "İnceleme altında"
+                        : ad.resolutionStatus === "FOUND"
+                          ? "Bulundu 🎉"
+                          : ad.resolutionStatus === "ADOPTED"
+                            ? "Sahiplendirildi 🎉"
+                            : "Yayından kaldırıldı"}
                   </span>
                 </Link>
 
@@ -151,7 +239,7 @@ export default function MyListingsPage() {
                     <div>
                       <span className="text-xs font-bold uppercase tracking-wide text-orange-500">{getAdTypeLabel(ad.adType)}</span>
                       <h2 className="mt-1 text-xl font-bold">{ad.title}</h2>
-                      <p className="mt-1 text-sm text-slate-500">{getSpeciesLabel(ad.species)} · {ad.breed || "Cins belirtilmemiş"}</p>
+                      <p className="mt-1 text-sm text-slate-500">{getSpeciesLabel(ad.species)} · {getBreedLabel(ad.breed)}</p>
                     </div>
                     <PawPrint className="shrink-0 text-orange-400" size={24} />
                   </div>
@@ -161,7 +249,7 @@ export default function MyListingsPage() {
                     <p className="flex items-center gap-2"><CalendarDays size={16} />{getRelativeDate(ad.createdAt)}</p>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-[1fr_auto] gap-2 border-t border-slate-100 pt-4">
+                  <div className="mt-5 grid grid-cols-[1fr_auto_auto] gap-2 border-t border-slate-100 pt-4">
                     <Link
                       href={getAdDetailPath(ad)}
                       className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
@@ -170,7 +258,18 @@ export default function MyListingsPage() {
                       Görüntüle
                       <ChevronRight size={16} />
                     </Link>
-                    {ad.active && (
+
+                    <button
+                      type="button"
+                      onClick={() => setPosterModalAd(ad)}
+                      className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 text-slate-700 transition hover:bg-slate-100"
+                      aria-label="Afiş Ayarları"
+                      title="Afiş Ayarları"
+                    >
+                      <Settings size={18} />
+                    </button>
+
+                    {ad.active ? (
                       <button
                         type="button"
                         onClick={() => void handleDelete(ad)}
@@ -180,13 +279,89 @@ export default function MyListingsPage() {
                       >
                         <Trash2 size={18} />
                       </button>
+                    ) : ad.suspended ? (
+                      /* ASKIDAKİ İLANDA DÜĞME ÇİZİLMEZ. Yönetici askıya
+                         alırken hem suspended hem active yazıyor, yani askıya
+                         alınan ilan da bu sekmeye düşüyor. Burada `active`e
+                         bakıp düğme çizilirse kullanıcı HER ZAMAN reddedilecek
+                         bir düğmeye basar (uç suspended'ı görüp 403 veriyor) ve
+                         ekranda sebep görünmez — ilanının incelemede olduğunu
+                         hiçbir yerden öğrenemez. */
+                      <span
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700"
+                        title="İlanınız yönetici incelemesinde. İnceleme bitene kadar yeniden yayınlanamaz."
+                      >
+                        <ShieldAlert size={17} />
+                        İnceleme altında
+                      </span>
+                    ) : ad.resolutionStatus === "FOUND" ||
+                      ad.resolutionStatus === "ADOPTED" ? (
+                      /* ÇÖZÜLMÜŞ İLANDA "YENİDEN YAYINLA" ÇİZİLMEZ. Hayvan
+                         bulunduysa ilanın geri açılması istenen bir şey değil;
+                         düğme orada dururken kullanıcı mutlu sonla kapanmış
+                         ilanı yeniden yayına alabiliyordu (ölçüldü, 21.08
+                         canlı). Sunucu bunu engellemiyor — `republishAd`
+                         yalnız `active` ve `suspended`e bakıyor. */
+                      <span
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700"
+                        title="Bu ilan mutlu sonla kapandı."
+                      >
+                        <PartyPopper size={17} />
+                        Kapandı
+                      </span>
+                    ) : (
+                      /* Yayından kaldırılan ilanda önceden YALNIZ "Görüntüle"
+                         vardı; ilan yaşam döngüsü tek yönlüydü ve kullanıcı
+                         ilanını geri getiremiyordu. */
+                      <button
+                        type="button"
+                        onClick={() => void handleRepublish(ad)}
+                        disabled={republishingId === ad.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 px-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+                        aria-label="İlanı yeniden yayınla"
+                      >
+                        <RotateCcw size={17} />
+                        {republishingId === ad.id
+                          ? "Yayınlanıyor..."
+                          : "Yeniden yayınla"}
+                      </button>
                     )}
                   </div>
+
+                  {/* Yalniz KAYIP ve YAYINDA olan ilanda cizilir: sunucu
+                      (AdService.resolveLostAd) uc kosulu da ariyor — sahiplik,
+                      aktiflik, LOST tipi. Askidaki ilan `active=false`
+                      oldugundan burada zaten gorunmez; kosul genisletilirse
+                      kullanici HER ZAMAN reddedilecek bir dugmeye basar. */}
+                  {ad.adType === "LOST" && ad.active && (
+                    <button
+                      type="button"
+                      onClick={() => setBulunduModalAd(ad)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <PartyPopper size={17} />
+                      Hayvanımı buldum
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
           </div>
         )}
+
+        <PosterSettingsModal
+          isOpen={Boolean(posterModalAd)}
+          onClose={() => setPosterModalAd(null)}
+          ad={posterModalAd}
+          onSuccess={handlePosterSettingsUpdate}
+        />
+
+        <ResolveFoundModal
+          isOpen={Boolean(bulunduModalAd)}
+          onClose={() => setBulunduModalAd(null)}
+          ad={bulunduModalAd}
+          onSuccess={handleResolvedFound}
+        />
       </main>
 
       <Footer />

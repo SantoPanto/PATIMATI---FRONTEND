@@ -81,10 +81,22 @@ export function getUnreadMessageCount(): Promise<number> {
  */
 export function getWebSocketUrl(): string {
   const token = getStoredToken();
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const baseUrl = API_BASE_URL.replace(/^https?:\/\//, "");
+  let wsProtocol: string;
+  let host: string;
 
-  return `${wsProtocol}//${baseUrl}/ws-connect${
+  if (API_BASE_URL && /^https?:\/\//i.test(API_BASE_URL)) {
+    const url = new URL(API_BASE_URL);
+    wsProtocol = url.protocol === "https:" ? "wss:" : "ws:";
+    host = url.host;
+  } else if (API_BASE_URL) {
+    wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    host = API_BASE_URL.replace(/^\/+/, "");
+  } else {
+    wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    host = window.location.host;
+  }
+
+  return `${wsProtocol}//${host}/ws-connect${
     token ? `?token=${encodeURIComponent(token)}` : ""
   }`;
 }

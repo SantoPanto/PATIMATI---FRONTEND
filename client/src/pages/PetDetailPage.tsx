@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   Download,
+  Edit3,
   Eye,
   Flag,
   Heart,
@@ -23,16 +24,20 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
+import AdEditModal from "../components/AdEditModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { request } from "../services/api";
 import { downloadLostPoster } from "../services/posters";
 import { createOrGetChatRoom } from "../services/messages";
-import type { AdResponse, AdType } from "../services/types";
+import { sanitizeRedirectPath } from "../services/auth";
+import type { AdResponse, AdType, Page } from "../services/types";
 import {
   getAdImage,
   getAdLocation,
   getAgeLabel,
   getGenderLabel,
+  getImageUrl,
   getOwnerInitials,
   getRelativeDate,
   getSpeciesLabel,
@@ -65,25 +70,65 @@ function getAdTypeBadge(adType: AdType) {
   }
 }
 
-function formatCollarStatus(status: string, collarColor?: string): string {
-  if (status === "PRESENT") {
+function getPosterInfo(adType?: AdType) {
+  switch (adType) {
+    case "LOST":
+      return {
+        title: "Kayıp Afişi",
+        description: "QR kodlu kayıp afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Kayıp Afişi İndir (PDF)",
+      };
+    case "FOUND":
+      return {
+        title: "Bulundu Afişi",
+        description: "QR kodlu bulundu afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Bulundu Afişi İndir (PDF)",
+      };
+    case "ADOPTION":
+      return {
+        title: "Sahiplendirme Afişi",
+        description: "QR kodlu sahiplendirme afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Sahiplendirme Afişi İndir (PDF)",
+      };
+    default:
+      return {
+        title: "Afiş",
+        description: "QR kodlu afişi PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Afiş İndir (PDF)",
+      };
+  }
+}
+
+function formatCollarStatus(
+  status: AdResponse["collarStatus"],
+  collarColor?: string,
+): string {
+  // Backend enum'u: entity/enums/PresenceStatus = UNKNOWN | YES | NO.
+  // Buradaki eski PRESENT / ABSENT degerleri backend'de HIC YOKTU: iki kosul da
+  // tutmadigi icin tasmali ilanlar bile "bilinmiyor" gorunuyordu.
+  if (status === "YES") {
     return collarColor ? `Tasmalı (${collarColor})` : "Tasmalı";
   }
-  if (status === "ABSENT") {
+  if (status === "NO") {
     return "Tasmasız";
   }
   return "Tasma durumu bilinmiyor";
 }
 
-function formatPattern(pattern?: string): string {
+function formatPattern(pattern?: AdResponse["coatPattern"]): string {
   if (!pattern) return "";
-  const patterns: Record<string, string> = {
+  // Backend enum'u: entity/enums/CoatPattern. Eskiden BICOLOR/TRICOLOR/TABBY/
+  // HARLEQUIN yaziyordu - dordu de backend'de yok; buna karsilik gercek
+  // degerlerin besi (UNKNOWN, STRIPED, PATCHED, CALICO, TORTOISESHELL) eksikti,
+  // o ilanlarda kullaniciya ham kod ("TORTOISESHELL") gosteriliyordu.
+  const patterns: Record<AdResponse["coatPattern"], string> = {
+    UNKNOWN: "Desen belirtilmemiş",
     SOLID: "Tek Renk",
-    BICOLOR: "Çift Renk",
-    TRICOLOR: "Üç Renk",
-    TABBY: "Tekir / Çizgili",
+    STRIPED: "Çizgili / Tekir",
     SPOTTED: "Benekli",
-    HARLEQUIN: "Alaca / Parçalı",
+    PATCHED: "Parçalı / Alaca",
+    CALICO: "Sarman / Üç Renk",
+    TORTOISESHELL: "Kaplumbağa Kabuğu",
     OTHER: "Diğer Desen",
   };
   return patterns[pattern] || pattern;
@@ -92,7 +137,7 @@ function formatPattern(pattern?: string): string {
 export default function PetDetailPage() {
   const { id } = useParams<{ id?: string }>();
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [ad, setAd] = useState<AdResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,6 +146,7 @@ export default function PetDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPosterDownloading, setIsPosterDownloading] = useState(false);
   const [posterError, setPosterError] = useState<string | null>(null);
 
@@ -108,7 +154,8 @@ export default function PetDetailPage() {
   const isValidId = !Number.isNaN(adId) && adId > 0;
 
   const currentUserId = user?.id ?? user?.uid;
-  const isOwner = Boolean(currentUserId && ad?.ownerId && Number(currentUserId) === Number(ad.ownerId));
+  const adOwnerId = ad?.ownerId ?? (ad as unknown as { user?: { id?: number } })?.user?.id;
+  const isOwner = Boolean(currentUserId && adOwnerId && Number(currentUserId) === Number(adOwnerId));
 
 
   const fetchAdDetail = useCallback(async () => {
@@ -144,6 +191,58 @@ export default function PetDetailPage() {
     void fetchAdDetail();
   }, [fetchAdDetail]);
 
+  useEffect(() => {
+    if (!user || !isValidId) {
+      // Kullanici/ilan degistiginde onceki favori durumunun bir an icin
+      // gorunmesini onlemek icin senkron temizleme; asil veri cekimi asagida.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsFavorite(false);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadFavoriteStatus = async () => {
+      try {
+        const data = await request<Page<AdResponse>>(
+          "/api/favorites/me?size=100",
+          { requiresAuth: true },
+        );
+
+        if (isActive) {
+          setIsFavorite(data.content.some((favorite) => favorite.id === adId));
+        }
+      } catch {
+        if (isActive) setIsFavorite(false);
+      }
+    };
+
+    void loadFavoriteStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [adId, isValidId, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const previousFavoriteState = isFavorite;
+    setIsFavorite(!previousFavoriteState);
+
+    try {
+      await request(`/api/favorites/${adId}`, {
+        method: previousFavoriteState ? "DELETE" : "POST",
+        requiresAuth: true,
+      });
+    } catch {
+      setIsFavorite(previousFavoriteState);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -164,6 +263,23 @@ export default function PetDetailPage() {
   const openChat = async () => {
     if (!ad || !ad.ownerId) return;
 
+    // Girissiz kullanicida akis TAM BURADA kopuyordu: createOrGetChatRoom
+    // istemci tarafinda firlatiyor (services/api.ts), catch blogu bir alert
+    // basiyor ve kullanici ayni sayfada kaliyordu — donusumun olacagi yerde.
+    //
+    // Desen RequireAuth.goToLogin ile AYNI, bilerek: donus adresi tasinir,
+    // LoginPage onu okuyup giris sonrasi bu ilana geri getirir.
+    // `replace` KULLANILMIYOR — RequireAuth korumali sayfayi gecmiste
+    // birakmamak icin degistirir, burada ilan sayfasi zaten girissiz
+    // gorulebilir; geri tusu kullaniciyi ilana dondurmeli.
+    if (!isAuthenticated) {
+      const requestedPath = sanitizeRedirectPath(
+        `${window.location.pathname}${window.location.search}`,
+      );
+      navigate(`/login?redirect=${encodeURIComponent(requestedPath)}`);
+      return;
+    }
+
     const partnerId = Number(ad.ownerId);
     if (currentUserId && Number(currentUserId) === partnerId) {
       alert("Kendinizle sohbet odası oluşturamazsınız.");
@@ -180,7 +296,12 @@ export default function PetDetailPage() {
   };
 
   const handleDownloadPoster = async () => {
-    if (!ad || ad.adType !== "LOST") {
+    if (!ad) {
+      return;
+    }
+
+    if (!isOwner && ad.isPosterAllowed === false) {
+      setPosterError("Bu ilan için afiş oluşturma kapalıdır");
       return;
     }
 
@@ -190,11 +311,11 @@ export default function PetDetailPage() {
     try {
       await downloadLostPoster(ad.id);
     } catch (err) {
-      console.error("Kayıp afişi indirilirken hata oluştu:", err);
+      console.error("Afiş indirilirken hata oluştu:", err);
       setPosterError(
         getUserErrorMessage(
           err,
-          "Kayıp afişi indirilirken bir sorun oluştu.",
+          "Afiş indirilirken bir sorun oluştu.",
         ),
       );
     } finally {
@@ -280,7 +401,7 @@ export default function PetDetailPage() {
   const badgeInfo = getAdTypeBadge(ad.adType);
   const photos =
     Array.isArray(ad.photoUrls) && ad.photoUrls.length > 0
-      ? ad.photoUrls
+      ? ad.photoUrls.map((url) => getImageUrl(url))
       : [getAdImage(ad)];
 
   const currentPhoto = photos[selectedPhotoIndex] || photos[0];
@@ -349,7 +470,7 @@ export default function PetDetailPage() {
                 <div className="absolute top-4 right-4 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsFavorite((prev) => !prev)}
+                    onClick={() => void handleToggleFavorite()}
                     className={`flex h-10 w-10 items-center justify-center rounded-full border shadow-md transition ${
                       isFavorite
                         ? "border-rose-500 bg-rose-500 text-white"
@@ -531,30 +652,47 @@ export default function PetDetailPage() {
               </div>
             )}
 
-            {/* Kayıp Afişi PDF - yalnızca LOST ilanlarda gösterilir */}
-            {ad.adType === "LOST" && (
+            {/* Dynamic Afiş İndirme PDF Kartı (LOST, FOUND, ADOPTION) */}
+            {ad && (
               <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-base font-bold text-slate-900">
-                      Kayıp Afişi
+                      {getPosterInfo(ad.adType).title}
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                      QR kodlu kayıp afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.
+                      {getPosterInfo(ad.adType).description}
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => void handleDownloadPoster()}
-                    disabled={isPosterDownloading}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                  <div
+                    className="relative group inline-block shrink-0"
+                    onClick={() => {
+                      if (!isOwner && ad.isPosterAllowed === false) {
+                        setPosterError("Bu ilan için afiş oluşturma kapalıdır");
+                      }
+                    }}
                   >
-                    <Download size={19} />
-                    {isPosterDownloading
-                      ? "PDF hazırlanıyor..."
-                      : "Kayıp Afişi İndir (PDF)"}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDownloadPoster()}
+                      disabled={isPosterDownloading || (!isOwner && ad.isPosterAllowed === false)}
+                      className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                      title={!isOwner && ad.isPosterAllowed === false ? "Bu ilan için afiş oluşturma kapalıdır" : undefined}
+                    >
+                      <Download size={19} />
+                      {isPosterDownloading
+                        ? "PDF hazırlanıyor..."
+                        : getPosterInfo(ad.adType).buttonText}
+                    </button>
+
+                    {!isOwner && ad.isPosterAllowed === false && (
+                      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-md group-hover:block">
+                        Bu ilan için afiş oluşturma kapalıdır
+                        <div className="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {posterError && (
@@ -584,7 +722,11 @@ export default function PetDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div
+                className={`mt-6 grid gap-3 ${
+                  isOwner ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                }`}
+              >
                 {!isOwner ? (
                   <button
                     type="button"
@@ -595,9 +737,14 @@ export default function PetDetailPage() {
                     Mesaj Gönder
                   </button>
                 ) : (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold flex items-center justify-center">
-                    Kendi ilanınız
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
+                  >
+                    <Edit3 size={19} />
+                    İlanı Düzenle
+                  </button>
                 )}
 
                 <button
@@ -609,14 +756,20 @@ export default function PetDetailPage() {
                   Haritada Gör
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsComplaintModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
-                >
-                  <Flag size={19} />
-                  Şikayet Et
-                </button>
+                {/* Sahip kendi ilanini sikayet edemez: sunucu da reddediyor
+                    (AdComplaintService: "Kullanici kendi ilanini sikayet
+                    edemez"), dugmenin durmasi kullaniciyi bos yere hataya
+                    goturuyordu. */}
+                {!isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsComplaintModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                  >
+                    <Flag size={19} />
+                    Şikayet Et
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -626,13 +779,24 @@ export default function PetDetailPage() {
       <Footer />
 
       {ad && (
-        <ComplaintModal
-          isOpen={isComplaintModalOpen}
-          onClose={() => setIsComplaintModalOpen(false)}
-          targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
-          targetId={ad.id}
-          targetTitle={ad.title}
-        />
+        <>
+          <ComplaintModal
+            isOpen={isComplaintModalOpen}
+            onClose={() => setIsComplaintModalOpen(false)}
+            targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
+            targetId={ad.id}
+            targetTitle={ad.title}
+          />
+
+          <AdEditModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            ad={ad}
+            onSuccess={(updatedAd) =>
+              setAd((prev) => (prev ? { ...prev, ...updatedAd } : updatedAd))
+            }
+          />
+        </>
       )}
     </div>
   );

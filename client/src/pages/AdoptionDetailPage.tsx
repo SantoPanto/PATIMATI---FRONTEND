@@ -244,18 +244,21 @@ export default function AdoptionDetailPage() {
                       </button>
                     </>
                   ) : (
-                    <div className="sm:col-span-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-semibold flex items-center justify-center">
+                    <div className="sm:col-span-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-semibold flex items-center justify-center">
                       Bu ilan size aittir. Kendi ilanınıza mesaj gönderemezsiniz.
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setIsComplaintModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 transition hover:bg-rose-100"
-                  >
-                    <Flag size={19} />
-                    Şikayet Et
-                  </button>
+                  {/* Sahip kendi ilanini sikayet edemez - sunucu da reddediyor. */}
+                  {!isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setIsComplaintModalOpen(true)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 transition hover:bg-rose-100"
+                    >
+                      <Flag size={19} />
+                      Şikayet Et
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

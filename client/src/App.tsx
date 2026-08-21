@@ -13,6 +13,8 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
+import AiMatchPage from "./pages/AiMatchPage";
+import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
@@ -36,12 +38,14 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
 import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
+import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
 
 function ProtectedAddListingPage() {
   return (
     <RequireAuth
       component={AddListingPage}
       fallbackPath="/listings"
+      mode="modal"
     />
   );
 }
@@ -51,16 +55,23 @@ function ProtectedFoundPetCreatePage() {
     <RequireAuth
       component={FoundPetCreatePage}
       fallbackPath="/listings"
+      mode="modal"
     />
   );
 }
 
 function ProtectedChatPage() {
-  return <RequireAuth component={ChatPage} fallbackPath="/" />;
+  return <RequireAuth component={ChatPage} mode="redirect" />;
 }
 
 function ProtectedChatDetailPage() {
-  return <RequireAuth component={ChatDetailPage} fallbackPath="/adoption" />;
+  return (
+    <RequireAuth
+      component={ChatDetailPage}
+      fallbackPath="/adoption"
+      mode="modal"
+    />
+  );
 }
 
 function ProtectedAdoptionCreatePage() {
@@ -68,6 +79,7 @@ function ProtectedAdoptionCreatePage() {
     <RequireAuth
       component={AdoptionCreatePage}
       fallbackPath="/adoption"
+      mode="modal"
     />
   );
 }
@@ -97,19 +109,27 @@ function ProtectedChangePasswordPage() {
 }
 
 function ProtectedAdminDashboardPage() {
-  return <RequireAuth component={AdminDashboardPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminDashboardPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedAdminComplaintsPage() {
-  return <RequireAuth component={AdminComplaintsPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminComplaintsPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedAdminListingsPage() {
-  return <RequireAuth component={AdminListingsPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminListingsPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedAdminUsersPage() {
-  return <RequireAuth component={AdminUsersPage} mode="redirect" />;
+  return (
+    <RequireAuth component={AdminUsersPage} mode="redirect" requiredRole="ADMIN" />
+  );
 }
 
 function ProtectedNotificationsPage() {
@@ -135,6 +155,7 @@ function GuestForgotPasswordPage() {
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
+      <ForegroundNotificationToast />
       <Switch>
         {/* Ana Sayfa */}
         <Route path="/" component={HomePage} />
@@ -162,6 +183,10 @@ function App() {
         />
         <Route path="/pet/:id" component={PetDetailPage} />
         <Route path="/ads/:id" component={PetDetailPage} />
+
+        {/* AI Eşleşme */}
+        <Route path="/ai-match" component={AiMatchPage} />
+        <Route path="/ai-match-results" component={AiMatchResultsPage} />
 
         {/* Buldum İlanı */}
         <Route

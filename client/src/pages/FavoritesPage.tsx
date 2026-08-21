@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowRight,
@@ -13,6 +13,14 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { getImageUrl } from "../utils/imageUrl";
+import { request } from "../services/api";
+import type { AdResponse, AdType, Page } from "../services/types";
+import {
+  getAdImage,
+  getAdLocation,
+  getRelativeDate,
+} from "../utils/adPresentation";
 
 type FavoriteCategory =
   | "Tümü"
@@ -32,60 +40,28 @@ type FavoriteListing = {
   description: string;
 };
 
-const favoriteListings: FavoriteListing[] = [
-  {
-    id: 1,
-    title: "Kayıp Golden Retriever",
-    animalName: "Tarçın",
-    category: "Kayıp",
-    breed: "Golden Retriever",
-    location: "İzmit, Kocaeli",
-    date: "2 saat önce",
-    image:
-      "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Turuncu tasmalı, insanlara karşı oldukça sakin ve yaklaşılabilir.",
-  },
-  {
-    id: 2,
-    title: "Bulunan Tekir Kedi",
-    animalName: "İsimsiz",
-    category: "Bulundu",
-    breed: "Tekir",
-    location: "Gebze, Kocaeli",
-    date: "Dün",
-    image:
-      "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Mahalle parkında bulundu. Boynunda mavi renkli bir tasma bulunuyor.",
-  },
-  {
-    id: 3,
-    title: "Yeni Yuvasını Arayan Dostumuz",
-    animalName: "Mia",
-    category: "Sahiplendirme",
-    breed: "British Shorthair",
-    location: "Kadıköy, İstanbul",
-    date: "3 gün önce",
-    image:
-      "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Aşıları tamamlanmış, ev yaşamına alışkın ve oyuncu bir kedidir.",
-  },
-  {
-    id: 4,
-    title: "Kayıp Beyaz Köpek",
-    animalName: "Bulut",
-    category: "Kayıp",
-    breed: "Samoyed",
-    location: "Başiskele, Kocaeli",
-    date: "5 gün önce",
-    image:
-      "https://images.unsplash.com/photo-1529429617124-95b109e86bb8?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Beyaz tüylü, kırmızı tasmalı ve oldukça hareketli bir köpektir.",
-  },
-];
+const categoryByAdType: Record<
+  AdType,
+  FavoriteListing["category"]
+> = {
+  LOST: "Kayıp",
+  FOUND: "Bulundu",
+  ADOPTION: "Sahiplendirme",
+};
+
+function toFavoriteListing(ad: AdResponse): FavoriteListing {
+  return {
+    id: ad.id,
+    title: ad.title,
+    animalName: ad.title,
+    category: categoryByAdType[ad.adType],
+    breed: ad.breed || "Cins belirtilmemiş",
+    location: getAdLocation(ad),
+    date: getRelativeDate(ad.createdAt),
+    image: getAdImage(ad),
+    description: ad.description,
+  };
+}
 
 const categories: FavoriteCategory[] = [
   "Tümü",
@@ -98,12 +74,40 @@ export default function FavoritesPage() {
   const [, navigate] = useLocation();
 
   const [favorites, setFavorites] =
-    useState<FavoriteListing[]>(favoriteListings);
+    useState<FavoriteListing[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [selectedCategory, setSelectedCategory] =
     useState<FavoriteCategory>("Tümü");
 
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadFavorites = async () => {
+      try {
+        const data = await request<Page<AdResponse>>(
+          "/api/favorites/me?size=50",
+          { requiresAuth: true },
+        );
+
+        if (isActive) {
+          setFavorites(data.content.map(toFavoriteListing));
+        }
+      } catch {
+        if (isActive) setFavorites([]);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+
+    void loadFavorites();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const filteredFavorites = useMemo(() => {
     const normalizedSearch = searchTerm
@@ -132,7 +136,12 @@ export default function FavoritesPage() {
     });
   }, [favorites, searchTerm, selectedCategory]);
 
-  const removeFromFavorites = (listingId: number) => {
+  const removeFromFavorites = async (listingId: number) => {
+    await request(`/api/favorites/${listingId}`, {
+      method: "DELETE",
+      requiresAuth: true,
+    });
+
     setFavorites((currentFavorites) =>
       currentFavorites.filter(
         (listing) => listing.id !== listingId,
@@ -167,9 +176,9 @@ export default function FavoritesPage() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] sm:text-base">
-                Takip etmek istediğin kayıp, bulunan ve
+                Takip etmek istediğin kayıp bulunan ve
                 sahiplendirme ilanlarına buradan hızlıca
-                ulaşabilirsin.
+                ulaşabilirsin
               </p>
             </div>
 
@@ -205,7 +214,7 @@ export default function FavoritesPage() {
                 onChange={(event) =>
                   setSearchTerm(event.target.value)
                 }
-                placeholder="İsim, cins veya konum ara..."
+                placeholder="İsim cins veya konum ara"
                 className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-4 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]"
               />
             </div>
@@ -248,7 +257,7 @@ export default function FavoritesPage() {
             </h2>
 
             <p className="mt-1 text-sm text-[#64748B]">
-              {filteredFavorites.length} ilan gösteriliyor.
+              {filteredFavorites.length} ilan gösteriliyor
             </p>
           </div>
 
@@ -263,7 +272,11 @@ export default function FavoritesPage() {
           )}
         </div>
 
-        {filteredFavorites.length > 0 ? (
+        {loading ? (
+          <div className="mt-5 text-sm text-[#64748B]" role="status">
+            Yükleniyor
+          </div>
+        ) : filteredFavorites.length > 0 ? (
           <section className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filteredFavorites.map((listing) => (
               <FavoriteCard
@@ -309,7 +322,7 @@ function FavoriteCard({
     <article className="group overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
       <div className="relative h-52 overflow-hidden bg-[#F1F5F9]">
         <img
-          src={listing.image}
+          src={getImageUrl(listing.image)}
           alt={listing.title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           loading="lazy"
@@ -435,8 +448,8 @@ function EmptyFavorites({
 
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#64748B]">
         {hasFavorites
-          ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin."
-          : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin."}
+          ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin"
+          : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin"}
       </p>
 
       <button

@@ -22,11 +22,46 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import {
-  API_BASE_URL,
-  getStoredToken,
-} from "../services/auth";
-import { getUserErrorMessage } from "../utils/errorMessage";
+import { request } from "../services/api";
+import type { PetColor } from "../services/types";
+import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+
+const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
+  siyah: "BLACK",
+  black: "BLACK",
+  beyaz: "WHITE",
+  white: "WHITE",
+  gri: "GRAY",
+  gray: "GRAY",
+  grey: "GRAY",
+  kahverengi: "BROWN",
+  kahve: "BROWN",
+  brown: "BROWN",
+  turuncu: "ORANGE",
+  orange: "ORANGE",
+  krem: "CREAM",
+  cream: "CREAM",
+  altın: "GOLDEN",
+  altin: "GOLDEN",
+  golden: "GOLDEN",
+  bej: "BEIGE",
+  beige: "BEIGE",
+  diğer: "OTHER",
+  diger: "OTHER",
+  other: "OTHER",
+};
+
+function parseColorsFromText(text: string): PetColor[] {
+  if (!text || !text.trim()) return [];
+  const lower = text.toLowerCase();
+  const matched = new Set<PetColor>();
+  for (const [key, val] of Object.entries(TURKISH_COLOR_TO_ENUM)) {
+    if (lower.includes(key)) {
+      matched.add(val);
+    }
+  }
+  return Array.from(matched);
+}
 
 type SelectedImage = {
   id: string;
@@ -37,9 +72,18 @@ type SelectedImage = {
 type Gender = "UNKNOWN" | "MALE" | "FEMALE";
 type CollarStatus = "UNKNOWN" | "YES" | "NO";
 
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı (19.08.2026). Ayrıntılı
+// gerekçe ve kaynak satırları AddListingPage.tsx'te; üç oluşturma formu da
+// AYNI sunucu kuralına tabi:
+//   en az 1    -> AdService.java:84 (@RequestPart required = true)
+//   en fazla 3 -> S3ImageStorageServiceImpl.java:64 (etkin @Service)
+//   5 MB       -> application.yml spring.servlet.multipart.max-file-size
+// Önceden 5 ve 10 MB yazıyordu; ön yüz sunucunun reddedeceği seçimlere izin
+// veriyordu. Sunucu sınırı değişirse burası da değişmeli.
 const MIN_IMAGES = 1;
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -48,12 +92,15 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const today = new Date().toISOString().split("T")[0];
+
 export default function FoundPetCreatePage() {
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dateError, setDateError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocationLoading, setIsLocationLoading] =
     useState(false);
@@ -63,7 +110,7 @@ export default function FoundPetCreatePage() {
     breed: "",
     gender: "UNKNOWN" as Gender,
     color: "",
-    foundDate: "",
+    foundDate: today,
     city: "",
     district: "",
     locationDescription: "",
@@ -143,7 +190,7 @@ export default function FoundPetCreatePage() {
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorMessage(
-          "Her fotoğraf en fazla 10 MB olabilir.",
+          `Her fotoğraf en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`,
         );
         continue;
       }
@@ -371,7 +418,7 @@ export default function FoundPetCreatePage() {
       (form.species === "CAT" ? "Kedi" : "Köpek")
     } — ${form.city.trim() || "konum belirtilmedi"}`;
 
-    const ad = {
+    const ad: Record<string, unknown> = {
       /*
        * title backend'de @NotBlank ama formda boyle bir alan yok;
        * tur + konumdan turetiliyor (150 karakter siniri var).
@@ -382,12 +429,7 @@ export default function FoundPetCreatePage() {
       species: form.species,
       breed: form.breed.trim(),
       gender: form.gender,
-      /*
-       * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
-       * metin var. Serbest metin enum'a cevrilemedigi icin renk
-       * aciklamada kaliyor, kume bos gonderiliyor.
-       */
-      colors: [],
+      colors: parseColorsFromText(form.color),
       collarStatus: form.collarStatus,
       collarTagText: form.collarTagText.trim(),
       distinctiveMarks: [
@@ -402,6 +444,22 @@ export default function FoundPetCreatePage() {
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
     };
+
+    /*
+     * Payload temizligi: date veya lostDate alani bos ("") ise
+     * backend'e "" GONDERTILMEZ. Yalnizca doluysa eklenir.
+     */
+    if (form.foundDate && form.foundDate.trim() !== "") {
+      ad.date = form.foundDate;
+      ad.lostDate = form.foundDate;
+    }
+
+    if (!ad.date || ad.date === "") {
+      delete ad.date;
+    }
+    if (!ad.lostDate || ad.lostDate === "") {
+      delete ad.lostDate;
+    }
 
     /*
      * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor,
@@ -422,49 +480,11 @@ export default function FoundPetCreatePage() {
     });
 
     try {
-      const token = getStoredToken();
-
-      if (!token) {
-        throw new Error(
-          "İlan açmak için giriş yapmalısınız.",
-        );
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/ads`,
-        {
-          method: "POST",
-          body: formData,
-
-          /*
-           * Content-Type BILEREK verilmiyor: multipart sinir (boundary)
-           * degerini tarayici uretmeli. Elle yazilirsa Spring parcalari
-           * ayristiramaz.
-           */
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const govde = await response.text();
-
-      let sonuc: { id?: number; message?: string; error?: string } | null =
-        null;
-
-      try {
-        sonuc = govde ? JSON.parse(govde) : null;
-      } catch {
-        sonuc = null;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          sonuc?.message ||
-            sonuc?.error ||
-            `Buldum ilanı oluşturulamadı (${response.status}).`,
-        );
-      }
+      await request("/api/ads", {
+        method: "POST",
+        requiresAuth: true,
+        body: formData,
+      });
 
       /*
        * /pet/:id ve /listings su an ekrani olmayan iskelet sayfalar.
@@ -474,6 +494,20 @@ export default function FoundPetCreatePage() {
       navigate("/");
     } catch (error) {
       console.error("Buldum ilanı oluşturma hatası:", error);
+
+      const invalidParams = extractInvalidParams(error);
+      if (invalidParams) {
+        const dateParam = invalidParams.find((p) => {
+          const name = p.name || p.field;
+          return name === "date" || name === "lostDate" || name === "foundDate";
+        });
+
+        if (dateParam) {
+          const reason = dateParam.reason || dateParam.message || dateParam.detail;
+          setDateError(reason || "Tarih alanı boş bırakılamaz veya gelecekte bir tarih olamaz.");
+        }
+      }
+
       setErrorMessage(
         getUserErrorMessage(
           error,
@@ -560,7 +594,8 @@ export default function FoundPetCreatePage() {
                   </span>
 
                   <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">
-                    JPG, PNG veya WEBP · Maksimum 10 MB
+                    En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
+                    JPG, PNG veya WEBP · her biri {MAX_FILE_SIZE_MB} MB
                   </span>
                 </button>
               ) : (
@@ -715,15 +750,27 @@ export default function FoundPetCreatePage() {
               <Field label="Bulunma tarihi" required>
                 <input
                   type="date"
-                  value={form.foundDate}
-                  onChange={(event) =>
+                  required
+                  value={form.foundDate || ""}
+                  max={today}
+                  onChange={(event) => {
+                    setDateError("");
                     updateForm(
                       "foundDate",
                       event.target.value,
-                    )
-                  }
-                  className={inputClass}
+                    );
+                  }}
+                  className={`${inputClass} ${
+                    dateError
+                      ? "border-red-500 ring-2 ring-red-200"
+                      : ""
+                  }`}
                 />
+                {dateError && (
+                  <p className="mt-1 text-xs font-semibold text-red-600">
+                    {dateError}
+                  </p>
+                )}
               </Field>
 
               <div>
@@ -937,10 +984,19 @@ export default function FoundPetCreatePage() {
               </div>
             </label>
 
+            {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
+                formu baştan sona kontrol etmeye zorlar. */}
+            {images.length < MIN_IMAGES && (
+              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                <ImagePlus size={17} />
+                İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+              </p>
+            )}
+
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || images.length < MIN_IMAGES}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:bg-[#CBD5E1] disabled:shadow-none"
             >
               {isSubmitting ? (

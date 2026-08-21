@@ -55,6 +55,12 @@ function getTokenFrom(
     ) ||
     storage.getItem(
       LEGACY_TOKEN_KEY,
+    ) ||
+    storage.getItem(
+      "jwt",
+    ) ||
+    storage.getItem(
+      "bearer_token",
     )
   );
 }

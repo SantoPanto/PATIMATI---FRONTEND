@@ -20,16 +20,51 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import {
-  API_BASE_URL,
-  getStoredToken,
-} from "../services/auth";
-import { getUserErrorMessage } from "../utils/errorMessage";
+import { request } from "../services/api";
+import type { PetColor } from "../services/types";
+import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+
+const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
+  siyah: "BLACK",
+  black: "BLACK",
+  beyaz: "WHITE",
+  white: "WHITE",
+  gri: "GRAY",
+  gray: "GRAY",
+  grey: "GRAY",
+  kahverengi: "BROWN",
+  kahve: "BROWN",
+  brown: "BROWN",
+  turuncu: "ORANGE",
+  orange: "ORANGE",
+  krem: "CREAM",
+  cream: "CREAM",
+  altın: "GOLDEN",
+  altin: "GOLDEN",
+  golden: "GOLDEN",
+  bej: "BEIGE",
+  beige: "BEIGE",
+  diğer: "OTHER",
+  diger: "OTHER",
+  other: "OTHER",
+};
+
+function parseColorsFromText(text: string): PetColor[] {
+  if (!text || !text.trim()) return [];
+  const lower = text.toLowerCase();
+  const matched = new Set<PetColor>();
+  for (const [key, val] of Object.entries(TURKISH_COLOR_TO_ENUM)) {
+    if (lower.includes(key)) {
+      matched.add(val);
+    }
+  }
+  return Array.from(matched);
+}
 
 type Gender = "female" | "male" | "unknown";
 
-/* Backend enum'u: UNKNOWN | BABY | YOUNG | ADULT */
-type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT";
+/* Backend enum'u: entity/enums/AgeGroup = UNKNOWN | BABY | YOUNG | ADULT | SENIOR */
+type AgeGroup = "UNKNOWN" | "BABY" | "YOUNG" | "ADULT" | "SENIOR";
 
 /*
  * Sayfa cinsiyeti kucuk harfle tutuyor, backend PetGender enum'u BUYUK
@@ -47,8 +82,18 @@ type SelectedImage = {
   preview: string;
 };
 
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı (19.08.2026). Ayrıntılı
+// gerekçe ve kaynak satırları AddListingPage.tsx'te; üç oluşturma formu da
+// AYNI sunucu kuralına tabi:
+//   en az 1    -> AdService.java:84 / AdoptionController @RequestPart required
+//   en fazla 3 -> S3ImageStorageServiceImpl.java:64 (etkin @Service)
+//   5 MB       -> application.yml spring.servlet.multipart.max-file-size
+// Önceden 5 ve 10 MB yazıyordu; ön yüz sunucunun reddedeceği seçimlere izin
+// veriyordu. Sunucu sınırı değişirse burası da değişmeli.
+const MIN_IMAGES = 1;
+const MAX_IMAGES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -57,6 +102,8 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const today = new Date().toISOString().split("T")[0];
+
 export default function AdoptionCreatePage() {
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,6 +111,7 @@ export default function AdoptionCreatePage() {
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -72,11 +120,12 @@ export default function AdoptionCreatePage() {
     gender: "unknown" as Gender,
     /*
      * Backend yasi SERBEST METIN degil AgeGroup enum'u olarak tutuyor
-     * (UNKNOWN | BABY | YOUNG | ADULT) ve @NotNull. Alan bu yuzden
+     * (UNKNOWN | BABY | YOUNG | ADULT | SENIOR) ve @NotNull. Alan bu yuzden
      * metin kutusundan acilir listeye cevrildi.
      */
     ageGroup: "UNKNOWN" as AgeGroup,
     color: "",
+    date: today,
     city: "",
     district: "",
     /*
@@ -161,7 +210,7 @@ export default function AdoptionCreatePage() {
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorMessage(
-          "Her fotoğraf en fazla 10 MB olabilir.",
+          `Her fotoğraf en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`,
         );
         continue;
       }
@@ -296,6 +345,14 @@ export default function AdoptionCreatePage() {
       return "Irk/cins bilgisini girin.";
     }
 
+    if (!form.date) {
+      return "İlan tarihini seçin.";
+    }
+
+    if (form.date > today) {
+      return "Gelecekte bir tarih seçilemez.";
+    }
+
     if (!form.city.trim()) {
       return "Şehir bilgisini girin.";
     }
@@ -325,6 +382,7 @@ export default function AdoptionCreatePage() {
 
   const handleSubmit = async () => {
     setErrorMessage("");
+    setDateError("");
 
     const validationError = validateForm();
 
@@ -368,18 +426,14 @@ export default function AdoptionCreatePage() {
       .filter(Boolean)
       .join("\n");
 
-    const ad = {
+    const ad: Record<string, unknown> = {
       title: form.title.trim().slice(0, 150),
       description: aciklama,
       species: form.species,
       breed: form.breed.trim(),
       gender: CINSIYET_KARSILIGI[form.gender],
       ageGroup: form.ageGroup,
-      /*
-       * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
-       * metin var. Enum'a cevrilemedigi icin renk aciklamada kaliyor.
-       */
-      colors: [],
+      colors: parseColorsFromText(form.color),
       /*
        * coatPattern ve eyeColor DTO'da istege bagli gorunuyor ama
        * ads tablosunda NOT NULL ve AdoptionServiceImpl bunlari null
@@ -394,6 +448,22 @@ export default function AdoptionCreatePage() {
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
     };
+
+    /*
+     * Payload temizligi: date veya lostDate alani bos ("") ise
+     * backend'e "" GONDERTILMEZ. Yalnizca doluysa eklenir.
+     */
+    if (form.date && form.date.trim() !== "") {
+      ad.date = form.date;
+      ad.lostDate = form.date;
+    }
+
+    if (!ad.date || ad.date === "") {
+      delete ad.date;
+    }
+    if (!ad.lostDate || ad.lostDate === "") {
+      delete ad.lostDate;
+    }
 
     /*
      * Spring Boot @RequestPart("ad") + @RequestPart("images") bekliyor
@@ -413,48 +483,11 @@ export default function AdoptionCreatePage() {
     });
 
     try {
-      const token = getStoredToken();
-
-      if (!token) {
-        throw new Error(
-          "İlan açmak için giriş yapmalısınız.",
-        );
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/adoptions`,
-        {
-          method: "POST",
-          body: formData,
-
-          /*
-           * Content-Type BILEREK verilmiyor: multipart sinir (boundary)
-           * degerini tarayici uretmeli.
-           */
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const govde = await response.text();
-
-      let sonuc: { id?: number; message?: string; error?: string } | null =
-        null;
-
-      try {
-        sonuc = govde ? JSON.parse(govde) : null;
-      } catch {
-        sonuc = null;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          sonuc?.message ||
-            sonuc?.error ||
-            `Sahiplendirme ilanı oluşturulamadı (${response.status}).`,
-        );
-      }
+      await request("/api/adoptions", {
+        method: "POST",
+        requiresAuth: true,
+        body: formData,
+      });
 
       /*
        * /adoption/:id su an sahte veriyle calisan bir sayfa; oraya
@@ -464,6 +497,20 @@ export default function AdoptionCreatePage() {
       navigate("/adoption");
     } catch (error) {
       console.error("Sahiplendirme ilanı oluşturma hatası:", error);
+
+      const invalidParams = extractInvalidParams(error);
+      if (invalidParams) {
+        const dateParam = invalidParams.find((p) => {
+          const name = p.name || p.field;
+          return name === "date" || name === "lostDate";
+        });
+
+        if (dateParam) {
+          const reason = dateParam.reason || dateParam.message || dateParam.detail;
+          setDateError(reason || "Tarih gelecekte bir tarih olamaz veya geçersizdir.");
+        }
+      }
+
       setErrorMessage(
         getUserErrorMessage(error, "İlan oluşturulurken bir hata oluştu."),
       );
@@ -538,7 +585,8 @@ export default function AdoptionCreatePage() {
                   </strong>
 
                   <span className="mt-2 text-sm text-[#64748B]">
-                    En fazla 5 fotoğraf · JPG, PNG veya WEBP
+                    En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
+                    her biri {MAX_FILE_SIZE_MB} MB · JPG, PNG veya WEBP
                   </span>
                 </button>
               ) : (
@@ -677,6 +725,10 @@ export default function AdoptionCreatePage() {
                     <option value="ADULT">
                       Yetişkin
                     </option>
+
+                    <option value="SENIOR">
+                      Yaşlı
+                    </option>
                   </select>
                 </Field>
 
@@ -712,6 +764,29 @@ export default function AdoptionCreatePage() {
                     placeholder="Örn. Beyaz - turuncu"
                     className={inputClass}
                   />
+                </Field>
+
+                <Field label="Tarih" required>
+                  <input
+                    type="date"
+                    required
+                    value={form.date || ""}
+                    max={today}
+                    onChange={(e) => {
+                      setDateError("");
+                      updateForm("date", e.target.value);
+                    }}
+                    className={`${inputClass} ${
+                      dateError
+                        ? "border-red-500 ring-2 ring-red-200"
+                        : ""
+                    }`}
+                  />
+                  {dateError && (
+                    <p className="mt-1 text-xs font-semibold text-red-600">
+                      {dateError}
+                    </p>
+                  )}
                 </Field>
               </div>
             </FormCard>
@@ -884,9 +959,18 @@ export default function AdoptionCreatePage() {
               </div>
             </label>
 
+            {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
+                formu baştan sona kontrol etmeye zorlar. */}
+            {images.length < MIN_IMAGES && (
+              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                <ImagePlus size={17} />
+                İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+              </p>
+            )}
+
             <button
               type="button"
-              disabled={isSubmitting}
+              disabled={isSubmitting || images.length < MIN_IMAGES}
               onClick={handleSubmit}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F97316] px-6 py-4 font-bold text-white shadow-lg shadow-orange-500/20 transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:bg-[#CBD5E1]"
             >

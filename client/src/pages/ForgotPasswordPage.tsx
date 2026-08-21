@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
     setErrorMessage("");
 
     if (!email.trim()) {
-      setErrorMessage("E-posta adresini girmelisin.");
+      setErrorMessage("E posta adresini girmelisin");
       return;
     }
 
@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
       setIsSent(true);
     } catch (error) {
       setErrorMessage(
-        getUserErrorMessage(error, "Beklenmeyen bir sorun oluştu."),
+        getUserErrorMessage(error, "Beklenmeyen bir sorun oluştu"),
       );
     } finally {
       setIsLoading(false);
@@ -77,12 +77,12 @@ export default function ForgotPasswordPage() {
                 </span>
 
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                  Şifreni mi unuttun?
+                  Şifreni mi unuttun
                 </h1>
 
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Hesabına ait e-posta adresini gir. Şifreni yenileyebileceğin
-                  güvenli bağlantıyı sana gönderelim.
+                  Hesabına ait e posta adresini gir Şifreni yenileyebileceğin
+                  güvenli bağlantıyı sana gönderelim
                 </p>
               </div>
 
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
                   htmlFor="forgot-email"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
-                  E-posta
+                  E posta
                 </label>
 
                 <div className="relative mb-5">
@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
                   className="h-12 w-full rounded-xl bg-orange-500 px-4 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isLoading
-                    ? "Gönderiliyor..."
+                    ? "Gönderiliyor"
                     : "Şifre sıfırlama bağlantısı gönder"}
                 </button>
               </form>
@@ -138,13 +138,13 @@ export default function ForgotPasswordPage() {
               </span>
 
               <h1 className="mt-6 text-3xl font-bold text-slate-900">
-                E-postanı kontrol et
+                E postanı kontrol et
               </h1>
 
               <p className="mt-4 text-sm leading-6 text-slate-500">
                 Hesap bulunması hâlinde şifre sıfırlama bağlantısı{" "}
                 <strong className="text-slate-700">{email}</strong> adresine
-                gönderildi.
+                gönderildi
               </p>
 
               <Link
@@ -158,7 +158,7 @@ export default function ForgotPasswordPage() {
 
           {!isSent && (
             <p className="mt-7 text-center text-sm text-slate-600">
-              Şifreni hatırladın mı?{" "}
+              Şifreni hatırladın mı{" "}
               <Link
                 href="/login"
                 className="font-bold text-orange-500 hover:text-orange-600"

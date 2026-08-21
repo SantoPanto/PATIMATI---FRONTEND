@@ -7,6 +7,7 @@ import {
 import { useLocation } from "wouter";
 import {
   ArrowLeft,
+  CalendarDays,
   Camera,
   CheckCircle2,
   ChevronRight,
@@ -24,7 +25,9 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import MatchedAdCard from "../components/MatchedAdCard";
 import { request } from "../services/api";
+import type { MatchedAdResponseDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
 /* -------------------------------------------------------------------------- */
@@ -114,28 +117,27 @@ type AdResponse = {
   title?: string;
 };
 
-// POST /api/ai-match yanıtının biçimi -- backend'deki AiMatchService.mapToDTO
-// ile birebir (id/title/description/photoUrls/createdAt/ownerDisplayName).
-type AiMatchAd = {
-  id: number;
-  title: string | null;
-  description: string | null;
-  photoUrls: string[];
-  createdAt?: string;
-  ownerDisplayName?: string | null;
-};
-
-type AiMatchResult = {
-  score: number;
-  ad: AiMatchAd;
-};
-
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı, tahmin edilmedi.
+// Bu üç sayı ön yüzde uydurulamaz: sunucu zaten uyguluyor, ön yüz yalnızca
+// kullanıcıya ÖNCEDEN söylemek için biliyor. Kaynak (19.08.2026):
+//   en az 1  -> AdService.java:84  "İlan oluşturmak için en az bir fotoğraf
+//               yüklenmelidir" (AdController'da @RequestPart required = true)
+//   en fazla 3 -> S3ImageStorageServiceImpl.java:64 (ETKİN @Service sınıfı)
+//               "Bir ilana en fazla 3 fotoğraf yüklenebilir"
+//   5 MB     -> application.yml  spring.servlet.multipart.max-file-size: 5MB
+//
+// ⚠ Bu değerler önceden 5 ve 10 MB yazıyordu, yani ön yüz sunucunun
+// REDDEDECEĞİ seçimlere izin veriyordu: kullanıcı 4. fotoğrafı ya da 7 MB'lık
+// dosyayı sorunsuzca seçiyor, hatayı ancak gönderdikten sonra görüyordu.
+// Sunucu sınırı değişirse BURASI DA değişmeli.
+const MIN_IMAGES = 1;
+const MAX_IMAGES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -143,6 +145,8 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/png",
   "image/webp",
 ];
+
+const today = new Date().toISOString().split("T")[0];
 
 const COLOR_LABELS: Record<PetColor, string> = {
   BLACK: "Siyah",
@@ -258,9 +262,9 @@ export default function AddListingPage() {
   const [microchipNumber, setMicrochipNumber] =
     useState("");
 
-  /* ------------------------------ Lost info ----------------------------- */
+  /* ------------------------------ Date & Info --------------------------- */
 
-  const [lostDate, setLostDate] = useState("");
+  const [lostDate, setLostDate] = useState(today);
 
   const [distinctiveMarks, setDistinctiveMarks] =
     useState("");
@@ -284,7 +288,7 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [matches, setMatches] = useState<AiMatchResult[]>([]);
+  const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
   /* ---------------------------------------------------------------------- */
@@ -345,7 +349,7 @@ export default function AddListingPage() {
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorMessage(
-          `${file.name} 10 MB'dan büyük. Her fotoğraf en fazla 10 MB olabilir.`,
+          `${file.name} ${MAX_FILE_SIZE_MB} MB'dan büyük. Her fotoğraf en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`,
         );
         continue;
       }
@@ -565,6 +569,42 @@ export default function AddListingPage() {
         ...new Set(detectedColors),
       ]);
     }
+
+    // Goz rengi (eye_color)
+    const eyeColors = etiketten("hard:eye_color_");
+    if (eyeColors.length > 0 && eyeColors[0] !== "unknown") {
+      const eyeMap: Record<string, EyeColor> = {
+        brown: "BROWN",
+        blue: "BLUE",
+        green: "GREEN",
+        amber: "AMBER",
+        hazel: "HAZEL",
+        heterochromia: "HETEROCHROMIA",
+      };
+      if (eyeMap[eyeColors[0]]) {
+        setEyeColor(eyeMap[eyeColors[0]]);
+      }
+    }
+
+    // Tasma (collar)
+    const collar = etiketten("bonus:collar_");
+    if (collar.length > 0) {
+      if (collar[0] === "collar") {
+        setCollarStatus("YES");
+      } else if (collar[0] === "no_collar") {
+        setCollarStatus("NO");
+      }
+    }
+
+    // Kulak Kupesi (ear_tag)
+    const earTag = etiketten("bonus:ear_tag_");
+    if (earTag.length > 0) {
+      if (earTag[0] === "ear_tag") {
+        setEarTagStatus("YES");
+      } else if (earTag[0] === "no_ear_tag") {
+        setEarTagStatus("NO");
+      }
+    }
   };
 
   const runAiAnalysis = async () => {
@@ -600,7 +640,7 @@ export default function AddListingPage() {
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
 
-          const matchesData = await request<AiMatchResult[]>("/api/ai-match", {
+          const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
             method: "POST",
             body: formData,
             requiresAuth: true,
@@ -668,8 +708,12 @@ export default function AddListingPage() {
       return "Geçerli bir boylam değeri giriniz.";
     }
 
-    if (adType === "LOST" && !lostDate) {
-      return "Kayıp ilanı için kayıp tarihi zorunludur.";
+    if (!lostDate || lostDate.trim() === "") {
+      return "Tarih bilgisi zorunludur.";
+    }
+
+    if (lostDate > today) {
+      return "Gelecekte bir tarih seçilemez.";
     }
 
     return null;
@@ -705,7 +749,7 @@ export default function AddListingPage() {
        * ai_species, etc. are NOT sent here because Spring's
        * AdCreateRequest does not accept them.
        */
-      const ad = {
+      const ad: Record<string, unknown> = {
         title: title.trim(),
 
         description: description.trim(),
@@ -716,7 +760,7 @@ export default function AddListingPage() {
 
         breed: breed.trim(),
 
-        colors,
+        colors: Array.isArray(colors) ? colors : [],
 
         gender,
 
@@ -742,11 +786,6 @@ export default function AddListingPage() {
             .replace(/\s+/g, "")
             .trim(),
 
-        lostDate:
-          adType === "LOST"
-            ? lostDate
-            : null,
-
         distinctiveMarks:
           distinctiveMarks.trim(),
 
@@ -754,6 +793,28 @@ export default function AddListingPage() {
 
         longitude: Number(longitude),
       };
+
+      /*
+       * ⚠ Tarih YALNIZ `lostDate` olarak gönderilir. `date` alanı sunucuda
+       * `lostDate`'in @JsonAlias'ıdır; ikisi birden gönderilirse Jackson aynı
+       * record bileşenine ikinci kez yazmaya çalışır, geri düşecek bir setter
+       * bulamaz ve isteğin TAMAMINI reddeder:
+       *
+       *   No fallback setter/field defined for creator property 'lostDate'
+       *   (through reference chain: AdCreateRequest["date"])
+       *
+       * Ölçüldü (21.08, canlı): POST /api/ads iki denemede de 500 döndü ve
+       * hiç ilan oluşmadı. Takma ad sunucuda KALIYOR — yalnız `date` gönderen
+       * eski bir istemci varsa o çalışmaya devam eder; kıran şey ikisini
+       * BİRLİKTE göndermekti.
+       */
+      if (lostDate && lostDate.trim() !== "") {
+        ad.lostDate = lostDate;
+      }
+
+      if (!ad.lostDate || ad.lostDate === "") {
+        delete ad.lostDate;
+      }
 
       /*
        * Spring Boot expects:
@@ -866,11 +927,6 @@ export default function AddListingPage() {
   /* Render helpers                                                         */
   /* ---------------------------------------------------------------------- */
 
-  const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
-
   const inputClass =
     "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10";
 
@@ -882,6 +938,14 @@ export default function AddListingPage() {
 
   const disabled =
     isSubmitting || isAnalyzing;
+
+  // ⚠ Fotoğraf koşulu bilerek `disabled`e EKLENMEDİ: o bayrak formdaki bütün
+  // girdilerde kullanılıyor (metin alanları, seçim kutuları ve FOTOĞRAF YÜKLEME
+  // alanı dâhil). Oraya eklenseydi fotoğrafı olmayan kullanıcı fotoğraf da
+  // yükleyemezdi — kilitlenme. Bu yüzden yalnız gönder düğmesine bakan ayrı bir
+  // bayrak var.
+  const fotografEksik = images.length < MIN_IMAGES;
+  const gonderilemez = disabled || fotografEksik;
 
   /* ---------------------------------------------------------------------- */
   /* JSX                                                                    */
@@ -942,8 +1006,11 @@ export default function AddListingPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  En fazla {MAX_IMAGES} fotoğraf
-                  yükleyebilirsiniz.
+                  <strong className="text-gray-700">
+                    En az {MIN_IMAGES} fotoğraf zorunlu.
+                  </strong>{" "}
+                  En fazla {MAX_IMAGES} fotoğraf, her biri en fazla{" "}
+                  {MAX_FILE_SIZE_MB} MB (JPG, PNG veya WEBP).
                 </p>
               </div>
 
@@ -1791,44 +1858,50 @@ export default function AddListingPage() {
           </section>
 
           {/* ---------------------------------------------------------------- */}
-          {/* LOST DATE                                                         */}
+          {/* DATE SECTION (RENDERED FOR ALL AD TYPES: LOST, FOUND, ADOPTION)  */}
           {/* ---------------------------------------------------------------- */}
 
-          {adType === "LOST" && (
-            <section className={cardClass}>
-              <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
-                <Search
-                  size={20}
-                  className="text-[#7c5cff]"
-                />
-                Kayıp Bilgileri
-              </h2>
+          <section className={cardClass}>
+            <h2 className="mb-5 flex items-center gap-2 text-lg font-bold">
+              <CalendarDays
+                size={20}
+                className="text-[#7c5cff]"
+              />
+              {adType === "LOST"
+                ? "Kayıp Bilgileri"
+                : adType === "FOUND"
+                  ? "Bulunma Bilgileri"
+                  : "İlan / Sahiplendirme Tarihi"}
+            </h2>
 
-              <div>
-                <label
-                  htmlFor="lost-date"
-                  className={labelClass}
-                >
-                  Kayıp Tarihi
-                </label>
+            <div>
+              <label
+                htmlFor="lost-date"
+                className={labelClass}
+              >
+                {adType === "LOST"
+                  ? "Kayıp Tarihi"
+                  : adType === "FOUND"
+                    ? "Bulunma Tarihi"
+                    : "İlan Tarihi"}
+              </label>
 
-                <input
-                  id="lost-date"
-                  type="date"
-                  value={lostDate}
-                  max={today}
-                  onChange={(event) =>
-                    setLostDate(
-                      event.target.value,
-                    )
-                  }
-                  disabled={disabled}
-                  required
-                  className={inputClass}
-                />
-              </div>
-            </section>
-          )}
+              <input
+                id="lost-date"
+                type="date"
+                value={lostDate || ""}
+                max={today}
+                onChange={(event) =>
+                  setLostDate(
+                    event.target.value,
+                  )
+                }
+                disabled={disabled}
+                required
+                className={inputClass}
+              />
+            </div>
+          </section>
 
           {/* ---------------------------------------------------------------- */}
           {/* LOCATION                                                          */}
@@ -1940,9 +2013,18 @@ export default function AddListingPage() {
           {/* SUBMIT                                                            */}
           {/* ---------------------------------------------------------------- */}
 
+          {/* Pasif düğmenin SEBEBİ yazılmalı: sebepsiz pasif düğme, kullanıcıyı
+              formu baştan sona kontrol etmeye zorlar. */}
+          {fotografEksik && (
+            <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <Camera size={17} />
+              İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={disabled}
+            disabled={gonderilemez}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7c5cff] px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#6d4ff0] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
@@ -1990,42 +2072,11 @@ export default function AddListingPage() {
 
             <div className="grid gap-4">
               {matches.map((match, idx) => (
-                <div key={idx} className="flex gap-4 p-4 border border-[#E2E8F0] rounded-xl hover:border-[#CBD5E1] transition bg-[#F8FAFC]">
-                  {match.ad?.photoUrls?.[0] ? (
-                    <img
-                      src={match.ad.photoUrls[0]}
-                      alt={match.ad.title || "Eşleşen İlan"}
-                      className="w-24 h-24 rounded-lg object-cover bg-[#E2E8F0]"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-lg bg-[#E2E8F0] flex items-center justify-center">
-                      <PawPrint size={32} className="text-[#94A3B8]" />
-                    </div>
-                  )}
-                  
-                  <div className="flex-1 flex flex-col justify-center">
-                    <h3 className="font-bold text-[#0F172A] text-lg mb-1">{match.ad?.title || "İlan"}</h3>
-                    <p className="text-sm text-[#64748B] line-clamp-2">{match.ad?.description}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-[#ECFCCB] px-2.5 py-0.5 text-xs font-semibold text-[#4D7C0F]">
-                        %{(match.score * 100).toFixed(0)} Benzerlik
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-center pl-4 border-l border-[#E2E8F0]">
-                    <a
-                      href={`/pet/${match.ad?.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F8FAFC] px-4 py-2 font-semibold text-[#0F172A] border border-[#CBD5E1] hover:bg-[#F1F5F9] hover:border-[#94A3B8] transition"
-                    >
-                      İncele
-                      <ChevronRight size={16} />
-                    </a>
-                  </div>
-                </div>
+                <MatchedAdCard
+                  key={match.ad?.id || idx}
+                  match={match}
+                  variant="modal"
+                />
               ))}
             </div>
             
