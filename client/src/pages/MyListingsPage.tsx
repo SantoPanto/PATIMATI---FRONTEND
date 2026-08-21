@@ -26,6 +26,7 @@ import {
   getAdImage,
   getAdLocation,
   getAdTypeLabel,
+  getBreedLabel,
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
@@ -225,7 +226,11 @@ export default function MyListingsPage() {
                       ? "Yayında"
                       : ad.suspended
                         ? "İnceleme altında"
-                        : "Yayından kaldırıldı"}
+                        : ad.resolutionStatus === "FOUND"
+                          ? "Bulundu 🎉"
+                          : ad.resolutionStatus === "ADOPTED"
+                            ? "Sahiplendirildi 🎉"
+                            : "Yayından kaldırıldı"}
                   </span>
                 </Link>
 
@@ -234,7 +239,7 @@ export default function MyListingsPage() {
                     <div>
                       <span className="text-xs font-bold uppercase tracking-wide text-orange-500">{getAdTypeLabel(ad.adType)}</span>
                       <h2 className="mt-1 text-xl font-bold">{ad.title}</h2>
-                      <p className="mt-1 text-sm text-slate-500">{getSpeciesLabel(ad.species)} · {ad.breed || "Cins belirtilmemiş"}</p>
+                      <p className="mt-1 text-sm text-slate-500">{getSpeciesLabel(ad.species)} · {getBreedLabel(ad.breed)}</p>
                     </div>
                     <PawPrint className="shrink-0 text-orange-400" size={24} />
                   </div>
@@ -288,6 +293,21 @@ export default function MyListingsPage() {
                       >
                         <ShieldAlert size={17} />
                         İnceleme altında
+                      </span>
+                    ) : ad.resolutionStatus === "FOUND" ||
+                      ad.resolutionStatus === "ADOPTED" ? (
+                      /* ÇÖZÜLMÜŞ İLANDA "YENİDEN YAYINLA" ÇİZİLMEZ. Hayvan
+                         bulunduysa ilanın geri açılması istenen bir şey değil;
+                         düğme orada dururken kullanıcı mutlu sonla kapanmış
+                         ilanı yeniden yayına alabiliyordu (ölçüldü, 21.08
+                         canlı). Sunucu bunu engellemiyor — `republishAd`
+                         yalnız `active` ve `suspended`e bakıyor. */
+                      <span
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700"
+                        title="Bu ilan mutlu sonla kapandı."
+                      >
+                        <PartyPopper size={17} />
+                        Kapandı
                       </span>
                     ) : (
                       /* Yayından kaldırılan ilanda önceden YALNIZ "Görüntüle"
