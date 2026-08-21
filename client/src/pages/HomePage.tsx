@@ -13,6 +13,7 @@ import {
 } from "../utils/adPresentation";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 import "../App.css";
 import {
   Camera,
@@ -931,96 +932,7 @@ export default function HomePage() {
         )}
       </main>
 
-      <footer className="border-t border-[#E2E8F0] bg-white">
-        <div className="page-container py-10 sm:py-12">
-          <div className="grid gap-8 md:grid-cols-[1.3fr_1fr_1fr]">
-            <div>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2"
-                aria-label="PATIMATI ana sayfa"
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
-                  <PawPrint size={24} strokeWidth={2.4} />
-                </span>
-
-                <span className="text-xl font-bold text-[#0F172A]">
-                  PATI
-                  <span className="text-[#F97316]">MATI</span>
-                </span>
-              </Link>
-
-              <p className="mt-4 max-w-sm text-sm leading-6 text-[#64748B]">
-                Kayıp bulunan ve sahiplendirilecek hayvanları
-                güvenli iletişim ile doğru kişilere ulaştıran
-                topluluk platformu
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#0F172A]">
-                Keşfet
-              </h3>
-
-              <nav
-                className="mt-4 flex flex-col gap-3"
-                aria-label="Footer keşfet"
-              >
-                <Link
-                  href="/listings"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  İlanlar
-                </Link>
-
-                <Link
-                  href="/map"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Harita
-                </Link>
-
-                <Link
-                  href="/adoption"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Sahiplendirme
-                </Link>
-              </nav>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#0F172A]">
-                PATIMATI
-              </h3>
-
-              <nav
-                className="mt-4 flex flex-col gap-3"
-                aria-label="Footer kurumsal"
-              >
-                <Link
-                  href="/safety"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Güvenlik
-                </Link>
-
-                <Link
-                  href="/about"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Hakkımızda
-                </Link>
-              </nav>
-            </div>
-          </div>
-
-          <div className="mt-10 flex flex-col gap-3 border-t border-[#E2E8F0] pt-6 text-sm text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 PATIMATI Tüm hakları saklıdır</p>
-            <p>Minik dostlarımız için birlikte</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       <div
         className={`filter-drawer-overlay ${

@@ -16,6 +16,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { getPublicAdoptions } from "../services/adoptions";
+import { getPublicAds } from "../services/ads";
 import type { AdResponse } from "../services/types";
 import {
   getAdImage,
@@ -43,12 +44,35 @@ export default function Adoption() {
       try {
         setIsLoading(true);
         setErrorMessage("");
-        const page = await getPublicAdoptions({ page: 0, size: 100 });
+
+        let items: AdResponse[] = [];
+
+        // 1. Try public adoptions endpoint
+        try {
+          const page = await getPublicAdoptions({ page: 0, size: 100 });
+          if (page && Array.isArray(page.content) && page.content.length > 0) {
+            items = page.content;
+          }
+        } catch {
+          // Fallback to getPublicAds with adType=ADOPTION
+        }
+
+        // 2. Fallback to GET /api/public/ads?adType=ADOPTION
+        if (items.length === 0) {
+          try {
+            const page = await getPublicAds({ adType: "ADOPTION", page: 0, size: 100 });
+            if (page && Array.isArray(page.content)) {
+              items = page.content;
+            }
+          } catch (err) {
+            console.error("Failed to load adoption ads via fallback:", err);
+          }
+        }
 
         if (isActive) {
           setAds(
-            page.content.filter(
-              (ad) => ad.active && ad.adType === "ADOPTION",
+            items.filter(
+              (ad) => ad && ad.active !== false,
             ),
           );
         }

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
@@ -448,6 +449,7 @@ export default function ListingsPage() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }
