@@ -1775,11 +1775,53 @@ img {
   font: inherit;
 }
 
+/* Mobil alt gezinme (DESIGN_SYSTEM: Bottom Navigation — ikon 24px,
+   aktif Primary, pasif Text Muted). Masaüstünde hiç çizilmez; aşağıdaki
+   1023px bloğunda .desktop-navigation gizlenirken bu çubuk görünür olur —
+   iki eşik AYNI kalmalı, yoksa arada menüsüz genişlik aralığı doğar. */
+.bottom-navigation {
+  display: none;
+}
+
 /* New responsive rules */
 
 @media (max-width: 1023px) {
   .desktop-navigation {
     display: none;
+  }
+
+  .bottom-navigation {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* Header ile aynı "uygulama çerçevesi" katmanı (home-header z-1050). */
+    z-index: 1050;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-navigation__link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .bottom-navigation__link.active {
+    color: var(--primary);
+  }
+
+  body.has-bottom-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
   }
 
   .quick-actions-grid--three {

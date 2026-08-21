@@ -38,6 +38,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
 import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
+import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
 
 function ProtectedAddListingPage() {
@@ -236,6 +237,7 @@ function App() {
         {/* 404 */}
         <Route component={NotFound} />
       </Switch>
+      <BottomNav />
     </ErrorBoundary>
   );
 }
