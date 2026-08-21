@@ -38,18 +38,13 @@ export function getImageUrl(path?: string | null): string {
     import.meta.env.VITE_MEDIA_URL ||
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
-    ""
+    "https://media.patimati.me"
   ).trim();
 
   // Clean trailing slashes from base URL and leading slashes from path
   const cleanBase = rawBaseUrl.replace(/\/+$/, "");
-  const cleanPath = sanitizedPath;
 
-  if (cleanBase) {
-    return `${cleanBase}/${cleanPath}`;
-  }
-
-  return `/${cleanPath}`;
+  return `${cleanBase}/${sanitizedPath}`;
 }
 
 /**
