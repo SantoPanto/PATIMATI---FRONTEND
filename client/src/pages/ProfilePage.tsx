@@ -437,7 +437,7 @@ function ProfileContent() {
       setIsEditing(false);
     } catch (error) {
       setMessage(
-        getUserErrorMessage(error, "Profil güncellenirken bir hata oluştu."),
+        getUserErrorMessage(error, "Profil güncellenirken bir hata oluştu"),
       );
     } finally {
       setIsSaving(false);
@@ -456,7 +456,7 @@ function ProfileContent() {
         <main className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
           <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
             <p className="text-base text-[#64748B]">
-              Profil bilgileri yükleniyor...
+              Profil bilgileri yükleniyor
             </p>
           </div>
         </main>
@@ -481,7 +481,7 @@ function ProfileContent() {
 
           <p className="mt-2 text-base leading-6 text-[#64748B]">
             Kişisel bilgilerinizi ve PATIMATI hesabınızı buradan
-            yönetebilirsiniz.
+            yönetebilirsiniz
           </p>
         </div>
 
@@ -498,7 +498,7 @@ function ProfileContent() {
                 </h2>
 
                 <p className="mt-1 break-all text-sm leading-5 text-[#64748B]">
-                  {user?.email || "E-posta belirtilmemiş"}
+                  {user?.email || "E posta belirtilmemiş"}
                 </p>
 
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -581,7 +581,7 @@ function ProfileContent() {
                   </h2>
 
                   <p className="mt-1 text-sm leading-5 text-[#64748B]">
-                    İletişim ve hesap bilgileriniz.
+                    İletişim ve hesap bilgileriniz
                   </p>
                 </div>
 
@@ -614,7 +614,7 @@ function ProfileContent() {
                   />
 
                   <ProfileInput
-                    label="E-posta"
+                    label="E posta"
                     type="email"
                     value={form.email}
                     onChange={(value) => updateField("email", value)}
@@ -635,7 +635,7 @@ function ProfileContent() {
                       label="Şehir"
                       value={form.city}
                       onChange={(value) => updateField("city", value)}
-                      placeholder="Örn. Kocaeli"
+                      placeholder="Örn Kocaeli"
                       autoComplete="address-level2"
                     />
 
@@ -712,7 +712,7 @@ function ProfileContent() {
 
                   <InfoItem
                     icon={<Mail size={20} />}
-                    label="E-posta"
+                    label="E posta"
                     value={user?.email || "Belirtilmemiş"}
                   />
 
@@ -754,7 +754,7 @@ function ProfileContent() {
               </h2>
 
               <p className="mt-1 text-sm leading-5 text-[#64748B]">
-                Şifrenizi ve oturum bilgilerinizi yönetin.
+                Şifrenizi ve oturum bilgilerinizi yönetin
               </p>
 
               <div className="mt-5 space-y-3">
@@ -773,7 +773,7 @@ function ProfileContent() {
                     </strong>
 
                     <span className="mt-1 block text-sm text-[#64748B]">
-                      Hesap şifrenizi güvenli şekilde yenileyin.
+                      Hesap şifrenizi güvenli şekilde yenileyin
                     </span>
                   </span>
 
@@ -804,7 +804,7 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <ErrorBoundary title="Profil sayfası yüklenirken bir sorun oluştu.">
+    <ErrorBoundary title="Profil sayfası yüklenirken bir sorun oluştu">
       <ProfileContent />
     </ErrorBoundary>
   );
