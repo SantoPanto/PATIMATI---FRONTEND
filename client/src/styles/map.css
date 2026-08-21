@@ -2,10 +2,15 @@
    PATIMATI — Map Page
    ========================================================= */
 
+.map-page-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .map-page {
   width: 100%;
-  min-height: 100vh;
-  padding-bottom: 90px;
+  padding-bottom: 32px;
 }
 
 /* ---------------------------------------------------------
@@ -98,10 +103,13 @@
   flex: 1;
   min-width: 0;
   border: 0;
-  outline: 0;
   background: transparent;
   color: #172033;
   font-size: 14px;
+}
+
+.map-search input:focus {
+  outline: none;
 }
 
 .map-search input::placeholder {
@@ -112,9 +120,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
   border: 0;
-  background: transparent;
-  color: #172033;
+  border-radius: 50%;
+  background: #f0f3f7;
+  color: #64748b;
   cursor: pointer;
 }
 
@@ -126,26 +137,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  color: #667085;
-  font-size: 13px;
+  padding-bottom: 12px;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .map-status strong {
   color: #172033;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* ---------------------------------------------------------
-   Map container
+   Map Canvas Wrapper
    --------------------------------------------------------- */
 
 .map-art {
   position: relative;
   width: 100%;
-  height: min(70vh, 720px);
-  min-height: 500px;
+  height: clamp(420px, 60vh, 660px);
+  min-height: 420px;
   overflow: hidden;
   border: 1px solid #dce1e8;
   border-radius: 24px;
