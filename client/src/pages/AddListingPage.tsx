@@ -23,8 +23,7 @@ import {
   X,
 } from "lucide-react";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import CreateAdLayout from "../components/CreateAdLayout";
 import MatchedAdCard from "../components/MatchedAdCard";
 import { request } from "../services/api";
 import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
@@ -952,44 +951,11 @@ export default function AddListingPage() {
   /* ---------------------------------------------------------------------- */
 
   return (
-    <div className="min-h-screen bg-[#faf9ff] text-gray-900">
-      <Header />
-
-      <main className="mx-auto w-full max-w-4xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Back button */}
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-gray-900"
-        >
-          <ArrowLeft size={18} />
-          Geri
-        </button>
-
-        {/* Page heading */}
-        <div className="mb-7">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7c5cff]/10 text-[#7c5cff]">
-              <PawPrint size={25} />
-            </div>
-
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Yeni İlan Ekle
-              </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Fotoğraf yükleyin, AI hayvan bilgilerini
-                otomatik doldursun.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <form
-          onSubmit={submitListing}
-          className="space-y-5"
-        >
+    <CreateAdLayout activeType="lost">
+      <form
+        onSubmit={submitListing}
+        className="space-y-5"
+      >
           {/* ---------------------------------------------------------------- */}
           {/* PHOTOS                                                           */}
           {/* ---------------------------------------------------------------- */}
@@ -1151,116 +1117,7 @@ export default function AddListingPage() {
           </section>
 
           {/* ---------------------------------------------------------------- */}
-          {/* LISTING TYPE                                                     */}
-          {/* ---------------------------------------------------------------- */}
 
-          <section className={cardClass}>
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
-              <ShieldCheck
-                size={20}
-                className="text-[#7c5cff]"
-              />
-              İlan Türü
-            </h2>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setAdType(
-                    "LOST",
-                  )
-                }
-                disabled={disabled}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  adType === "LOST"
-                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <Search
-                  size={21}
-                  className={
-                    adType === "LOST"
-                      ? "text-[#7c5cff]"
-                      : "text-gray-500"
-                  }
-                />
-
-                <p className="mt-2 font-bold">
-                  Kayıp
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Kaybolan hayvanı bildir
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setAdType(
-                    "FOUND",
-                  )
-                }
-                disabled={disabled}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  adType === "FOUND"
-                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <MapPin
-                  size={21}
-                  className={
-                    adType === "FOUND"
-                      ? "text-[#7c5cff]"
-                      : "text-gray-500"
-                  }
-                />
-
-                <p className="mt-2 font-bold">
-                  Bulundu
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Bulduğunuz hayvanı bildir
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setAdType(
-                    "ADOPTION",
-                  )
-                }
-                disabled={disabled}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  adType === "ADOPTION"
-                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <PawPrint
-                  size={21}
-                  className={
-                    adType === "ADOPTION"
-                      ? "text-[#7c5cff]"
-                      : "text-gray-500"
-                  }
-                />
-
-                <p className="mt-2 font-bold">
-                  Sahiplendirme
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Yeni bir yuva bul
-                </p>
-              </button>
-            </div>
-          </section>
 
           {/* ---------------------------------------------------------------- */}
           {/* BASIC INFORMATION                                                */}
@@ -2045,54 +1902,51 @@ export default function AddListingPage() {
             )}
           </button>
         </form>
-      </main>
 
-      {/* AI Match Modal */}
-      {showMatchModal && matches.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6">
-              <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
-                <Sparkles className="text-[#F97316]" size={24} />
-                Olası Eşleşmeler Bulundu!
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowMatchModal(false)}
-                className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <p className="text-[#64748B] mb-6">
-              İlanını oluşturmadan önce, sistemimizde fotoğrafı yüklediğin hayvana benzeyen bazı ilanlar bulduk. Lütfen bunları incele:
-            </p>
+        {/* AI Match Modal */}
+        {showMatchModal && matches.length > 0 && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6">
+                <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
+                  <Sparkles className="text-[#F97316]" size={24} />
+                  Olası Eşleşmeler Bulundu!
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowMatchModal(false)}
+                  className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <p className="text-[#64748B] mb-6">
+                İlanını oluşturmadan önce, sistemimizde fotoğrafı yüklediğin hayvana benzeyen bazı ilanlar bulduk. Lütfen bunları incele:
+              </p>
 
-            <div className="grid gap-4">
-              {matches.map((match, idx) => (
-                <MatchedAdCard
-                  key={match.ad?.id || idx}
-                  match={match}
-                  variant="modal"
-                />
-              ))}
-            </div>
-            
-            <div className="mt-8 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowMatchModal(false)}
-                className="rounded-xl bg-[#0F172A] px-6 py-3 font-bold text-white transition hover:bg-[#334155]"
-              >
-                İlan Oluşturmaya Devam Et
-              </button>
+              <div className="grid gap-4">
+                {matches.map((match, idx) => (
+                  <MatchedAdCard
+                    key={match.ad?.id || idx}
+                    match={match}
+                    variant="modal"
+                  />
+                ))}
+              </div>
+              
+              <div className="mt-8 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowMatchModal(false)}
+                  className="rounded-xl bg-[#0F172A] px-6 py-3 font-bold text-white transition hover:bg-[#334155]"
+                >
+                  İlan Oluşturmaya Devam Et
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      <Footer />
-    </div>
+        )}
+    </CreateAdLayout>
   );
 }

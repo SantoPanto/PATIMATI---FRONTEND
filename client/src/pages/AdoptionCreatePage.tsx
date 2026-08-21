@@ -18,8 +18,7 @@ import {
   X,
 } from "lucide-react";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import CreateAdLayout from "../components/CreateAdLayout";
 import { request } from "../services/api";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
@@ -520,43 +519,8 @@ export default function AdoptionCreatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <Header />
-
-      <main>
-        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF]">
-          <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8">
-            <button
-              type="button"
-              onClick={() => navigate("/adoption")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#F97316]"
-            >
-              <ArrowLeft size={18} />
-              Sahiplendirmeye dön
-            </button>
-
-            <div className="mt-7 max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316]">
-                <Heart size={16} />
-                Yeni yuva bul
-              </span>
-
-              <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">
-                Sahiplendirme ilanı oluştur
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
-                Dostunun bilgilerini eksiksiz paylaş.
-                Doğru bilgiler, onun için güvenli ve uygun
-                bir yuva bulunmasını kolaylaştırır.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
-          <div className="space-y-7">
-            <FormCard
+    <CreateAdLayout activeType="adopt">
+      <FormCard
               icon={<Camera size={21} />}
               title="Fotoğraflar"
               description="Dostunun net ve güncel fotoğraflarını ekle."
@@ -985,58 +949,7 @@ export default function AdoptionCreatePage() {
                 </>
               )}
             </button>
-          </div>
-
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#F97316]">
-                <Info size={22} />
-              </div>
-
-              <h2 className="mt-5 text-lg font-bold">
-                İyi bir ilan için
-              </h2>
-
-              <div className="mt-5 space-y-4">
-                <Tip>
-                  Güncel ve net fotoğraflar kullan.
-                </Tip>
-
-                <Tip>
-                  Karakter özelliklerini açıkça belirt.
-                </Tip>
-
-                <Tip>
-                  Sağlık durumunu eksiksiz paylaş.
-                </Tip>
-
-                <Tip>
-                  Teslim edilebilecek konumu doğru gir.
-                </Tip>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#BBF7D0] bg-[#F0FDF4] p-6">
-              <ShieldCheck
-                size={25}
-                className="text-[#16A34A]"
-              />
-
-              <h3 className="mt-4 font-bold text-[#166534]">
-                Güvenli sahiplendirme
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-[#15803D]">
-                Sahiplenecek kişiyle görüşmeden ve uygun
-                koşulları doğrulamadan hayvanı teslim etme.
-              </p>
-            </div>
-          </aside>
-        </section>
-      </main>
-
-      <Footer />
-    </div>
+    </CreateAdLayout>
   );
 }
 
