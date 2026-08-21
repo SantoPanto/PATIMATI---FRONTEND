@@ -210,6 +210,7 @@ export type AdResponse = {
   showPhoneOnPoster?: boolean;
   city?: string;
   district?: string;
+  resolutionStatus?: string;
 };
 
 /**
