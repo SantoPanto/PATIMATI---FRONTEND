@@ -6,7 +6,6 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   CalendarDays,
   Camera,
   CheckCircle2,
@@ -15,9 +14,7 @@ import {
   Loader2,
   MapPin,
   PawPrint,
-  Search,
   Send,
-  ShieldCheck,
   Sparkles,
   Upload,
   X,
