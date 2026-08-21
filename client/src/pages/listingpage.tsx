@@ -3,9 +3,7 @@ import { Link } from "wouter";
 import {
   ChevronLeft,
   ChevronRight,
-  MapPin,
   Search,
-  Sparkles,
 } from "lucide-react";
 
 import Header from "../components/Header";
@@ -13,7 +11,6 @@ import Footer from "../components/Footer";
 import PetListingCard from "../components/PetListingCard";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
-import { getImageUrl } from "../utils/imageUrl";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
@@ -27,116 +24,6 @@ const FILTERS: Array<{ value: FilterType; label: string }> = [
   { value: "FOUND", label: "Bulunan" },
   { value: "ADOPTION", label: "Sahiplendirme" },
 ];
-
-function getListingStatus(adType: AdType): string {
-  switch (adType) {
-    case "LOST":
-      return "Kayıp";
-    case "FOUND":
-      return "Bulunan";
-    case "ADOPTION":
-      return "Sahiplendirme";
-    default:
-      return "İlan";
-  }
-}
-
-function getListingStatusClass(adType: AdType): string {
-  switch (adType) {
-    case "LOST":
-      return "lost";
-    case "FOUND":
-      return "found";
-    case "ADOPTION":
-      return "adoption";
-    default:
-      return "lost";
-  }
-}
-
-function getSpeciesLabel(species: AdResponse["species"]): string {
-  switch (species) {
-    case "CAT":
-      return "Kedi";
-    case "DOG":
-      return "Köpek";
-    default:
-      return species;
-  }
-}
-
-function getGenderLabel(gender: AdResponse["gender"]): string {
-  switch (gender) {
-    case "MALE":
-      return "Erkek";
-    case "FEMALE":
-      return "Dişi";
-    case "UNKNOWN":
-      return "Bilinmiyor";
-    default:
-      return gender;
-  }
-}
-
-function getAgeGroupLabel(ageGroup: AdResponse["ageGroup"]): string {
-  switch (ageGroup) {
-    case "BABY":
-      return "Yavru";
-    case "YOUNG":
-      return "Genç";
-    case "ADULT":
-      return "Yetişkin";
-    case "SENIOR":
-      return "Yaşlı";
-    default:
-      return ageGroup;
-  }
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function getLocationLabel(ad: AdResponse): string {
-  /*
-   * The public AdResponse currently exposes latitude/longitude,
-   * but does not expose a city/district name.
-   *
-   * Therefore we deliberately do not invent a location name here.
-   * If the backend later adds a location field, this helper can
-   * be updated without changing the card component.
-   */
-  if (
-    typeof ad.latitude === "number" &&
-    typeof ad.longitude === "number"
-  ) {
-    return `${ad.latitude.toFixed(4)}, ${ad.longitude.toFixed(4)}`;
-  }
-
-  return "Konum belirtilmemiş";
-}
-
-function getPrimaryImage(ad: AdResponse): string | null {
-  if (!Array.isArray(ad.photoUrls) || ad.photoUrls.length === 0) {
-    return null;
-  }
-
-  const firstValidUrl = ad.photoUrls.find(
-    (url) => typeof url === "string" && url.trim().length > 0,
-  );
-
-  return firstValidUrl ? getImageUrl(firstValidUrl) : null;
-}
 
 export default function ListingsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
