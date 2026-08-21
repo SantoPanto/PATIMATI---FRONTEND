@@ -176,9 +176,9 @@ export default function FavoritesPage() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] sm:text-base">
-                Takip etmek istediğin kayıp, bulunan ve
+                Takip etmek istediğin kayıp bulunan ve
                 sahiplendirme ilanlarına buradan hızlıca
-                ulaşabilirsin.
+                ulaşabilirsin
               </p>
             </div>
 
@@ -214,7 +214,7 @@ export default function FavoritesPage() {
                 onChange={(event) =>
                   setSearchTerm(event.target.value)
                 }
-                placeholder="İsim, cins veya konum ara..."
+                placeholder="İsim cins veya konum ara"
                 className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-4 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]"
               />
             </div>
@@ -257,7 +257,7 @@ export default function FavoritesPage() {
             </h2>
 
             <p className="mt-1 text-sm text-[#64748B]">
-              {filteredFavorites.length} ilan gösteriliyor.
+              {filteredFavorites.length} ilan gösteriliyor
             </p>
           </div>
 
@@ -274,7 +274,7 @@ export default function FavoritesPage() {
 
         {loading ? (
           <div className="mt-5 text-sm text-[#64748B]" role="status">
-            Yükleniyor...
+            Yükleniyor
           </div>
         ) : filteredFavorites.length > 0 ? (
           <section className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -447,8 +447,8 @@ function EmptyFavorites({
 
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#64748B]">
         {hasFavorites
-          ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin."
-          : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin."}
+          ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin"
+          : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin"}
       </p>
 
       <button

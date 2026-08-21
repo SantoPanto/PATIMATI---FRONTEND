@@ -35,6 +35,18 @@ const adTypeLabels: Record<AdType, string> = {
   ADOPTION: "Sahiplendirme",
 };
 
+/**
+ * Sunucu cins bilinmiyorken `MIXED_OR_UNKNOWN` yazıyor (AdMapper'daki
+ * `UNKNOWN_BREED` sabiti). Ham hâliyle basılınca kartta "Kedi ·
+ * MIXED_OR_UNKNOWN" görünüyordu — ölçüldü, 21.08 canlı.
+ */
+export function getBreedLabel(breed?: string | null): string {
+  if (!breed || !breed.trim() || breed === "MIXED_OR_UNKNOWN") {
+    return "Cins belirtilmemiş";
+  }
+  return breed;
+}
+
 export function getSpeciesLabel(species: Species): string {
   return speciesLabels[species] ?? "Hayvan";
 }

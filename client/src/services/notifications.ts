@@ -1,4 +1,5 @@
 import { request } from "./api";
+import { getStoredToken } from "./authStorage";
 import { getFcmToken } from "./firbase";
 
 export type InAppNotification = {
@@ -15,10 +16,21 @@ export type InAppNotificationInput = Omit<
   "id" | "receivedAt" | "read"
 >;
 
-const MAX_SESSION_NOTIFICATIONS = 20;
+type ServerNotification = {
+  id: number | string;
+  title: string;
+  body: string;
+  type: string;
+  data?: Record<string, unknown> | null;
+  read: boolean;
+  createdAt: string;
+};
+
+const MAX_FOREGROUND_NOTIFICATIONS = 20;
 
 let notificationSequence = 0;
 let notificationSnapshot: InAppNotification[] = [];
+let notificationLoadPromise: Promise<InAppNotification[]> | null = null;
 const notificationListeners = new Set<() => void>();
 
 export function subscribeToNotifications(
@@ -39,12 +51,140 @@ function notifyNotificationListeners(): void {
   notificationListeners.forEach((listener) => listener());
 }
 
+function toServerNotificationId(notificationId: string): string | null {
+  if (/^server-\d+$/.test(notificationId)) {
+    return notificationId.slice("server-".length);
+  }
+
+  if (/^\d+$/.test(notificationId)) {
+    return notificationId;
+  }
+
+  return null;
+}
+
+function toServerNotificationKey(notificationId: number | string): string {
+  return `server-${String(notificationId)}`;
+}
+
+function normalizeData(
+  data: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  if (!data) {
+    return {};
+  }
+
+  return Object.entries(data).reduce<Record<string, string>>(
+    (normalized, [key, value]) => {
+      if (typeof value === "string") {
+        normalized[key] = value;
+      } else if (value !== null && value !== undefined) {
+        normalized[key] = String(value);
+      }
+
+      return normalized;
+    },
+    {},
+  );
+}
+
+function normalizeServerNotification(
+  notification: ServerNotification,
+): InAppNotification {
+  const receivedAt = new Date(notification.createdAt).getTime();
+
+  return {
+    id: toServerNotificationKey(notification.id),
+    title: notification.title,
+    body: notification.body,
+    data: {
+      ...normalizeData(notification.data),
+      type: notification.type,
+    },
+    receivedAt: Number.isFinite(receivedAt) ? receivedAt : Date.now(),
+    read: notification.read,
+  };
+}
+
+function hasServerCounterpart(
+  notification: InAppNotification,
+  serverNotifications: InAppNotification[],
+): boolean {
+  const notificationId = notification.data.notificationId;
+
+  return serverNotifications.some((serverNotification) =>
+    serverNotification.id === notification.id ||
+    (notificationId !== undefined &&
+      serverNotification.id === toServerNotificationKey(notificationId)),
+  );
+}
+
+function mergeServerNotifications(
+  serverNotifications: InAppNotification[],
+): InAppNotification[] {
+  const foregroundNotifications = notificationSnapshot.filter(
+    (notification) =>
+      notification.id.startsWith("foreground-") &&
+      !hasServerCounterpart(notification, serverNotifications),
+  );
+
+  return [...serverNotifications, ...foregroundNotifications].sort(
+    (left, right) => right.receivedAt - left.receivedAt,
+  );
+}
+
+/** Loads durable notification history for the currently authenticated user. */
+export async function loadNotifications(): Promise<InAppNotification[]> {
+  const tokenAtStart = getStoredToken();
+
+  if (!tokenAtStart) {
+    notificationSnapshot = [];
+    notifyNotificationListeners();
+    return [];
+  }
+
+  if (notificationLoadPromise) {
+    return notificationLoadPromise;
+  }
+
+  notificationLoadPromise = request<ServerNotification[]>(
+    "/api/notifications",
+    {
+      method: "GET",
+      requiresAuth: true,
+    },
+  )
+    .then((serverNotifications) => {
+      // A logout/login transition can happen while the request is in flight.
+      // Never install the old user's response into the new session.
+      if (getStoredToken() !== tokenAtStart) {
+        return notificationSnapshot;
+      }
+
+      notificationSnapshot = mergeServerNotifications(
+        serverNotifications.map(normalizeServerNotification),
+      );
+      notifyNotificationListeners();
+      return notificationSnapshot;
+    })
+    .finally(() => {
+      notificationLoadPromise = null;
+    });
+
+  return notificationLoadPromise;
+}
+
 export function recordForegroundNotification(
   input: InAppNotificationInput,
 ): InAppNotification {
+  const serverId = input.data.notificationId
+    ? toServerNotificationId(input.data.notificationId)
+    : null;
   const notification: InAppNotification = {
     ...input,
-    id: `foreground-${Date.now()}-${notificationSequence++}`,
+    id: serverId
+      ? toServerNotificationKey(serverId)
+      : `foreground-${Date.now()}-${notificationSequence++}`,
     receivedAt: Date.now(),
     read: false,
     data: { ...input.data },
@@ -52,10 +192,26 @@ export function recordForegroundNotification(
 
   notificationSnapshot = [
     notification,
-    ...notificationSnapshot,
-  ].slice(0, MAX_SESSION_NOTIFICATIONS);
+    ...notificationSnapshot.filter((item) => item.id !== notification.id),
+  ];
+
+  if (!serverId) {
+    notificationSnapshot = notificationSnapshot.slice(
+      0,
+      MAX_FOREGROUND_NOTIFICATIONS,
+    );
+  }
 
   notifyNotificationListeners();
+
+  // The backend owns persistence. The refresh reconciles this immediate toast
+  // with its durable row without delaying foreground display.
+  if (serverId) {
+    void loadNotifications().catch((error: unknown) => {
+      console.error("Bildirim geçmişi senkronize edilemedi:", error);
+    });
+  }
+
   return notification;
 }
 
@@ -76,6 +232,19 @@ export function markNotificationAsRead(
       : item,
   );
   notifyNotificationListeners();
+
+  const serverId = toServerNotificationId(notificationId);
+  if (!serverId) {
+    return;
+  }
+
+  void request<void>(`/api/notifications/${serverId}/read`, {
+    method: "PUT",
+    requiresAuth: true,
+  }).catch((error: unknown) => {
+    console.error("Bildirim okundu bilgisi kaydedilemedi:", error);
+    void loadNotifications().catch(() => undefined);
+  });
 }
 
 export function markAllNotificationsAsRead(): void {
@@ -88,9 +257,19 @@ export function markAllNotificationsAsRead(): void {
     read: true,
   }));
   notifyNotificationListeners();
+
+  void request<void>("/api/notifications/read-all", {
+    method: "PUT",
+    requiresAuth: true,
+  }).catch((error: unknown) => {
+    console.error("Bildirimler okundu olarak kaydedilemedi:", error);
+    void loadNotifications().catch(() => undefined);
+  });
 }
 
 export function clearInAppNotifications(): void {
+  notificationLoadPromise = null;
+
   if (notificationSnapshot.length === 0) {
     return;
   }

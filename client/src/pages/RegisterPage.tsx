@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
+  Check,
   Eye,
   EyeOff,
   LockKeyhole,
@@ -19,6 +20,14 @@ import {
   startGoogleOAuth,
 } from "../services/auth";
 import { getUserErrorMessage } from "../utils/errorMessage";
+
+// Register formundaki validasyon ve görsel kontrol listesi
+// aynı parola kurallarını kullanır.
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 20;
+const PASSWORD_UPPERCASE_PATTERN = /[A-ZÇĞİÖŞÜ]/;
+const PASSWORD_LOWERCASE_PATTERN = /[a-zçğıöşü]/;
+const PASSWORD_DIGIT_PATTERN = /[0-9]/;
 
 export default function RegisterPage() {
   const [, navigate] = useLocation();
@@ -56,7 +65,7 @@ export default function RegisterPage() {
       !password ||
       !passwordRepeat
     ) {
-      setErrorMessage("Tüm alanları doldurmalısın.");
+      setErrorMessage("Tüm alanları doldurmalısın");
       return;
     }
 
@@ -64,7 +73,7 @@ export default function RegisterPage() {
       normalizedFirstName.length < 2 ||
       normalizedFirstName.length > 40
     ) {
-      setErrorMessage("Ad 2 ile 40 karakter arasında olmalıdır.");
+      setErrorMessage("Ad 2 ile 40 karakter arasında olmalıdır");
       return;
     }
 
@@ -72,7 +81,7 @@ export default function RegisterPage() {
       normalizedLastName.length < 2 ||
       normalizedLastName.length > 40
     ) {
-      setErrorMessage("Soyad 2 ile 40 karakter arasında olmalıdır.");
+      setErrorMessage("Soyad 2 ile 40 karakter arasında olmalıdır");
       return;
     }
 
@@ -81,7 +90,7 @@ export default function RegisterPage() {
       normalizedEmail.length > 50
     ) {
       setErrorMessage(
-        "E-posta 5 ile 50 karakter arasında olmalıdır.",
+        "E posta 5 ile 50 karakter arasında olmalıdır",
       );
       return;
     }
@@ -89,7 +98,7 @@ export default function RegisterPage() {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(normalizedEmail)) {
-      setErrorMessage("Geçerli bir e-posta adresi girmelisin.");
+      setErrorMessage("Geçerli bir e posta adresi girmelisin");
       return;
     }
 
@@ -98,39 +107,57 @@ export default function RegisterPage() {
       normalizedPhone.length > 15
     ) {
       setErrorMessage(
-        "Telefon numarası 9 ile 15 karakter arasında olmalıdır.",
+        "Telefon numarası 9 ile 15 karakter arasında olmalıdır",
       );
       return;
     }
 
-   
     const phonePattern =
       /^(?:\+90\d{10}|0\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}|\d{10})(?:\s\+\d+)?$/;
 
     if (!phonePattern.test(normalizedPhone)) {
       setErrorMessage(
-        "Telefon numarası formatı geçersiz. Örnek: 05551234567",
+        "Telefon numarası formatı geçersiz Örnek 05551234567",
       );
       return;
     }
 
-    if (password.length < 6 || password.length > 20) {
-      setErrorMessage(
-        "Şifre 6 ile 20 karakter arasında olmalıdır.",
-      );
+
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setErrorMessage("Şifre en az 8 karakter olmalıdır.");
+      return;
+    }
+
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      setErrorMessage("Şifre en fazla 20 karakter olmalıdır.");
+      return;
+    }
+
+    if (!PASSWORD_UPPERCASE_PATTERN.test(password)) {
+      setErrorMessage("Şifre en az bir büyük harf içermelidir.");
+      return;
+    }
+
+    if (!PASSWORD_LOWERCASE_PATTERN.test(password)) {
+      setErrorMessage("Şifre en az bir küçük harf içermelidir.");
+      return;
+    }
+
+    if (!PASSWORD_DIGIT_PATTERN.test(password)) {
+      setErrorMessage("Şifre en az bir rakam içermelidir.");
       return;
     }
 
     if (password !== passwordRepeat) {
       setErrorMessage(
-        "Girdiğin şifreler birbiriyle eşleşmiyor.",
+        "Girdiğin şifreler birbiriyle eşleşmiyor",
       );
       return;
     }
 
     if (!acceptedTerms) {
       setErrorMessage(
-        "Kullanım koşullarını ve gizlilik politikasını kabul etmelisin.",
+        "Kullanım koşullarını ve gizlilik politikasını kabul etmelisin",
       );
       return;
     }
@@ -146,17 +173,9 @@ export default function RegisterPage() {
         phone: normalizedPhone,
       });
 
-      /*
-       * Backend AuthResponse şu formatta dönüyor:
-       *
-       * {
-       *   token: "...",
-       *   user: { ... }
-       * }
-       */
       if (!data.token) {
         throw new Error(
-          "Kayıt başarılı ancak sunucudan oturum anahtarı alınamadı.",
+          "Kayıt başarılı ancak sunucudan oturum anahtarı alınamadı",
         );
       }
 
@@ -167,7 +186,7 @@ export default function RegisterPage() {
       navigate("/");
     } catch (error) {
       setErrorMessage(
-        getUserErrorMessage(error, "Kayıt sırasında bir sorun oluştu."),
+        getUserErrorMessage(error, "Kayıt sırasında bir sorun oluştu"),
       );
     } finally {
       setIsLoading(false);
@@ -178,6 +197,39 @@ export default function RegisterPage() {
     setErrorMessage("");
     startGoogleOAuth({ redirectPath: "/", rememberMe: true });
   };
+
+  const passwordRules = [
+    {
+      label: "En az 8 karakter",
+      valid: password.length >= PASSWORD_MIN_LENGTH,
+    },
+    {
+      label: "En fazla 20 karakter",
+      valid:
+        password.length > 0 &&
+        password.length <= PASSWORD_MAX_LENGTH,
+    },
+    {
+      label: "En az bir büyük harf",
+      valid: PASSWORD_UPPERCASE_PATTERN.test(password),
+    },
+    {
+      label: "En az bir küçük harf",
+      valid: PASSWORD_LOWERCASE_PATTERN.test(password),
+    },
+    {
+      label: "En az bir rakam",
+      valid: PASSWORD_DIGIT_PATTERN.test(password),
+    },
+  ];
+
+  const passwordsMatch =
+    passwordRepeat.length > 0 &&
+    password === passwordRepeat;
+
+  const passwordsDoNotMatch =
+    passwordRepeat.length > 0 &&
+    password !== passwordRepeat;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8">
@@ -214,15 +266,15 @@ export default function RegisterPage() {
               <h1 className="text-5xl font-extrabold leading-tight tracking-tight">
                 Birlikte daha fazla
                 <span className="block text-orange-500">
-                  dosta ulaşabiliriz.
+                  dosta ulaşabiliriz
                 </span>
               </h1>
 
               <p className="mt-6 max-w-md text-lg leading-8 text-slate-300">
-                İlan oluştur, bölgesel bildirimler al,
+                İlan oluştur bölgesel bildirimler al
                 hayvan sahipleriyle güvenli şekilde mesajlaş
                 ve dostlarımızın yuvalarına kavuşmasına
-                destek ol.
+                destek ol
               </p>
             </div>
 
@@ -232,8 +284,8 @@ export default function RegisterPage() {
               </strong>
 
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Kayıp, bulunan ve sahiplendirme ilanlarını
-                tek hesaptan yönet.
+                Kayıp bulunan ve sahiplendirme ilanlarını
+                tek hesaptan yönet
               </p>
             </div>
           </section>
@@ -257,7 +309,7 @@ export default function RegisterPage() {
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                Birkaç bilgiyle PATIMATI topluluğuna katıl.
+                Birkaç bilgiyle PATIMATI topluluğuna katıl
               </p>
             </div>
 
@@ -382,7 +434,7 @@ export default function RegisterPage() {
                 htmlFor="register-email"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                E-posta
+                E posta
               </label>
 
               <div className="relative mb-4">
@@ -427,10 +479,10 @@ export default function RegisterPage() {
                   onChange={(event) =>
                     setPassword(event.target.value)
                   }
-                  placeholder="6-20 karakter"
+                  placeholder="8-20 karakter"
                   autoComplete="new-password"
-                  minLength={6}
-                  maxLength={20}
+                  minLength={PASSWORD_MIN_LENGTH}
+                  maxLength={PASSWORD_MAX_LENGTH}
                   disabled={isLoading}
                   className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                 />
@@ -456,6 +508,37 @@ export default function RegisterPage() {
                 </button>
               </div>
 
+              <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-700">
+                  Şifre gereksinimleri
+                </p>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {passwordRules.map((rule) => (
+                    <div
+                      key={rule.label}
+                      className={`flex items-center gap-2 text-sm ${
+                        rule.valid
+                          ? "text-green-700"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          rule.valid
+                            ? "bg-green-100 text-green-700"
+                            : "bg-slate-200 text-slate-400"
+                        }`}
+                      >
+                        <Check size={13} />
+                      </span>
+
+                      {rule.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <label
                 htmlFor="register-password-repeat"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -463,7 +546,7 @@ export default function RegisterPage() {
                 Şifre tekrar
               </label>
 
-              <div className="relative mb-5">
+              {/* <div className="relative mb-5">
                 <LockKeyhole
                   size={19}
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -478,11 +561,53 @@ export default function RegisterPage() {
                   }
                   placeholder="Şifreni tekrar gir"
                   autoComplete="new-password"
-                  minLength={6}
-                  maxLength={20}
+                  minLength={PASSWORD_MIN_LENGTH}
+                  maxLength={PASSWORD_MAX_LENGTH}
                   disabled={isLoading}
                   className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                 />
+              </div> */}
+
+              <div className="mb-5">
+                <div className="relative">
+                  <LockKeyhole
+                    size={19}
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    id="register-password-repeat"
+                    type={showPassword ? "text" : "password"}
+                    value={passwordRepeat}
+                    onChange={(event) =>
+                      setPasswordRepeat(event.target.value)
+                    }
+                    placeholder="Şifreni tekrar gir"
+                    autoComplete="new-password"
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    disabled={isLoading}
+                    className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  />
+                </div>
+
+                {passwordsDoNotMatch && (
+                  <p
+                    className="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+                    role="alert"
+                  >
+                    Şifreler birbiriyle eşleşmiyor.
+                  </p>
+                )}
+
+                {passwordsMatch && (
+                  <p
+                    className="mt-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
+                    role="status"
+                  >
+                    Şifreler eşleşiyor.
+                  </p>
+                )}
               </div>
 
               <label className="mb-5 flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-600">
@@ -498,7 +623,7 @@ export default function RegisterPage() {
 
                 <span>
                   Kullanım koşullarını ve gizlilik
-                  politikasını kabul ediyorum.
+                  politikasını kabul ediyorum
                 </span>
               </label>
 
@@ -517,13 +642,13 @@ export default function RegisterPage() {
                 className="flex h-12 w-full items-center justify-center rounded-xl bg-orange-500 font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading
-                  ? "Hesap oluşturuluyor..."
+                  ? "Hesap oluşturuluyor"
                   : "Kayıt Ol"}
               </button>
             </form>
 
             <p className="mt-7 text-center text-sm text-slate-600">
-              Zaten hesabın var mı?{" "}
+              Zaten hesabın var mı{" "}
               <Link
                 href="/login"
                 className="font-bold text-orange-500 transition hover:text-orange-600"

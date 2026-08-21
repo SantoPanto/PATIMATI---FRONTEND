@@ -2841,3 +2841,32 @@ img {
     left: 8px;
   }
 }
+
+.header-profile-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.header-profile-icon:hover {
+  color: var(--primary);
+  border-color: #fdba74;
+  background: var(--primary-light);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.1);
+  transform: translateY(-1px);
+}
+

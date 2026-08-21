@@ -55,7 +55,7 @@ export default function Adoption() {
       } catch (error) {
         if (isActive) {
           setErrorMessage(
-            getUserErrorMessage(error, "Sahiplendirme ilanları yüklenemedi."),
+            getUserErrorMessage(error, "Sahiplendirme ilanları yüklenemedi"),
           );
         }
       } finally {
@@ -113,17 +113,17 @@ export default function Adoption() {
             <div className="adoption-hero__text">
               <span className="adoption-hero__eyebrow">
                 <Sparkles size={17} />
-                Yeni bir yuva, yeni bir hayat
+                Yeni bir yuva yeni bir hayat
               </span>
 
               <h1>
-                Onlara sadece bir ev değil,
-                <span> sevgi dolu bir aile ver.</span>
+                Onlara sadece bir ev değil
+                <span> sevgi dolu bir aile ver</span>
               </h1>
 
               <p>
-                Yuva arayan dostlarımızı incele, sana en uygun yol
-                arkadaşını bul ve onun hayatını değiştir.
+                Yuva arayan dostlarımızı incele sana en uygun yol
+                arkadaşını bul ve onun hayatını değiştir
               </p>
 
               <div className="adoption-hero__actions">
@@ -183,7 +183,7 @@ export default function Adoption() {
             <div>
               <span className="pm-eyebrow">Sahiplendirme ilanları</span>
               <h2>Yeni dostunla tanış</h2>
-              <p>Sunucudaki güncel sahiplendirme ilanlarını inceleyebilirsin.</p>
+              <p>Sunucudaki güncel sahiplendirme ilanlarını inceleyebilirsin</p>
             </div>
 
             <Link
@@ -202,7 +202,7 @@ export default function Adoption() {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Başlık, cins veya konum ara"
+                placeholder="Başlık cins veya konum ara"
                 aria-label="Sahiplendirme ilanlarında ara"
               />
             </div>
@@ -249,7 +249,7 @@ export default function Adoption() {
           </div>
 
           {isLoading ? (
-            <StatusCard title="İlanlar yükleniyor" description="Lütfen bekleyin..." />
+            <StatusCard title="İlanlar yükleniyor" description="Lütfen bekleyin" />
           ) : errorMessage ? (
             <StatusCard title="İlanlar yüklenemedi" description={errorMessage} />
           ) : filteredAds.length > 0 ? (
@@ -291,7 +291,7 @@ export default function Adoption() {
                     </div>
 
                     <p className="adoption-card__description">
-                      {ad.description || "Açıklama eklenmemiş."}
+                      {ad.description || "Açıklama eklenmemiş"}
                     </p>
 
                     <div className="adoption-card__health">
@@ -329,7 +329,7 @@ export default function Adoption() {
           ) : (
             <StatusCard
               title="Aramana uygun ilan bulunamadı"
-              description="Filtreleri değiştirerek tekrar deneyebilirsin."
+              description="Filtreleri değiştirerek tekrar deneyebilirsin"
               onReset={resetFilters}
             />
           )}
@@ -343,7 +343,7 @@ export default function Adoption() {
               <h2>Dostlarımızın güvenliği her şeyden önemli</h2>
               <p>
                 Hayvan sahiplenirken karşı tarafla mutlaka görüş ve hiçbir
-                kullanıcıya sahiplendirme karşılığında ödeme yapma.
+                kullanıcıya sahiplendirme karşılığında ödeme yapma
               </p>
             </div>
             <Link href="/safety" className="pm-button pm-button--secondary">
