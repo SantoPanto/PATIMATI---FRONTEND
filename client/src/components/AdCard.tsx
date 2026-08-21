@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { AdResponse, AdType } from "../services/types";
+import { getImageUrl } from "../utils/imageUrl";
 import {
   getAdLocation,
   getRelativeDate,
@@ -31,7 +32,7 @@ interface AdCardProps {
 
 /**
  * Standardized AdCard Component (DRY & SRP)
- * Handles presigned photoUrls, image load errors with fallback, badges, and actions.
+ * Handles presigned photoUrls & relative paths safely, image load errors with fallback UI.
  */
 export default function AdCard({
   ad,
@@ -40,6 +41,7 @@ export default function AdCard({
   onToggleFavorite,
 }: AdCardProps) {
   const rawPhoto = ad?.photoUrls?.find((url) => Boolean(url?.trim()));
+  const photoUrl = rawPhoto ? getImageUrl(rawPhoto) : null;
   const [hasError, setHasError] = useState(false);
 
   const handleImageError = () => {
@@ -60,9 +62,9 @@ export default function AdCard({
       <div>
         {/* Image Container */}
         <div className="relative h-56 overflow-hidden bg-[#F1F5F9]">
-          {rawPhoto && !hasError ? (
+          {photoUrl && !hasError ? (
             <img
-              src={rawPhoto}
+              src={photoUrl}
               alt={ad.title || "İlan Görseli"}
               onError={handleImageError}
               loading="lazy"
