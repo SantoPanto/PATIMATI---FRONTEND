@@ -17,14 +17,38 @@ export async function createAd(
   ad: AdCreateRequest,
   images?: File[],
 ): Promise<AdResponse> {
-  const formData = new FormData();
+  const cleanedAd: Record<string, unknown> = {
+    ...ad,
+    colors: Array.isArray(ad.colors) ? ad.colors : [],
+  };
+  /*
+   * ⚠ `date` KOŞULSUZ düşürülür — boş olduğu için değil, DOLU olduğu için.
+   *
+   * Sunucuda `date`, `lostDate`'in @JsonAlias'ıdır. İkisi birden gönderilirse
+   * Jackson aynı record bileşenine ikinci kez yazmaya çalışır, geri düşecek
+   * bir setter bulamaz ve isteğin TAMAMINI reddeder:
+   *
+   *   No fallback setter/field defined for creator property 'lostDate'
+   *   (through reference chain: AdCreateRequest["date"])
+   *
+   * Ölçüldü (21.08, canlı): POST /api/ads iki denemede de 500 döndü ve hiç
+   * ilan oluşmadı. Kısıt buraya gömülü çünkü arıza yolu burası: gövdenin
+   * telde aldığı son biçim. Çağıran sayfa yanlışlıkla `date` koysa bile
+   * istek sağ çıkar. Takma ad sunucuda KALIYOR, yalnız `date` gönderen eski
+   * bir istemci etkilenmez.
+   */
+  delete cleanedAd.date;
 
-  formData.append(
-    "ad",
-    new Blob([JSON.stringify(ad)], {
-      type: "application/json",
-    }),
-  );
+  if (!cleanedAd.lostDate || cleanedAd.lostDate === "") {
+    delete cleanedAd.lostDate;
+  }
+
+  const formData = new FormData();
+  const adBlob = new Blob([JSON.stringify(cleanedAd)], {
+    type: "application/json",
+  });
+
+  formData.append("ad", adBlob);
 
   if (images && images.length > 0) {
     images.forEach((file) => {

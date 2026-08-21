@@ -80,8 +80,8 @@ export type UpdateProfileRequest = {
   email: string;
   phone: string;
   city: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 // For frontend form compatibility
@@ -140,6 +140,13 @@ export type CoatPattern =
   | "OTHER";
 
 export type PresenceStatus = "UNKNOWN" | "YES" | "NO";
+
+/**
+ * İlanın nasıl kapandığı. `active=false` TEK BAŞINA yetmiyor: "sahibi yayından
+ * kaldırdı" ile "hayvan bulundu" ikisi de `active=false` üretiyor.
+ * Backend karşılığı: entity/enums/AdResolutionStatus.
+ */
+export type AdResolutionStatus = "NONE" | "FOUND" | "ADOPTED";
 
 export type AiStatus =
   | "PENDING"
@@ -215,6 +222,12 @@ export type AdResponse = {
   isPosterAllowed?: boolean;
   showEmailOnPoster?: boolean;
   showPhoneOnPoster?: boolean;
+  /**
+   * İSTEĞE BAĞLI bilerek: alan backend #112 ile geliyor. O inmeden de ekran
+   * çalışsın diye `undefined` hâli "bilinmiyor" gibi ele alınıyor — eski
+   * davranışa düşer, kırılmaz.
+   */
+  resolutionStatus?: AdResolutionStatus;
 };
 
 export type PosterSettingsRequest = {
@@ -223,8 +236,22 @@ export type PosterSettingsRequest = {
   showPhoneOnPoster: boolean;
 };
 
+/**
+ * Kayip ilanini "bulundu" diye kapatma istegi.
+ *
+ * Iki alan da ISTEGE BAGLI: kullanici hayvanini kendi bulmus olabilir. Sunucu
+ * `foundAdId` gonderildiginde ilanin gercekten FOUND tipinde oldugunu dogrular,
+ * degilse istegin TAMAMINI reddeder — bu yuzden istemci bagi ancak dogruladigi
+ * ilan icin gonderir.
+ *
+ * Backend karsiligi: dto/ad/ResolveLostAdRequest (foundAdId backend #105 ile
+ * geldi; alani tanimayan eski sunucu istegi reddetmez, alani yok sayar).
+ */
 export type ResolveLostAdRequest = {
+  /** Hayvani bulan kullanici. Odul puani buna yaziliyor. */
   finderId?: number;
+  /** Eslesen BULUNDU ilaninin kimligi. `resolved_by_ad_id` alanini doldurur. */
+  foundAdId?: number;
 };
 
 // ==========================================

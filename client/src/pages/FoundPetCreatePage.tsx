@@ -22,11 +22,46 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import {
-  API_BASE_URL,
-  getStoredToken,
-} from "../services/auth";
-import { getUserErrorMessage } from "../utils/errorMessage";
+import { request } from "../services/api";
+import type { PetColor } from "../services/types";
+import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+
+const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
+  siyah: "BLACK",
+  black: "BLACK",
+  beyaz: "WHITE",
+  white: "WHITE",
+  gri: "GRAY",
+  gray: "GRAY",
+  grey: "GRAY",
+  kahverengi: "BROWN",
+  kahve: "BROWN",
+  brown: "BROWN",
+  turuncu: "ORANGE",
+  orange: "ORANGE",
+  krem: "CREAM",
+  cream: "CREAM",
+  altın: "GOLDEN",
+  altin: "GOLDEN",
+  golden: "GOLDEN",
+  bej: "BEIGE",
+  beige: "BEIGE",
+  diğer: "OTHER",
+  diger: "OTHER",
+  other: "OTHER",
+};
+
+function parseColorsFromText(text: string): PetColor[] {
+  if (!text || !text.trim()) return [];
+  const lower = text.toLowerCase();
+  const matched = new Set<PetColor>();
+  for (const [key, val] of Object.entries(TURKISH_COLOR_TO_ENUM)) {
+    if (lower.includes(key)) {
+      matched.add(val);
+    }
+  }
+  return Array.from(matched);
+}
 
 type SelectedImage = {
   id: string;
@@ -394,12 +429,7 @@ export default function FoundPetCreatePage() {
       species: form.species,
       breed: form.breed.trim(),
       gender: form.gender,
-      /*
-       * Backend "colors" adinda bir KUME bekliyor; sayfada serbest
-       * metin var. Serbest metin enum'a cevrilemedigi icin renk
-       * aciklamada kaliyor, kume bos gonderiliyor.
-       */
-      colors: [],
+      colors: parseColorsFromText(form.color),
       collarStatus: form.collarStatus,
       collarTagText: form.collarTagText.trim(),
       distinctiveMarks: [
@@ -450,68 +480,11 @@ export default function FoundPetCreatePage() {
     });
 
     try {
-      const token = getStoredToken();
-
-      if (!token) {
-        throw new Error(
-          "İlan açmak için giriş yapmalısınız.",
-        );
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/ads`,
-        {
-          method: "POST",
-          body: formData,
-
-          /*
-           * Content-Type BILEREK verilmiyor: multipart sinir (boundary)
-           * degerini tarayici uretmeli. Elle yazilirsa Spring parcalari
-           * ayristiramaz.
-           */
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const govde = await response.text();
-
-      let sonuc: Record<string, unknown> | null = null;
-
-      try {
-        sonuc = govde ? JSON.parse(govde) : null;
-      } catch {
-        sonuc = null;
-      }
-
-      if (!response.ok) {
-        const invalidParams =
-          (sonuc?.invalid_params as unknown[]) ||
-          ((sonuc?.properties as Record<string, unknown>)?.invalid_params as unknown[]);
-
-        if (Array.isArray(invalidParams)) {
-          const dateParam = invalidParams.find((p: unknown) => {
-            if (p && typeof p === "object") {
-              const paramObj = p as Record<string, unknown>;
-              const name = (paramObj.name || paramObj.field) as string | undefined;
-              return name === "date" || name === "lostDate" || name === "foundDate";
-            }
-            return false;
-          }) as Record<string, unknown> | undefined;
-
-          if (dateParam) {
-            const reason = (dateParam.reason || dateParam.message || dateParam.detail) as string | undefined;
-            setDateError(reason || "Tarih alanı boş bırakılamaz veya gelecekte bir tarih olamaz.");
-          }
-        }
-
-        throw new Error(
-          (sonuc?.message as string) ||
-            (sonuc?.error as string) ||
-            `Buldum ilanı oluşturulamadı (${response.status}).`,
-        );
-      }
+      await request("/api/ads", {
+        method: "POST",
+        requiresAuth: true,
+        body: formData,
+      });
 
       /*
        * /pet/:id ve /listings su an ekrani olmayan iskelet sayfalar.
@@ -521,6 +494,20 @@ export default function FoundPetCreatePage() {
       navigate("/");
     } catch (error) {
       console.error("Buldum ilanı oluşturma hatası:", error);
+
+      const invalidParams = extractInvalidParams(error);
+      if (invalidParams) {
+        const dateParam = invalidParams.find((p) => {
+          const name = p.name || p.field;
+          return name === "date" || name === "lostDate" || name === "foundDate";
+        });
+
+        if (dateParam) {
+          const reason = dateParam.reason || dateParam.message || dateParam.detail;
+          setDateError(reason || "Tarih alanı boş bırakılamaz veya gelecekte bir tarih olamaz.");
+        }
+      }
+
       setErrorMessage(
         getUserErrorMessage(
           error,

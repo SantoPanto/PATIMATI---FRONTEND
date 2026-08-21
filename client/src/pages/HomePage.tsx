@@ -154,8 +154,15 @@ export default function HomePage() {
 
       const matchesAnimal =
         selectedAnimals.length === 0 ||
-        selectedAnimals.includes(listing.animal);
-
+        selectedAnimals.some(
+          (selected) =>
+            listing.animal
+              .toLocaleLowerCase("tr-TR")
+              .includes(selected.toLocaleLowerCase("tr-TR")) ||
+            selected
+              .toLocaleLowerCase("tr-TR")
+              .includes(listing.animal.toLocaleLowerCase("tr-TR"))
+        );
       const numericDistance = Number(
         listing.distance.replace(",", ".").replace(" km", ""),
       );
@@ -251,11 +258,13 @@ export default function HomePage() {
     );
   };
 
-  const clearAdvancedFilters = () => {
+ const clearAdvancedFilters = () => {
     setSelectedAnimals([]);
     setSelectedListingTypes([]);
     setMaxDistance(25);
     setOnlyFeatured(false);
+    setActiveFilter("all");
+    setSearchValue("");
   };
 
   const handleChangeLocation = () => {

@@ -21,14 +21,20 @@ export async function createAdoptionAd(
     );
   }
 
-  const formData = new FormData();
+  const cleanedAd: Record<string, unknown> = { ...ad };
+  if (!cleanedAd.date || cleanedAd.date === "") {
+    delete cleanedAd.date;
+  }
+  if (!cleanedAd.lostDate || cleanedAd.lostDate === "") {
+    delete cleanedAd.lostDate;
+  }
 
-  formData.append(
-    "ad",
-    new Blob([JSON.stringify(ad)], {
-      type: "application/json",
-    }),
-  );
+  const formData = new FormData();
+  const adBlob = new Blob([JSON.stringify(cleanedAd)], {
+    type: "application/json",
+  });
+
+  formData.append("ad", adBlob);
 
   images.forEach((file) => {
     formData.append("images", file);
