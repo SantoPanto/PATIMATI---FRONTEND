@@ -10,6 +10,7 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import PetListingCard from "../components/PetListingCard";
 import { getPublicAds } from "../services/ads";
 import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
@@ -135,82 +136,6 @@ function getPrimaryImage(ad: AdResponse): string | null {
   );
 
   return firstValidUrl ? getImageUrl(firstValidUrl) : null;
-}
-
-function PetListingCard({ ad }: { ad: AdResponse }) {
-  const image = getPrimaryImage(ad);
-  const statusClass = getListingStatusClass(ad.adType);
-
-  const subtitle = [
-    getSpeciesLabel(ad.species),
-    ad.breed?.trim() || "Cins belirtilmemiş",
-  ].join(" ");
-
-  return (
-    <article className="pet-listing-card">
-      <Link
-        href={`/pet/${ad.id}`}
-        className="pet-listing-card__image"
-        aria-label={`${ad.title} ilanını görüntüle`}
-      >
-        {image ? (
-          <img src={image} alt={ad.title} loading="lazy" />
-        ) : (
-          <div
-            className="flex h-full min-h-[220px] w-full items-center justify-center bg-[#FFF7ED] text-[#F97316]"
-            aria-label="Fotoğraf bulunmuyor"
-          >
-            <Search size={42} />
-          </div>
-        )}
-
-        <span
-          className={`listing-status listing-status--${statusClass}`}
-        >
-          {getListingStatus(ad.adType)}
-        </span>
-
-        {ad.aiStatus === "DONE" && ad.aiIsPet === true && (
-          <span className="listing-featured">
-            <Sparkles size={14} />
-            AI doğrulandı
-          </span>
-        )}
-      </Link>
-
-      <div className="pet-listing-card__body">
-        <div className="pet-listing-card__title-row">
-          <div className="min-w-0">
-            <h3 className="truncate">{ad.title}</h3>
-
-            <p>
-              {subtitle}
-            </p>
-          </div>
-
-          <span>{formatDate(ad.createdAt)}</span>
-        </div>
-
-        <div className="pet-listing-card__location">
-          <MapPin size={17} />
-          <span className="truncate">{getLocationLabel(ad)}</span>
-        </div>
-
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B]">
-          <span>{getGenderLabel(ad.gender)}</span>
-          <span>{getAgeGroupLabel(ad.ageGroup)}</span>
-        </div>
-
-        <Link
-          href={`/pet/${ad.id}`}
-          className="pet-listing-card__button"
-        >
-          İlanı incele
-          <ChevronRight size={18} />
-        </Link>
-      </div>
-    </article>
-  );
 }
 
 export default function ListingsPage() {

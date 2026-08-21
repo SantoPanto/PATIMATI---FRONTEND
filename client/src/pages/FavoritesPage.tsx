@@ -9,10 +9,11 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import AdCard from "../components/AdCard";
+import PetListingCard from "../components/PetListingCard";
 import { request } from "../services/api";
 import type { AdResponse, AdType, Page } from "../services/types";
 import { getAdLocation, getSpeciesLabel } from "../utils/adPresentation";
+import "../App.css";
 
 type FavoriteCategory =
   | "Tümü"
@@ -55,20 +56,7 @@ export default function FavoritesPage() {
         const rawList = data.content || [];
         const normalizedAds: AdResponse[] = rawList
           .map((item: any) => {
-            // Backend returns item.ad if wrapped in Favorite object, or item directly if AdResponse
             const adObj: AdResponse | null = item?.ad || item?.pet || item?.listing || (item?.id && item?.adType ? item : null);
-            if (!adObj) return null;
-
-            const rawPhoto = adObj.photoUrls?.find((url: string) => Boolean(url?.trim()));
-
-            // Debugging console.log
-            console.log("Favorite Ad Image URL:", {
-              adId: adObj.id,
-              title: adObj.title,
-              photoUrls: adObj.photoUrls,
-              rawPhoto: rawPhoto || "Görsel Bulunamadı",
-            });
-
             return adObj;
           })
           .filter((ad): ad is AdResponse => ad !== null);
@@ -138,7 +126,7 @@ export default function FavoritesPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
+    <div className="home-page min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
       <Header />
 
       <main className="mx-auto flex-1 w-full max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
@@ -214,7 +202,7 @@ export default function FavoritesPage() {
                     onClick={() => setSelectedCategory(category)}
                     className={`h-10 shrink-0 rounded-xl px-4 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-[#FED7AA] ${
                       isSelected
-                        ? "bg-[#F97316] text-white shadow-sm"
+                        ? "bg-[#F97316] text-[#ffffff] shadow-sm"
                         : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#FDBA74] hover:bg-[#FFF7ED] hover:text-[#EA580C]"
                     }`}
                   >
@@ -256,15 +244,15 @@ export default function FavoritesPage() {
             ))}
           </div>
         ) : filteredFavorites.length > 0 ? (
-          <section className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="pet-listings-grid mt-5">
             {filteredFavorites.map((ad) => (
-              <AdCard
+              <PetListingCard
                 key={ad.id}
                 ad={ad}
                 onRemoveFavorite={removeFromFavorites}
               />
             ))}
-          </section>
+          </div>
         ) : (
           <EmptyFavorites
             hasFavorites={favorites.length > 0}
