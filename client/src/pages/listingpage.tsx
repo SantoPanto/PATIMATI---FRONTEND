@@ -149,7 +149,7 @@ export default function ListingsPage() {
 
                 {!isLoading && totalPages > 0 && (
                   <p className="mt-1 text-sm text-[#64748B]">
-                    Sayfa {page + 1} {totalPages}
+                    Sayfa {page + 1} / {totalPages}
                   </p>
                 )}
               </div>
@@ -244,7 +244,7 @@ export default function ListingsPage() {
                 </button>
 
                 <span className="min-w-24 text-center text-sm font-medium text-[#64748B]">
-                  {page + 1} {totalPages}
+                  {page + 1} / {totalPages}
                 </span>
 
                 <button
