@@ -5,12 +5,9 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   CalendarDays,
   Camera,
-  CheckCircle2,
   ImagePlus,
-  Info,
   MapPin,
   PawPrint,
   Search,
@@ -1031,22 +1028,5 @@ function Field({
 
       {children}
     </label>
-  );
-}
-
-function Tip({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3 text-sm text-[#475569]">
-      <CheckCircle2
-        size={18}
-        className="mt-0.5 shrink-0 text-[#22C55E]"
-      />
-
-      <span>{children}</span>
-    </div>
   );
 }
