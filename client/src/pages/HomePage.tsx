@@ -219,10 +219,10 @@ export default function HomePage() {
   };
 
   const scrollToResults = () => {
-    resultsSectionRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    // behavior bilerek verilmedi: html'de scroll-behavior:smooth zaten
+    // tanımlı, oradan gelir. Kodda sabitlenseydi kullanıcının hareket
+    // azaltma tercihi (prefers-reduced-motion) CSS'ten kapatılamazdı.
+    resultsSectionRef.current?.scrollIntoView({ block: "start" });
   };
 
   const toggleFavorite = (listingId: number) => {
