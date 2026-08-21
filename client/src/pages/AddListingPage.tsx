@@ -25,7 +25,9 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import MatchedAdCard from "../components/MatchedAdCard";
 import { request } from "../services/api";
+import type { MatchedAdResponseDTO } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
@@ -297,7 +299,7 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [matches, setMatches] = useState<ListingMatchResult[]>([]);
+  const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
   /* ---------------------------------------------------------------------- */
@@ -649,7 +651,7 @@ export default function AddListingPage() {
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
 
-          const matchesData = await request<ListingMatchResult[]>("/api/ai-match", {
+          const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
             method: "POST",
             body: formData,
             requiresAuth: true,
@@ -2075,41 +2077,11 @@ export default function AddListingPage() {
 
             <div className="grid gap-4">
               {matches.map((match, idx) => (
-                <div key={idx} className="flex gap-4 p-4 border border-[#E2E8F0] rounded-xl hover:border-[#CBD5E1] transition bg-[#F8FAFC]">
-                  {match.ad?.photoUrls?.[0] ? (
-                    <img
-                      src={getImageUrl(match.ad.photoUrls[0])}
-                      alt={match.ad.title || "Eşleşen İlan"}
-                      className="w-24 h-24 rounded-lg object-cover bg-[#E2E8F0]"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-lg bg-[#E2E8F0] flex items-center justify-center">
-                      <PawPrint size={32} className="text-[#94A3B8]" />
-                    </div>
-                  )}
-                  
-                  <div className="flex-1 flex flex-col justify-center">
-                    <h3 className="font-bold text-[#0F172A] text-lg mb-1">{match.ad?.title || "İlan"}</h3>
-                    <p className="text-sm text-[#64748B] line-clamp-2">{match.ad?.description}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-[#ECFCCB] px-2.5 py-0.5 text-xs font-semibold text-[#4D7C0F]">
-                        %{(match.score * 100).toFixed(0)} Benzerlik
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-center pl-4 border-l border-[#E2E8F0]">
-                    <a
-                      href={`/pet/${match.ad?.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F8FAFC] px-4 py-2 font-semibold text-[#0F172A] border border-[#CBD5E1] hover:bg-[#F1F5F9] hover:border-[#94A3B8] transition"
-                    >
-                      İncele
-                      <ChevronRight size={16} />
-                    </a>
-                  </div>
-                </div>
+                <MatchedAdCard
+                  key={match.ad?.id || idx}
+                  match={match}
+                  variant="modal"
+                />
               ))}
             </div>
             

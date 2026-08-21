@@ -208,6 +208,18 @@ export type AdResponse = {
   isPosterAllowed?: boolean;
   showEmailOnPoster?: boolean;
   showPhoneOnPoster?: boolean;
+  city?: string;
+  district?: string;
+};
+
+/**
+ * Yapay Zekâ İlan Eşleştirme Yanıt DTO'su (POST /api/ai-match)
+ */
+export type MatchedAdResponseDTO = {
+  /** Benzerlik skoru (0.0 - 1.0 arasında ondalıklı sayı, örn: 0.942) */
+  score: number;
+  /** Eşleşen ilan yanıt verisi */
+  ad: AdResponse;
 };
 
 export type PosterSettingsRequest = {
