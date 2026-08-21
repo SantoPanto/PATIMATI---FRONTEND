@@ -181,6 +181,10 @@ function App() {
           path="/add-listing"
           component={ProtectedAddListingPage}
         />
+        <Route
+          path="/lost/create"
+          component={ProtectedAddListingPage}
+        />
         <Route path="/pet/:id" component={PetDetailPage} />
         <Route path="/ads/:id" component={PetDetailPage} />
 
@@ -213,6 +217,10 @@ function App() {
         />
         <Route path="/complaints" component={ProtectedComplaintPage} />
         {/* Sahiplendirme */}
+        <Route
+          path="/adopt/create"
+          component={ProtectedAdoptionCreatePage}
+        />
         <Route
           path="/adoption/create"
           component={ProtectedAdoptionCreatePage}
