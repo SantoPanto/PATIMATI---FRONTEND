@@ -342,7 +342,7 @@ export default function ListingsPage() {
               </div>
 
               <Link
-                href="/add-listing"
+                href="/lost/create"
                 className="hero-primary-action inline-flex w-fit"
               >
                 İlan oluştur

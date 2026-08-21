@@ -114,7 +114,7 @@ function MyMatchesContent() {
               </button>
 
               <Link
-                href="/add-listing"
+                href="/lost/create"
                 className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-orange-600 focus:outline-none"
               >
                 <CirclePlus size={18} />
@@ -225,7 +225,7 @@ function MyMatchesContent() {
                 )}
 
                 <Link
-                  href="/add-listing"
+                  href="/lost/create"
                   className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
                 >
                   Yeni İlan Oluştur

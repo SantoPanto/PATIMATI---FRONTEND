@@ -407,7 +407,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="hero-primary-action"
-                  onClick={() => requireAuth("/add-listing")}
+                  onClick={() => requireAuth("/lost/create")}
                 >
                   <CirclePlus size={20} />
                   İlan oluştur
@@ -504,7 +504,7 @@ export default function HomePage() {
             <button
               type="button"
               className="quick-action-card quick-action-card--lost"
-              onClick={() => requireAuth("/add-listing?type=lost")}
+              onClick={() => requireAuth("/lost/create")}
             >
               <div className="quick-action-card__icon">
                 <Search size={28} />
@@ -571,7 +571,7 @@ export default function HomePage() {
               type="button"
               className="quick-action-card quick-action-card--adoption"
               onClick={() =>
-                requireAuth("/add-listing?type=adoption")
+                requireAuth("/adopt/create")
               }
             >
               <div className="quick-action-card__icon">

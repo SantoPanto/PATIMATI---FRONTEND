@@ -41,23 +41,11 @@ import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
 
 function ProtectedAddListingPage() {
-  return (
-    <RequireAuth
-      component={AddListingPage}
-      fallbackPath="/listings"
-      mode="modal"
-    />
-  );
+  return <RequireAuth component={AddListingPage} mode="redirect" />;
 }
 
 function ProtectedFoundPetCreatePage() {
-  return (
-    <RequireAuth
-      component={FoundPetCreatePage}
-      fallbackPath="/listings"
-      mode="modal"
-    />
-  );
+  return <RequireAuth component={FoundPetCreatePage} mode="redirect" />;
 }
 
 function ProtectedChatPage() {
@@ -75,13 +63,7 @@ function ProtectedChatDetailPage() {
 }
 
 function ProtectedAdoptionCreatePage() {
-  return (
-    <RequireAuth
-      component={AdoptionCreatePage}
-      fallbackPath="/adoption"
-      mode="modal"
-    />
-  );
+  return <RequireAuth component={AdoptionCreatePage} mode="redirect" />;
 }
 
 function ProtectedProfilePage() {
