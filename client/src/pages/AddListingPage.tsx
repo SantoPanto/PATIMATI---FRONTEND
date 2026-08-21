@@ -27,8 +27,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import MatchedAdCard from "../components/MatchedAdCard";
 import { request } from "../services/api";
-import type { MatchedAdResponseDTO } from "../services/types";
-import { getImageUrl } from "../utils/imageUrl";
+import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
 /* -------------------------------------------------------------------------- */
@@ -112,21 +111,6 @@ type AiAnalysis = {
 
   model_version?: string;
 };
-
-type AdResponse = {
-  id: number;
-  title?: string;
-};
-
-interface ListingMatchResult {
-  score: number;
-  ad?: {
-    id?: number;
-    title?: string;
-    description?: string;
-    photoUrls?: string[];
-  };
-}
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
