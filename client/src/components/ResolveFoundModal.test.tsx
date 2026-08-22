@@ -137,6 +137,23 @@ async function adayiSecVeKapat(desen: RegExp) {
 }
 
 describe('ResolveFoundModal — aday listesi', () => {
+  it('eslesme fotografi partner ilanin basligini alt metni olarak tasir', async () => {
+    // Fotograf ICERIK gorseli (hangi ilanla eslestigini gosteriyor) — bos
+    // alt, ekran okuyucuya "adsiz gorsel" der; erisilebilir adi baslikla ayni
+    // olmali. Varsayilan fikstur photoUrl tasimiyor, o yuzden burada veriyoruz.
+    eslesmeleriGetir.mockResolvedValue([
+      {
+        ...BU_ILANIN_ESLESMESI,
+        partnerAd: { id: 91, title: 'Sarıyer’de tekir bulundu', photoUrl: 'foto/91.jpg' },
+      },
+    ])
+    pencereyiAc()
+
+    expect(
+      await screen.findByRole('img', { name: 'Sarıyer’de tekir bulundu' }),
+    ).toBeInTheDocument()
+  })
+
   it('yalniz BU ilanin eslesmelerini gosterir', async () => {
     pencereyiAc()
 
