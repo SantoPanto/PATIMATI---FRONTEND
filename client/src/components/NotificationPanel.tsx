@@ -50,6 +50,14 @@ function getNotificationHref(
     return "/my-matches";
   }
 
+  // Çevre uyarısı (konum aboneliği): eşleşme bağlamı yok, ilan detayına.
+  if (
+    notification.data.type === "NEARBY_AD" &&
+    notification.data.adId
+  ) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  }
+
   return null;
 }
 

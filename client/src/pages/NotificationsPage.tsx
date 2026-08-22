@@ -24,6 +24,15 @@ function getNotificationHref(
     return `/pet/${encodeURIComponent(notification.data.adId)}`;
   }
 
+  // Çevre uyarısı (konum aboneliği): hedef ilanın kendisi — eşleşme
+  // bağlamı yok, doğrudan detaya gider.
+  if (
+    notification.data.type === "NEARBY_AD" &&
+    notification.data.adId
+  ) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  }
+
   return null;
 }
 
