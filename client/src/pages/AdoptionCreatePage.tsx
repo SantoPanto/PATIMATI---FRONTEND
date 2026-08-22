@@ -17,6 +17,7 @@ import {
 
 import CreateAdLayout from "../components/CreateAdLayout";
 import { request } from "../services/api";
+import { ilIlcedenKoordinat } from "../utils/geokod";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 
@@ -323,33 +324,35 @@ export default function AdoptionCreatePage() {
     );
   };
 
-  const validateForm = () => {
+  /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
+     zenginleşmiş kopya doğrulanabilsin diye (state henüz eskiyken). */
+  const validateForm = (f: typeof form = form) => {
     if (images.length === 0) {
       return "En az 1 fotoğraf yüklemelisiniz.";
     }
 
-    if (!form.name.trim()) {
+    if (!f.name.trim()) {
       return "Hayvanın adını girin.";
     }
 
-    if (!form.species) {
+    if (!f.species) {
       return "Hayvan türünü seçin.";
     }
 
     /* Backend AdoptionAdCreateRequest'te breed @NotBlank */
-    if (!form.breed.trim()) {
+    if (!f.breed.trim()) {
       return "Irk/cins bilgisini girin.";
     }
 
-    if (!form.date) {
+    if (!f.date) {
       return "İlan tarihini seçin.";
     }
 
-    if (form.date > today) {
+    if (f.date > today) {
       return "Gelecekte bir tarih seçilemez.";
     }
 
-    if (!form.city.trim()) {
+    if (!f.city.trim()) {
       return "Şehir bilgisini girin.";
     }
 
@@ -357,19 +360,19 @@ export default function AdoptionCreatePage() {
      * Backend konumu zorunlu tutuyor ve eslestirme mesafeye bakiyor.
      * Sehir/ilce metni koordinat yerine gecmez.
      */
-    if (!form.latitude || !form.longitude) {
+    if (!f.latitude || !f.longitude) {
       return '"Mevcut konumumu kullan" düğmesiyle ya da enlem/boylam alanlarına elle girerek ilanın konumunu ekleyin.';
     }
 
-    if (!form.title.trim()) {
+    if (!f.title.trim()) {
       return "İlan başlığını girin.";
     }
 
-    if (!form.description.trim()) {
+    if (!f.description.trim()) {
       return "İlan açıklamasını girin.";
     }
 
-    if (!form.acceptResponsibility) {
+    if (!f.acceptResponsibility) {
       return "İlan bilgilerini doğru verdiğinizi onaylamalısınız.";
     }
 
@@ -380,7 +383,30 @@ export default function AdoptionCreatePage() {
     setErrorMessage("");
     setDateError("");
 
-    const validationError = validateForm();
+    /*
+     * Koordinat boş ama il/ilçe beyanı varsa ilçe merkezinden yaklaşık
+     * doldur (22.08 saha bulgusu: konum izni vermeyen kullanıcı
+     * kilitleniyordu). GPS ve elle giriş her zaman önceliklidir — yalnız
+     * ikisi de boşken devreye girer; başarısız olursa mevcut doğrulama
+     * mesajı yolları gösterir.
+     */
+    let gonderilecek = form;
+
+    if ((!form.latitude || !form.longitude) && form.city.trim()) {
+      const tahmin = await ilIlcedenKoordinat(form.city, form.district);
+
+      if (tahmin) {
+        gonderilecek = {
+          ...form,
+          latitude: String(tahmin.latitude),
+          longitude: String(tahmin.longitude),
+        };
+        updateForm("latitude", gonderilecek.latitude);
+        updateForm("longitude", gonderilecek.longitude);
+      }
+    }
+
+    const validationError = validateForm(gonderilecek);
 
     if (validationError) {
       setErrorMessage(validationError);
@@ -441,8 +467,8 @@ export default function AdoptionCreatePage() {
        */
       coatPattern: "UNKNOWN",
       eyeColor: "UNKNOWN",
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
+      latitude: Number(gonderilecek.latitude),
+      longitude: Number(gonderilecek.longitude),
       /*
        * İl/ilçe beyanı (BE V19): form zaten soruyor; yapılandırılmış alan
        * olarak da gider ki kartlar ham koordinat yerine bunu gösterebilsin.
