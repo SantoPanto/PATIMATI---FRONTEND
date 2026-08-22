@@ -42,11 +42,12 @@ function formatNotificationDate(timestamp: number): string {
 function getNotificationHref(
   notification: InAppNotification,
 ): string | null {
-  if (
-    notification.data.type === "AI_MATCH" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  // Eşleşme bildirimi Eşleşmelerim'e götürür, ilan detayına DEĞİL: ilan
+  // sayfasında eşleşme bağlamı (skor, iki ilanın yan yana hâli) yok; kullanıcı
+  // "eşleşme nerede?" kalıyordu. Tek hesapla test ederken çiftin iki ilanı da
+  // aynı kişide olduğundan bu, "kendi ilanıma götürdü" diye görünüyordu (B4).
+  if (notification.data.type === "AI_MATCH") {
+    return "/my-matches";
   }
 
   return null;
