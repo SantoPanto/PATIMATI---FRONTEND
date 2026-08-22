@@ -59,7 +59,7 @@ export default function LoginRedirectPage() {
       <main style={{ padding: 20 }}>
         <p>{message}</p>
         <p>
-          Eğer otomatik yönlendirme olmazsa <a href="/">anasayfaya dönün</a>.
+          Eğer otomatik yönlendirme olmazsa <a href="/">ana sayfaya dönün</a>.
         </p>
       </main>
     </TeamShell>

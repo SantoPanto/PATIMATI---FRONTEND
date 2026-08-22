@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
     setErrorMessage("");
 
     if (!email.trim()) {
-      setErrorMessage("E posta adresini girmelisin");
+      setErrorMessage("E-posta adresini girmelisin");
       return;
     }
 
@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
                 </h1>
 
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Hesabına ait e posta adresini gir Şifreni yenileyebileceğin
+                  Hesabına ait e-posta adresini gir Şifreni yenileyebileceğin
                   güvenli bağlantıyı sana gönderelim
                 </p>
               </div>
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
                   htmlFor="forgot-email"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
-                  E posta
+                  E-posta
                 </label>
 
                 <div className="relative mb-5">
@@ -138,7 +138,7 @@ export default function ForgotPasswordPage() {
               </span>
 
               <h1 className="mt-6 text-3xl font-bold text-slate-900">
-                E postanı kontrol et
+                E-postanı kontrol et
               </h1>
 
               <p className="mt-4 text-sm leading-6 text-slate-500">

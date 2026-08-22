@@ -352,7 +352,7 @@ export default function HomePage() {
 
         if (error.code === error.PERMISSION_DENIED) {
           alert(
-            "Konum izni verilmedi Tarayıcı ayarlarından konum iznini açabilirsiniz",
+            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.",
           );
           return;
         }
@@ -367,7 +367,7 @@ export default function HomePage() {
           return;
         }
 
-        alert("Konumunuz alınamadı Lütfen tekrar deneyin");
+        alert("Konumunuz alınamadı. Lütfen tekrar deneyin.");
       },
       {
         enableHighAccuracy: true,
