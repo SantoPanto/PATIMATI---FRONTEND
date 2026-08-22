@@ -8,20 +8,17 @@ import { useLocation } from "wouter";
 import {
   CalendarDays,
   Camera,
-  CheckCircle2,
   ChevronRight,
   Info,
   Loader2,
   MapPin,
   PawPrint,
   Send,
-  Sparkles,
   Upload,
   X,
 } from "lucide-react";
 
 import CreateAdLayout from "../components/CreateAdLayout";
-import MatchedAdCard from "../components/MatchedAdCard";
 import AiAutofillCard from "../components/AiAutofillCard";
 import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
