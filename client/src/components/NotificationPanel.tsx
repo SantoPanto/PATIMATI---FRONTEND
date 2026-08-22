@@ -58,6 +58,14 @@ function getNotificationHref(
     return `/pet/${encodeURIComponent(notification.data.adId)}`;
   }
 
+  // Görülme bildirimi: sahibi ilan detayına gider — Görülmeler bölümü orada.
+  if (
+    notification.data.type === "SIGHTING" &&
+    notification.data.adId
+  ) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  }
+
   return null;
 }
 
