@@ -1,6 +1,6 @@
 import { request } from "./api";
 import { getStoredToken } from "./authStorage";
-import { getFcmToken } from "./firbase";
+import { getFcmToken } from "./firebase";
 
 export type InAppNotification = {
   id: string;

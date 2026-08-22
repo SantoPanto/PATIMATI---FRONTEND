@@ -176,8 +176,8 @@ export default function LoginPage() {
               </h1>
 
               <p className="mt-6 max-w-md text-lg leading-8 text-slate-300">
-                Kayıp ve bulunan hayvan ilanlarına ulaş yakınındaki ilanları
-                haritada gör ve güvenli şekilde iletişim kur
+                Kayıp ve bulunan hayvan ilanlarına ulaş, yakınındaki ilanları
+                haritada gör ve güvenli şekilde iletişim kur.
               </p>
             </div>
 

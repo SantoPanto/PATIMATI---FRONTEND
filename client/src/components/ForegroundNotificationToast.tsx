@@ -10,7 +10,7 @@ import {
   markNotificationAsRead,
   recordForegroundNotification,
 } from "../services/notifications";
-import { listenForForegroundMessages } from "../services/firbase";
+import { listenForForegroundMessages } from "../services/firebase";
 import type { InAppNotification } from "../services/notifications";
 
 export default function ForegroundNotificationToast() {

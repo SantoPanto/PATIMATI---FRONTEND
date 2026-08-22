@@ -37,8 +37,9 @@ self.addEventListener("notificationclick", (event) => {
 
   let targetUrl = "/";
 
-  if (data.type === "AI_MATCH" && data.adId) {
-    targetUrl = `/pet/${data.adId}`;
+  if (data.type === "AI_MATCH") {
+    // Eşleşmelerim'e: ilan detayında eşleşme bağlamı yok (B4).
+    targetUrl = "/my-matches";
   }
 
   event.waitUntil(

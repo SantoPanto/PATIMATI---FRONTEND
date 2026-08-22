@@ -54,8 +54,8 @@ vi.mock("../services/api", () => ({
   request: vi.fn().mockResolvedValue(undefined),
 }));
 
-// firbase.ts modul yuklenirken initializeApp cagiriyor; testte gereksiz.
-vi.mock("../services/firbase", () => ({
+// firebase.ts modul yuklenirken initializeApp cagiriyor; testte gereksiz.
+vi.mock("../services/firebase", () => ({
   getFcmToken: vi.fn().mockResolvedValue(null),
   listenForForegroundMessages: vi.fn(),
 }));

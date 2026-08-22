@@ -175,8 +175,8 @@ export default function Adoption() {
               </h1>
 
               <p>
-                Yuva arayan dostlarımızı incele sana en uygun yol
-                arkadaşını bul ve onun hayatını değiştir
+                Yuva arayan dostlarımızı incele. Sana en uygun yol
+                arkadaşını bul ve onun hayatını değiştir.
               </p>
 
               <div className="adoption-hero__actions">
