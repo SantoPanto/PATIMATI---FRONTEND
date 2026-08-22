@@ -1064,7 +1064,9 @@ export default function HomePage() {
               <h3>Hayvan türü</h3>
 
               <div className="filter-chip-grid">
-                {["Kedi", "Köpek", "Kuş", "Diğer"].map(
+                {/* Proje kapsamı kedi + köpek (AI de yalnız bu ikisini
+                    tanıyor); Kuş/Diğer seçenekleri boş küme filtreliyordu. */}
+                {["Kedi", "Köpek"].map(
                   (animal) => (
                     <button
                       key={animal}

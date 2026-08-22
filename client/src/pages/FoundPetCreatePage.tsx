@@ -854,7 +854,7 @@ export default function FoundPetCreatePage() {
                 event.target.value,
               )
             }
-            placeholder="Örn. Üniversite metro çıkışının karşısındaki park"
+            placeholder="Örn. Metro çıkışı karşısındaki park"
             className={inputClass}
           />
         </Field>
