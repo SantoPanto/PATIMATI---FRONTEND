@@ -18,6 +18,7 @@ export async function createAd(
   images?: File[],
 ): Promise<AdResponse> {
   const cleanedAd: Record<string, unknown> = {
+    isMatchRequired: ad.isMatchRequired ?? true,
     ...ad,
     colors: Array.isArray(ad.colors) ? ad.colors : [],
   };
