@@ -69,6 +69,20 @@ export function getAdImage(ad: AdResponse): string {
 }
 
 export function getAdLocation(ad: AdResponse): string {
+  // İl/ilçe (BE V19) öncelikli: kullanıcıya "Nilüfer, Bursa" anlamlıdır,
+  // "39.9334, 32.8597" değil. Eski kayıtlarda backfill koşulana kadar bu
+  // alanlar boş gelebilir — o durumda koordinat gösterilmeye devam eder
+  // ki konum bilgisi olan hiçbir ilan "belirtilmemiş"e düşmesin.
+  const city = ad.city?.trim();
+  const district = ad.district?.trim();
+
+  if (city && district) {
+    return `${district}, ${city}`;
+  }
+  if (city || district) {
+    return (city || district) as string;
+  }
+
   if (
     typeof ad.latitude === "number" &&
     typeof ad.longitude === "number" &&

@@ -443,6 +443,14 @@ export default function AdoptionCreatePage() {
       eyeColor: "UNKNOWN",
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
+      /*
+       * İl/ilçe beyanı (BE V19): form zaten soruyor; yapılandırılmış alan
+       * olarak da gider ki kartlar ham koordinat yerine bunu gösterebilsin.
+       * Boşsa alan hiç gönderilmez (undefined, JSON.stringify'da düşer) —
+       * sunucu o durumda koordinattan çözmeyi dener.
+       */
+      city: form.city.trim() || undefined,
+      district: form.district.trim() || undefined,
     };
 
     /*
