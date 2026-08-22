@@ -414,8 +414,8 @@ export default function HomePage() {
               </h1>
 
               <p>
-                Kayıp bulunan ve sahiplendirilecek hayvan ilanlarını incele
-                Yakınındaki dostlara ulaş ve güvenli iletişim kur
+                Kayıp bulunan ve sahiplendirilecek hayvan ilanlarını incele.
+                Yakınındaki dostlara ulaş ve güvenli iletişim kur.
               </p>
 
               {/* form + onSubmit: Enter'ın bir karşılığı olsun diye. Kutu
@@ -552,7 +552,7 @@ export default function HomePage() {
           <div className="section-heading section-heading--center">
             <span className="section-eyebrow">Hızlı başlangıç</span>
 
-            <h2>Nasıl yardımcı olabiliriz</h2>
+            <h2>Nasıl yardımcı olabiliriz?</h2>
 
             <p>
               Durumuna uygun ilan türünü seçerek birkaç adımda paylaşım
@@ -579,7 +579,7 @@ export default function HomePage() {
 
                 <p>
                   Fotoğrafını ve son görüldüğü konumu paylaşarak aramayı
-                  başlat
+                  başlat.
                 </p>
 
                 <span className="quick-action-card__link">
@@ -612,7 +612,7 @@ export default function HomePage() {
 
                 <p>
                   Bulduğun hayvanın bilgilerini paylaşarak ailesine
-                  ulaşmasına yardımcı ol
+                  ulaşmasına yardımcı ol.
                 </p>
 
                 <span className="quick-action-card__link">
@@ -646,7 +646,7 @@ export default function HomePage() {
                 <h3>Yeni yuva arıyorum</h3>
 
                 <p>
-                  Sahiplendirilecek dostun için güvenilir bir yuva bul
+                  Sahiplendirilecek dostun için güvenilir bir yuva bul.
                 </p>
 
                 <span className="quick-action-card__link">
