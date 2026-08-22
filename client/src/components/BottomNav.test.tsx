@@ -49,16 +49,29 @@ beforeEach(() => {
 });
 
 describe("BottomNav", () => {
-  it("/listings rotasında 4 sekme çizer, yalnız İlanlar işaretli", () => {
+  it("/listings rotasında 5 sekme çizer, yalnız İlanlar işaretli", () => {
     durum.konum = "/listings";
 
     render(<BottomNav />);
 
-    expect(screen.getAllByRole("link")).toHaveLength(4);
+    expect(screen.getAllByRole("link")).toHaveLength(5);
     expect(sekmeninAriaCurrent("İlanlar")).toBe("page");
     expect(sekmeninAriaCurrent("Ana Sayfa")).toBeNull();
     expect(sekmeninAriaCurrent("Harita")).toBeNull();
     expect(sekmeninAriaCurrent("Sahiplendirme")).toBeNull();
+    expect(sekmeninAriaCurrent("Mesajlar")).toBeNull();
+  });
+
+  it("sohbet detayında da Mesajlar işaretli (startsWith: /chat/5)", () => {
+    // 22.08 mobil taraması: Mesajlar'a menüden hiç erişim yoktu (tek yol
+    // Profil→Mesajlarım kartı). Bu vaka sekmenin varlığını VE detay
+    // rotasında da işaretli kaldığını kilitler.
+    durum.konum = "/chat/5";
+
+    render(<BottomNav />);
+
+    expect(sekmeninAriaCurrent("Mesajlar")).toBe("page");
+    expect(sekmeninAriaCurrent("Ana Sayfa")).toBeNull();
   });
 
   it('kök rotada yalnız Ana Sayfa işaretli ("/" her rotayla eşleşmez)', () => {
