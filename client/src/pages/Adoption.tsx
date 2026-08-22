@@ -226,7 +226,7 @@ export default function Adoption() {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Başlık cins veya konum ara"
+                placeholder="Başlık, cins veya konum ara"
                 aria-label="Sahiplendirme ilanlarında ara"
               />
             </div>

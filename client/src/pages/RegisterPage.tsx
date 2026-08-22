@@ -90,7 +90,7 @@ export default function RegisterPage() {
       normalizedEmail.length > 50
     ) {
       setErrorMessage(
-        "E posta 5 ile 50 karakter arasında olmalıdır",
+        "E-posta 5 ile 50 karakter arasında olmalıdır",
       );
       return;
     }
@@ -98,7 +98,7 @@ export default function RegisterPage() {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(normalizedEmail)) {
-      setErrorMessage("Geçerli bir e posta adresi girmelisin");
+      setErrorMessage("Geçerli bir e-posta adresi girmelisin");
       return;
     }
 
@@ -117,7 +117,7 @@ export default function RegisterPage() {
 
     if (!phonePattern.test(normalizedPhone)) {
       setErrorMessage(
-        "Telefon numarası formatı geçersiz Örnek 05551234567",
+        "Telefon numarası formatı geçersiz. Örnek: 05551234567",
       );
       return;
     }
@@ -434,7 +434,7 @@ export default function RegisterPage() {
                 htmlFor="register-email"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                E posta
+                E-posta
               </label>
 
               <div className="relative mb-4">

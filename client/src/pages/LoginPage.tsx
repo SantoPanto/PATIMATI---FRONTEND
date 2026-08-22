@@ -85,7 +85,7 @@ export default function LoginPage() {
         if (!currentUser) {
           clearAuthStorage();
           setErrorMessage(
-            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı Lütfen tekrar deneyin",
+            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.",
           );
           setIsOAuthLoading(false);
           return;
@@ -105,7 +105,7 @@ export default function LoginPage() {
     setErrorMessage("");
 
     if (!email.trim() || !password.trim()) {
-      setErrorMessage("E posta ve şifre alanlarını doldurmalısın");
+      setErrorMessage("E-posta ve şifre alanlarını doldurmalısın");
       return;
     }
 
@@ -260,7 +260,7 @@ export default function LoginPage() {
             <div className="my-6 flex items-center gap-4">
               <span className="h-px flex-1 bg-slate-200" />
               <span className="text-xs font-medium text-slate-400">
-                veya e posta ile
+                veya e-posta ile
               </span>
               <span className="h-px flex-1 bg-slate-200" />
             </div>
@@ -270,7 +270,7 @@ export default function LoginPage() {
                 htmlFor="login-email"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                E posta
+                E-posta
               </label>
 
               <div className="relative mb-4">
