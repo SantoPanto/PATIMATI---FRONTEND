@@ -5,12 +5,24 @@ import {
   ShieldAlert,
   UserRound,
 } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  getNotificationSnapshot,
+  subscribeToNotifications,
+} from "../services/notifications";
 
 export default function Header() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const notifications = useSyncExternalStore(
+    subscribeToNotifications,
+    getNotificationSnapshot,
+  );
+  const hasUnreadNotifications = notifications.some(
+    (notification) => !notification.read,
+  );
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -107,7 +119,9 @@ export default function Header() {
                 onClick={() => navigate("/notifications")}
               >
                 <Bell size={20} />
-                <span className="notification-dot" />
+                {hasUnreadNotifications && (
+                  <span className="notification-dot" />
+                )}
               </button>
 
               <Link

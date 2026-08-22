@@ -93,17 +93,15 @@ function AuthenticatedForegroundNotificationToast() {
     return null;
   }
 
-  const aiAdId =
-    notification.data.type === "AI_MATCH"
-      ? notification.data.adId
-      : undefined;
+  const isAiMatch = notification.data.type === "AI_MATCH";
 
   const openAiMatch = () => {
-    if (!aiAdId) return;
+    if (!isAiMatch) return;
 
     markNotificationAsRead(notification.id);
     setNotification(null);
-    navigate(`/pet/${encodeURIComponent(aiAdId)}`);
+    // Eşleşmelerim'e: ilan detayında eşleşme bağlamı yok (B4).
+    navigate("/my-matches");
   };
 
   return (
@@ -118,7 +116,7 @@ function AuthenticatedForegroundNotificationToast() {
         </span>
 
         <div className="min-w-0 flex-1">
-          {aiAdId ? (
+          {isAiMatch ? (
             <button
               type="button"
               onClick={openAiMatch}

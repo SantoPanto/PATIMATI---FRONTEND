@@ -631,6 +631,15 @@ export default function AddListingPage() {
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
 
+          // Konum girildiyse gönder: pop-up adayları asenkron eşleştirmeyle
+          // aynı 25 km süzgecinden geçer ve konum cezası uygulanır (B8).
+          // Boşsa göndermiyoruz — backend konumsuz yolu koruyor (analiz
+          // düğmesine konum girilmeden basılabiliyor).
+          if (latitude.trim() && longitude.trim()) {
+            formData.append("latitude", latitude.trim());
+            formData.append("longitude", longitude.trim());
+          }
+
           const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
             method: "POST",
             body: formData,

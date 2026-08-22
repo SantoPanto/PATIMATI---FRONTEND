@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import {
   BadgeCheck,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Heart,
   MapPin,
   PawPrint,
@@ -29,11 +31,15 @@ import {
 import { getUserErrorMessage } from "../utils/errorMessage";
 import "../styles/adoption.css";
 
+// İlanlar sayfasıyla aynı sayfa boyu (listingpage.tsx).
+const PAGE_SIZE = 20;
+
 export default function Adoption() {
   const [ads, setAds] = useState<AdResponse[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [species, setSpecies] = useState("Tümü");
   const [gender, setGender] = useState("Tümü");
+  const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -121,10 +127,33 @@ export default function Adoption() {
     });
   }, [ads, searchTerm, species, gender]);
 
+  // Süzgeç sonucu istemcide sayfalanır (süzgeçler tam kümenin üstünde
+  // çalışmayı sürdürür). currentPage klempi: süzgeç daralıp sayfa sayısı
+  // düşünce elde kalan taşkın `page` boş ekran çizmesin.
+  const totalPages = Math.ceil(filteredAds.length / PAGE_SIZE);
+  const currentPage = Math.min(page, Math.max(totalPages - 1, 0));
+  const pagedAds = filteredAds.slice(
+    currentPage * PAGE_SIZE,
+    (currentPage + 1) * PAGE_SIZE,
+  );
+
+  const goToPreviousPage = () => {
+    setPage(Math.max(0, currentPage - 1));
+  };
+
+  const goToNextPage = () => {
+    setPage(
+      totalPages > 0
+        ? Math.min(totalPages - 1, currentPage + 1)
+        : currentPage,
+    );
+  };
+
   const resetFilters = () => {
     setSearchTerm("");
     setSpecies("Tümü");
     setGender("Tümü");
+    setPage(0);
   };
 
   return (
@@ -225,8 +254,11 @@ export default function Adoption() {
               <input
                 type="search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Başlık, cins veya konum ara"
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setPage(0);
+                }}
+                placeholder="Başlık cins veya konum ara"
                 aria-label="Sahiplendirme ilanlarında ara"
               />
             </div>
@@ -236,7 +268,10 @@ export default function Adoption() {
                 <span>Tür</span>
                 <select
                   value={species}
-                  onChange={(event) => setSpecies(event.target.value)}
+                  onChange={(event) => {
+                    setSpecies(event.target.value);
+                    setPage(0);
+                  }}
                 >
                   <option value="Tümü">Tüm türler</option>
                   <option value="Kedi">Kedi</option>
@@ -248,7 +283,10 @@ export default function Adoption() {
                 <span>Cinsiyet</span>
                 <select
                   value={gender}
-                  onChange={(event) => setGender(event.target.value)}
+                  onChange={(event) => {
+                    setGender(event.target.value);
+                    setPage(0);
+                  }}
                 >
                   <option value="Tümü">Tümü</option>
                   <option value="Dişi">Dişi</option>
@@ -278,7 +316,7 @@ export default function Adoption() {
             <StatusCard title="İlanlar yüklenemedi" description={errorMessage} />
           ) : filteredAds.length > 0 ? (
             <div className="adoption-grid">
-              {filteredAds.map((ad) => (
+              {pagedAds.map((ad) => (
                 <article key={ad.id} className="adoption-card pm-card">
                   <div className="adoption-card__image">
                     <img
@@ -356,6 +394,37 @@ export default function Adoption() {
               description="Filtreleri değiştirerek tekrar deneyebilirsin"
               onReset={resetFilters}
             />
+          )}
+
+          {!isLoading && !errorMessage && totalPages > 1 && (
+            <nav
+              className="mt-10 flex items-center justify-center gap-3"
+              aria-label="Sahiplendirme ilanı sayfaları"
+            >
+              <button
+                type="button"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 0}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Önceki sayfa"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
+              <span className="min-w-24 text-center text-sm font-medium text-[#64748B]">
+                {currentPage + 1} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={goToNextPage}
+                disabled={currentPage >= totalPages - 1}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Sonraki sayfa"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </nav>
           )}
 
           <section className="adoption-safety">

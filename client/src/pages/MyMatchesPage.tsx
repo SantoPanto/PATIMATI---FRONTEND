@@ -130,7 +130,7 @@ function MyMatchesContent() {
                 onClick={() => setFilter("all")}
                 className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                   filter === "all"
-                    ? "bg-slate-900 text-white"
+                    ? "bg-orange-500 text-white"
                     : "bg-white text-slate-600 hover:bg-slate-100"
                 }`}
               >
