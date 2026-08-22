@@ -22,6 +22,7 @@ export default function Footer() {
           <Link href="/map">Harita</Link>
           <Link href="/safety">Güvenlik</Link>
           <Link href="/about">Hakkımızda</Link>
+          <Link href="/privacy">Gizlilik</Link>
         </nav>
       </div>
 

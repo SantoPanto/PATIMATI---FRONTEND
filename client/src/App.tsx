@@ -26,6 +26,7 @@ import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
+import GizlilikPage from "./pages/GizlilikPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
 import RequireGuest from "./components/RequireGuest";
@@ -193,6 +194,7 @@ function App() {
         />
         <Route path="/about" component={AboutPage} />
         <Route path="/safety" component={SafetyPage} />
+        <Route path="/privacy" component={GizlilikPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
