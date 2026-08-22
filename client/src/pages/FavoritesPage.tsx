@@ -186,7 +186,7 @@ export default function FavoritesPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+            <div className="flex flex-wrap items-center gap-2 pb-1 lg:pb-0">
               <span className="mr-1 hidden shrink-0 items-center gap-2 text-sm font-medium text-[#64748B] sm:inline-flex">
                 <SlidersHorizontal size={17} />
                 Filtrele

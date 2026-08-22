@@ -12,6 +12,7 @@ import {
   getSpeciesLabel,
 } from "../utils/adPresentation";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { mesafeKm } from "../utils/mesafe";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../App.css";
@@ -38,22 +39,46 @@ interface PetListing {
   animal: string;
   breed: string;
   location: string;
+  /** Ekranda gösterilen hâli ("3,2 km" ya da konum yokken "—"). */
   distance: string;
+  /** Süzgecin kullandığı sayı; kullanıcı konumu ya da ilan koordinatı yoksa null. */
+  distanceKm: number | null;
   date: string;
   type: ListingType;
   image: string;
   detailPath: string;
-  featured?: boolean;
 }
 
-function toPetListing(ad: AdResponse): PetListing {
+interface KullaniciKonumu {
+  latitude: number;
+  longitude: number;
+}
+
+function toPetListing(
+  ad: AdResponse,
+  kullaniciKonumu: KullaniciKonumu | null,
+): PetListing {
+  const distanceKm =
+    kullaniciKonumu && ad.latitude != null && ad.longitude != null
+      ? mesafeKm(
+          kullaniciKonumu.latitude,
+          kullaniciKonumu.longitude,
+          ad.latitude,
+          ad.longitude,
+        )
+      : null;
+
   return {
     id: ad.id,
     name: ad.title,
     animal: getSpeciesLabel(ad.species),
     breed: ad.breed || "Cins belirtilmemiş",
     location: getAdLocation(ad),
-    distance: "—",
+    distance:
+      distanceKm == null
+        ? "—"
+        : `${distanceKm.toFixed(1).replace(".", ",")} km`,
+    distanceKm,
     date: getRelativeDate(ad.createdAt),
     type: ad.adType.toLocaleLowerCase("tr-TR") as ListingType,
     image: getAdImage(ad),
@@ -68,7 +93,9 @@ export default function HomePage() {
   // Arama/filtre sonuçlarının yaşadığı bölüm — Enter ve "N sonucu göster"
   // buraya kaydırır ki süzmenin bir karşılığı ekranda görünsün.
   const resultsSectionRef = useRef<HTMLElement | null>(null);
-  const [listings, setListings] = useState<PetListing[]>([]);
+  // Ham ilanlar ayrı tutulur: kullanıcı konum izni verdiğinde mesafeler
+  // yeniden hesaplanabilsin (listings aşağıda türetiliyor).
+  const [rawAds, setRawAds] = useState<AdResponse[]>([]);
   const [isListingsLoading, setIsListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -79,10 +106,15 @@ export default function HomePage() {
     ListingType[]
   >([]);
   const [maxDistance, setMaxDistance] = useState(25);
-  const [onlyFeatured, setOnlyFeatured] = useState(false);
   const [counters, setCounters] = useState({ activeAds: 0, happyEndings: 0 });
   const [currentLocation, setCurrentLocation] = useState("Bursa");
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [userCoords, setUserCoords] = useState<KullaniciKonumu | null>(null);
+
+  const listings = useMemo(
+    () => rawAds.map((ad) => toPetListing(ad, userCoords)),
+    [rawAds, userCoords],
+  );
 
   const { isAuthenticated, isAuthLoading } = useAuth();
 
@@ -96,11 +128,7 @@ export default function HomePage() {
         const page = await getPublicAds({ page: 0, size: 12 });
 
         if (isActive) {
-          setListings(
-            page.content
-              .filter((ad) => ad.active)
-              .map(toPetListing),
-          );
+          setRawAds(page.content.filter((ad) => ad.active));
         }
       } catch (error) {
         if (isActive) {
@@ -167,14 +195,10 @@ export default function HomePage() {
               .toLocaleLowerCase("tr-TR")
               .includes(listing.animal.toLocaleLowerCase("tr-TR"))
         );
-      const numericDistance = Number(
-        listing.distance.replace(",", ".").replace(" km", ""),
-      );
-
-      const matchesDistance = Number.isFinite(numericDistance)
-        ? numericDistance <= maxDistance
-        : true;
-      const matchesFeatured = !onlyFeatured || listing.featured === true;
+      // distanceKm null ise (kullanıcı konumu ya da ilan koordinatı yok)
+      // ilan elenmez: süzgeç ancak mesafe BİLİNİYORKEN daraltır.
+      const matchesDistance =
+        listing.distanceKm == null || listing.distanceKm <= maxDistance;
 
       const normalizedSearch = searchValue
         .trim()
@@ -200,7 +224,6 @@ export default function HomePage() {
         matchesListingType &&
         matchesAnimal &&
         matchesDistance &&
-        matchesFeatured &&
         matchesSearch
       );
     });
@@ -210,7 +233,6 @@ export default function HomePage() {
     selectedAnimals,
     selectedListingTypes,
     maxDistance,
-    onlyFeatured,
     listings,
   ]);
 
@@ -273,7 +295,6 @@ export default function HomePage() {
     setSelectedAnimals([]);
     setSelectedListingTypes([]);
     setMaxDistance(25);
-    setOnlyFeatured(false);
     setActiveFilter("all");
     setSearchValue("");
   };
@@ -289,6 +310,10 @@ export default function HomePage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+
+        // Koordinat yalnız şehir adına çevrilip atılmıyor: mesafe süzgeci ve
+        // kartlardaki "x km" bu değerden hesaplanıyor.
+        setUserCoords({ latitude, longitude });
 
         try {
           const response = await fetch(
@@ -327,7 +352,7 @@ export default function HomePage() {
 
         if (error.code === error.PERMISSION_DENIED) {
           alert(
-            "Konum izni verilmedi Tarayıcı ayarlarından konum iznini açabilirsiniz",
+            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.",
           );
           return;
         }
@@ -342,7 +367,7 @@ export default function HomePage() {
           return;
         }
 
-        alert("Konumunuz alınamadı Lütfen tekrar deneyin");
+        alert("Konumunuz alınamadı. Lütfen tekrar deneyin.");
       },
       {
         enableHighAccuracy: true,
@@ -744,13 +769,6 @@ export default function HomePage() {
                         >
                           {getListingStatus(listing.type)}
                         </span>
-
-                        {listing.featured && (
-                          <span className="listing-featured">
-                            <Sparkles size={14} />
-                            Öne çıkan
-                          </span>
-                        )}
                       </Link>
 
                       <button
@@ -1023,6 +1041,23 @@ export default function HomePage() {
                 <span>1 km</span>
                 <span>25 km</span>
               </div>
+
+              {/* Konum bilinmeden mesafe hesaplanamaz; kaydırıcının sessizce
+                  hiçbir şey yapmaması yerine sebebi ve çözümü söylenir. */}
+              {!userCoords && (
+                <p className="filter-range__hint">
+                  Mesafe süzgeci konumunla çalışır.{" "}
+                  <button
+                    type="button"
+                    onClick={handleChangeLocation}
+                    disabled={isLocationLoading}
+                  >
+                    {isLocationLoading
+                      ? "Konum alınıyor..."
+                      : "Konumumu kullan"}
+                  </button>
+                </p>
+              )}
             </section>
 
             <section className="filter-group">
@@ -1076,22 +1111,12 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="filter-group">
-              <label className="filter-switch-row">
-                <div>
-                  <strong>Sadece öne çıkanlar</strong>
-                  <span>Öne çıkarılmış ilanları göster</span>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={onlyFeatured}
-                  onChange={(event) =>
-                    setOnlyFeatured(event.target.checked)
-                  }
-                />
-              </label>
-            </section>
+            {/* "Sadece öne çıkanlar" süzgeci bilinçli olarak KALDIRILDI
+                (Esma'nın isteği): backend'de "öne çıkarma" kavramı yok,
+                alan hiç dolmuyordu ve kutu işaretlenince liste her zaman
+                boşalıyordu. Ürüne öne çıkarma eklenirse bu commit'in git
+                geçmişinden üç parça geri gelir: featured alanı, süzgeç
+                koşulu ve karttaki rozet. */}
           </div>
 
           <div className="filter-drawer__footer">

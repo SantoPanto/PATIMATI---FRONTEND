@@ -141,3 +141,34 @@ describe('PetDetailPage — "Mesaj Gönder"', () => {
     expect(hedefler).toContain('/chat/7?adId=74')
   })
 })
+
+/**
+ * DESEN hücresi metni (22.08, 390px turu).
+ *
+ * <p><b>Ölçülen kusur:</b> hücre 390px'te 111px; "Desen belirtilmemiş"
+ * 136px istiyor ve truncate "Desen belirtil…" diye kesiyordu. Hücrenin
+ * başlığı zaten "DESEN" — değerde kelimeyi tekrarlamak hem gereksizdi hem
+ * sığmıyordu. Değer "Belirtilmemiş" oldu (CİNSİYET hücresiyle tutarlı),
+ * truncate kaldırıldı (uzun değer diğer hücreler gibi sarar, kesilmez).
+ */
+describe('PetDetailPage — DESEN hücresi', () => {
+  it('bilinmeyen desende "Belirtilmemiş" yazar, eski uzun metin donmez', async () => {
+    render(<PetDetailPage />)
+
+    // Nişan hücrenin KENDİSİ: sayfada başka "Belirtilmemiş" de var
+    // (CİNSİYET aynı fixture'da UNKNOWN) — genel metin araması ya çoklu
+    // eşleşmeyle patlar ya da yanlış hücreden sahte yeşil verir.
+    const desenHucresi = (await screen.findByText('DESEN')).parentElement!
+    expect(desenHucresi.textContent).toContain('Belirtilmemiş')
+    expect(desenHucresi.textContent).not.toContain('Desen belirtil')
+    expect(screen.queryByText(/Desen belirtil/)).toBeNull()
+  })
+
+  it('dolu desen dogru etikete cevrilir (pozitif kontrol)', async () => {
+    ilanGetir.mockResolvedValue({ ...ILAN, coatPattern: 'TORTOISESHELL' })
+
+    render(<PetDetailPage />)
+
+    expect(await screen.findByText('Kaplumbağa Kabuğu')).toBeTruthy()
+  })
+})

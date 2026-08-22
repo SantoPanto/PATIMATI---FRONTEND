@@ -353,7 +353,7 @@ export default function FoundPetCreatePage() {
      * Sehir/ilce metni koordinat yerine gecmez.
      */
     if (!form.latitude || !form.longitude) {
-      return '"Mevcut konumumu kullan" ile hayvanı bulduğunuz konumu ekleyin.';
+      return '"Mevcut konumumu kullan" düğmesiyle ya da enlem/boylam alanlarına elle girerek hayvanı bulduğunuz konumu ekleyin.';
     }
 
     if (!form.description.trim()) {
@@ -743,6 +743,50 @@ export default function FoundPetCreatePage() {
               ? "Konum alınıyor..."
               : "Mevcut konumumu kullan"}
           </button>
+        </div>
+
+        {/* B2: Hayvan başka yerde bulunup ilan sonra (ör. evde) açılabiliyor;
+            yalnız "mevcut konum" olsaydı ilan, bulunan yerin değil ilan açılan
+            yerin koordinatını taşırdı — 25 km'lik eşleştirme yarıçapı kayardı.
+            Kayıp formundaki elle giriş deseninin aynısı. */}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Enlem" required>
+            <input
+              type="number"
+              step="any"
+              min="-90"
+              max="90"
+              required
+              value={form.latitude}
+              onChange={(event) =>
+                updateForm(
+                  "latitude",
+                  event.target.value,
+                )
+              }
+              placeholder="40.195000"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Boylam" required>
+            <input
+              type="number"
+              step="any"
+              min="-180"
+              max="180"
+              required
+              value={form.longitude}
+              onChange={(event) =>
+                updateForm(
+                  "longitude",
+                  event.target.value,
+                )
+              }
+              placeholder="29.060000"
+              className={inputClass}
+            />
+          </Field>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">

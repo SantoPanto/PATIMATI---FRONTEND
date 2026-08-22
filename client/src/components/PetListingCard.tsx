@@ -2,7 +2,13 @@ import { Link } from "wouter";
 import { ChevronRight, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
 import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
-import { getAdLocation } from "../utils/adPresentation";
+import {
+  getAdLocation,
+  getAgeLabel,
+  getBreedLabel,
+  getGenderLabel,
+  getSpeciesLabel,
+} from "../utils/adPresentation";
 
 function getListingStatus(adType: AdType): string {
   switch (adType) {
@@ -30,44 +36,10 @@ function getListingStatusClass(adType: AdType): string {
   }
 }
 
-function getSpeciesLabel(species: AdResponse["species"]): string {
-  switch (species) {
-    case "CAT":
-      return "Kedi";
-    case "DOG":
-      return "Köpek";
-    default:
-      return species;
-  }
-}
-
-function getGenderLabel(gender: AdResponse["gender"]): string {
-  switch (gender) {
-    case "MALE":
-      return "Erkek";
-    case "FEMALE":
-      return "Dişi";
-    case "UNKNOWN":
-      return "Bilinmiyor";
-    default:
-      return gender;
-  }
-}
-
-function getAgeGroupLabel(ageGroup: AdResponse["ageGroup"]): string {
-  switch (ageGroup) {
-    case "BABY":
-      return "Yavru";
-    case "YOUNG":
-      return "Genç";
-    case "ADULT":
-      return "Yetişkin";
-    case "SENIOR":
-      return "Yaşlı";
-    default:
-      return ageGroup;
-  }
-}
+/* Tür / cinsiyet / yaş / cins etiketleri utils/adPresentation'dan gelir.
+   Buradaki yerel kopyalar UNKNOWN değerlerde ham enum sızdırıyordu
+   (kartta "Bilinmiyor UNKNOWN" ve "Kedi MIXED_OR_UNKNOWN" görünüyordu —
+   ölçüldü, 22.08 canlı 390px turu). */
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -114,8 +86,8 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
 
   const subtitle = [
     getSpeciesLabel(ad.species),
-    ad.breed?.trim() || "Cins belirtilmemiş",
-  ].join(" ");
+    getBreedLabel(ad.breed),
+  ].join(" · ");
 
   return (
     <article className="pet-listing-card relative">
@@ -180,7 +152,7 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
 
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B]">
           <span>{getGenderLabel(ad.gender)}</span>
-          <span>{getAgeGroupLabel(ad.ageGroup)}</span>
+          <span>{getAgeLabel(ad.ageGroup)}</span>
         </div>
 
         <div className="mt-4 flex gap-2">

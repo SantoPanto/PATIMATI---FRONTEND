@@ -90,7 +90,7 @@ function MyMatchesContent() {
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600">
                 <Sparkles size={14} />
-                YAPAY ZEKA EŞLEŞTİRME SYSTEMİ
+                YAPAY ZEKA EŞLEŞTİRME SİSTEMİ
               </div>
 
               <h1 className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl">
@@ -130,7 +130,7 @@ function MyMatchesContent() {
                 onClick={() => setFilter("all")}
                 className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                   filter === "all"
-                    ? "bg-slate-900 text-white"
+                    ? "bg-orange-500 text-white"
                     : "bg-white text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -164,7 +164,7 @@ function MyMatchesContent() {
 
             <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
               <Filter size={14} />
-              <span>Otomatik sıralama En yüksek skor</span>
+              <span>Otomatik sıralama: En yüksek skor</span>
             </div>
           </div>
 

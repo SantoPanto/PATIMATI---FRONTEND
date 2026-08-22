@@ -11,6 +11,7 @@ import PetDetailPage from "./pages/PetDetailPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import AiMatchPage from "./pages/AiMatchPage";
@@ -38,6 +39,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
 import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
+import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
 
 function ProtectedAddListingPage() {
@@ -134,6 +136,10 @@ function GuestForgotPasswordPage() {
   return <RequireGuest component={ForgotPasswordPage} />;
 }
 
+function GuestResetPasswordPage() {
+  return <RequireGuest component={ResetPasswordPage} />;
+}
+
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
@@ -151,6 +157,11 @@ function App() {
         <Route
           path="/forgot-password"
           component={GuestForgotPasswordPage}
+        />
+
+        <Route
+          path="/reset-password"
+          component={GuestResetPasswordPage}
         />
 
         <Route
@@ -236,6 +247,7 @@ function App() {
         {/* 404 */}
         <Route component={NotFound} />
       </Switch>
+      <BottomNav />
     </ErrorBoundary>
   );
 }

@@ -498,7 +498,7 @@ function ProfileContent() {
                 </h2>
 
                 <p className="mt-1 break-all text-sm leading-5 text-[#64748B]">
-                  {user?.email || "E posta belirtilmemiş"}
+                  {user?.email || "E-posta belirtilmemiş"}
                 </p>
 
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -614,7 +614,7 @@ function ProfileContent() {
                   />
 
                   <ProfileInput
-                    label="E posta"
+                    label="E-posta"
                     type="email"
                     value={form.email}
                     onChange={(value) => updateField("email", value)}
@@ -635,7 +635,7 @@ function ProfileContent() {
                       label="Şehir"
                       value={form.city}
                       onChange={(value) => updateField("city", value)}
-                      placeholder="Örn Kocaeli"
+                      placeholder="Örn. Kocaeli"
                       autoComplete="address-level2"
                     />
 
@@ -712,7 +712,7 @@ function ProfileContent() {
 
                   <InfoItem
                     icon={<Mail size={20} />}
-                    label="E posta"
+                    label="E-posta"
                     value={user?.email || "Belirtilmemiş"}
                   />
 
