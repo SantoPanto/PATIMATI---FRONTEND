@@ -622,8 +622,16 @@ export default function RegisterPage() {
                 />
 
                 <span>
-                  Kullanım koşullarını ve gizlilik
-                  politikasını kabul ediyorum
+                  Kullanım koşullarını ve{" "}
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-orange-600 underline underline-offset-2 hover:text-orange-700"
+                  >
+                    gizlilik politikasını
+                  </a>{" "}
+                  kabul ediyorum
                 </span>
               </label>
 
