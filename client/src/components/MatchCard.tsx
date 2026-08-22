@@ -194,7 +194,7 @@ export default function MatchCard({ match }: MatchCardProps) {
           {adId && (
             <Link
               href={`/pet/${adId}`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-orange-600"
             >
               İlanı İncele
               <ExternalLink size={13} />

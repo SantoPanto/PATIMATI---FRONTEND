@@ -252,7 +252,7 @@ export default function MyListingsPage() {
                   <div className="mt-5 grid grid-cols-[1fr_auto_auto] gap-2 border-t border-slate-100 pt-4">
                     <Link
                       href={getAdDetailPath(ad)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-600"
                     >
                       <Eye size={17} />
                       Görüntüle
