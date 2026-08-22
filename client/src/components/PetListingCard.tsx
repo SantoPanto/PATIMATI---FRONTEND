@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ChevronRight, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
 import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
+import { getAdLocation } from "../utils/adPresentation";
 
 function getListingStatus(adType: AdType): string {
   switch (adType) {
@@ -82,16 +83,9 @@ function formatDate(dateString: string): string {
   }).format(date);
 }
 
-function getLocationLabel(ad: AdResponse): string {
-  if (
-    typeof ad.latitude === "number" &&
-    typeof ad.longitude === "number"
-  ) {
-    return `${ad.latitude.toFixed(4)}, ${ad.longitude.toFixed(4)}`;
-  }
-
-  return "Konum belirtilmemiş";
-}
+/* Konum etiketi utils/adPresentation.getAdLocation'dan gelir (il/ilçe
+   öncelikli, BE V19). Buradaki yerel kopya yalnız ham koordinat
+   basabiliyordu ve iki kaynak zamanla ayrışırdı. */
 
 export function getPrimaryImage(ad: AdResponse): string | null {
   if (!Array.isArray(ad.photoUrls) || ad.photoUrls.length === 0) {
@@ -181,7 +175,7 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
 
         <div className="pet-listing-card__location">
           <MapPin size={17} />
-          <span className="truncate">{getLocationLabel(ad)}</span>
+          <span className="truncate">{getAdLocation(ad)}</span>
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B]">
