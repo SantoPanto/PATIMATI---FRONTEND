@@ -156,6 +156,24 @@ export type AiStatus =
   | "REJECTED"
   | "NOT_APPLICABLE";
 
+export type AiAnalysis = {
+  embedding?: number[];
+  labels?: string[];
+  species?: string;
+  species_confidence?: number;
+  is_pet?: boolean;
+  breed?: string | null;
+  breed_confidence?: number;
+  pattern?: string | null;
+  colors?: Array<{
+    r: number;
+    g: number;
+    b: number;
+    score: number;
+  }>;
+  model_version?: string;
+};
+
 export type AdCreateRequest = {
   title: string;
   description: string;
@@ -177,6 +195,7 @@ export type AdCreateRequest = {
   distinctiveMarks?: string;
   latitude: number;
   longitude: number;
+  isMatchRequired?: boolean;
 };
 
 export type AdUpdateRequest = Partial<AdCreateRequest>;
@@ -278,6 +297,7 @@ export type AdoptionAdCreateRequest = {
   microchipNumber?: string | null;
   latitude: number;
   longitude: number;
+  isMatchRequired?: boolean;
 };
 
 export type AdoptionAdUpdateRequest = Partial<AdoptionAdCreateRequest>;

@@ -15,14 +15,15 @@ import {
   MapPin,
   PawPrint,
   Send,
-  Sparkles,
   Upload,
   X,
 } from "lucide-react";
 
 import CreateAdLayout from "../components/CreateAdLayout";
-import MatchedAdCard from "../components/MatchedAdCard";
+import AiAutofillCard from "../components/AiAutofillCard";
+import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
+import { matchImage } from "../services/ai";
 import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
@@ -625,27 +626,24 @@ export default function AddListingPage() {
           "AI analizi tamamlandı. Olası eşleşmeler aranıyor...",
         );
 
-        // Fetch matches concurrently
-        try {
-          const formData = new FormData();
-          formData.append("listingType", adType);
-          images.forEach((img) => formData.append("images", img.file));
+        // Fetch matches only for Lost & Found listings
+        if (adType !== "ADOPTION") {
+          try {
+            const matchesData = await matchImage(
+              adType,
+              images.map((img) => img.file),
+            );
 
-          const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
-            method: "POST",
-            body: formData,
-            requiresAuth: true,
-          });
-
-          if (matchesData && matchesData.length > 0) {
-            setMatches(matchesData);
-            setShowMatchModal(true);
+            if (matchesData && matchesData.length > 0) {
+              setMatches(matchesData);
+              setShowMatchModal(true);
+            }
+          } catch (matchError) {
+            console.error("Eşleştirme hatası:", matchError);
+          } finally {
+            setIsAnalyzing(false);
+            setAnalysisMessage("");
           }
-        } catch (matchError) {
-          console.error("Eşleştirme hatası:", matchError);
-        } finally {
-          setIsAnalyzing(false);
-          setAnalysisMessage("");
         }
       }
     } catch (error) {
@@ -783,6 +781,8 @@ export default function AddListingPage() {
         latitude: Number(latitude),
 
         longitude: Number(longitude),
+
+        isMatchRequired: adType !== "ADOPTION",
       };
 
       /*
@@ -1049,54 +1049,12 @@ export default function AddListingPage() {
             </div>
 
             {images.length > 0 && (
-              <div className="mt-5 rounded-2xl bg-[#7c5cff]/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Sparkles
-                    size={20}
-                    className="mt-0.5 shrink-0 text-[#7c5cff]"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-800">
-                      AI ile otomatik doldur
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      İlk fotoğrafınız analiz edilir ve
-                      tür, cins, renk ve desen gibi bilgiler
-                      forma otomatik aktarılır.
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={
-                        runAiAnalysis
-                      }
-                      disabled={
-                        disabled
-                      }
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6d4ff0] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2
-                            size={17}
-                            className="animate-spin"
-                          />
-                          AI analiz ediyor...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles
-                            size={17}
-                          />
-                          Fotoğrafı Analiz Et
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <AiAutofillCard
+                onAnalyze={runAiAnalysis}
+                isAnalyzing={isAnalyzing}
+                disabled={disabled}
+                analysisMessage={analysisMessage}
+              />
             )}
 
             {analysisMessage && (
@@ -1900,50 +1858,11 @@ export default function AddListingPage() {
           </button>
         </form>
 
-        {/* AI Match Modal */}
-        {showMatchModal && matches.length > 0 && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6">
-                <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
-                  <Sparkles className="text-[#F97316]" size={24} />
-                  Olası Eşleşmeler Bulundu!
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setShowMatchModal(false)}
-                  className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <p className="text-[#64748B] mb-6">
-                İlanını oluşturmadan önce, sistemimizde fotoğrafı yüklediğin hayvana benzeyen bazı ilanlar bulduk. Lütfen bunları incele:
-              </p>
-
-              <div className="grid gap-4">
-                {matches.map((match, idx) => (
-                  <MatchedAdCard
-                    key={match.ad?.id || idx}
-                    match={match}
-                    variant="modal"
-                  />
-                ))}
-              </div>
-              
-              <div className="mt-8 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowMatchModal(false)}
-                  className="rounded-xl bg-[#0F172A] px-6 py-3 font-bold text-white transition hover:bg-[#334155]"
-                >
-                  İlan Oluşturmaya Devam Et
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <AiMatchModal
+          isOpen={showMatchModal}
+          onClose={() => setShowMatchModal(false)}
+          matches={matches}
+        />
     </CreateAdLayout>
   );
 }

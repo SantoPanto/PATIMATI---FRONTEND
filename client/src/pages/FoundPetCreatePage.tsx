@@ -18,8 +18,11 @@ import {
 } from "lucide-react";
 
 import CreateAdLayout from "../components/CreateAdLayout";
+import AiAutofillCard from "../components/AiAutofillCard";
+import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
-import type { PetColor } from "../services/types";
+import { analyzeImage, extractFeaturesFromAiAnalysis, matchImage } from "../services/ai";
+import type { MatchedAdResponseDTO, PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
@@ -100,6 +103,11 @@ export default function FoundPetCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocationLoading, setIsLocationLoading] =
     useState(false);
+
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState("");
+  const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
+  const [showMatchModal, setShowMatchModal] = useState(false);
 
   const [form, setForm] = useState({
     species: "",
@@ -243,6 +251,81 @@ export default function FoundPetCreatePage() {
     });
 
     setErrorMessage("");
+  };
+
+  const runAiAnalysis = async () => {
+    if (images.length === 0) {
+      setErrorMessage("AI analizi için önce en az bir fotoğraf yükleyin.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setAnalysisMessage("Fotoğraf AI tarafından analiz ediliyor...");
+
+    try {
+      const analysis = await analyzeImage(images[0].file);
+
+      if (analysis.is_pet === false) {
+        setAnalysisMessage(
+          "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
+        );
+      } else {
+        const extracted = extractFeaturesFromAiAnalysis(analysis);
+        if (extracted.species) updateForm("species", extracted.species);
+        if (extracted.breed) updateForm("breed", extracted.breed);
+        if (extracted.colors && extracted.colors.length > 0) {
+          const colorLabels: Record<string, string> = {
+            BLACK: "Siyah",
+            WHITE: "Beyaz",
+            GRAY: "Gri",
+            BROWN: "Kahverengi",
+            ORANGE: "Turuncu",
+            CREAM: "Krem",
+            GOLDEN: "Altın",
+            BEIGE: "Bej",
+            OTHER: "Diğer",
+          };
+          const colorText = extracted.colors
+            .map((c) => colorLabels[c] || c)
+            .join(", ");
+          updateForm("color", colorText);
+        }
+        if (extracted.collarStatus) {
+          updateForm("collarStatus", extracted.collarStatus);
+        }
+
+        setAnalysisMessage(
+          "AI analizi tamamlandı. Olası eşleşmeler aranıyor...",
+        );
+
+        // Instant match check for FOUND
+        try {
+          const matchesData = await matchImage(
+            "FOUND",
+            images.map((img) => img.file),
+          );
+
+          if (matchesData && matchesData.length > 0) {
+            setMatches(matchesData);
+            setShowMatchModal(true);
+          }
+        } catch (matchError) {
+          console.error("Eşleştirme hatası:", matchError);
+        } finally {
+          setIsAnalyzing(false);
+          setAnalysisMessage("");
+        }
+      }
+    } catch (error) {
+      console.error("AI analiz hatası:", error);
+      setAnalysisMessage("");
+      setErrorMessage(
+        getUserErrorMessage(error, "AI analizi sırasında hata oluştu."),
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleUseCurrentLocation = () => {
@@ -439,6 +522,7 @@ export default function FoundPetCreatePage() {
         .join(" · "),
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
+      isMatchRequired: true,
     };
 
     /*
@@ -609,6 +693,13 @@ export default function FoundPetCreatePage() {
               {images.length}/{MAX_IMAGES} fotoğraf
               yüklendi.
             </p>
+
+            <AiAutofillCard
+              onAnalyze={runAiAnalysis}
+              isAnalyzing={isAnalyzing}
+              disabled={isSubmitting}
+              analysisMessage={analysisMessage}
+            />
           </>
         )}
       </FormCard>
@@ -958,6 +1049,11 @@ export default function FoundPetCreatePage() {
           </>
         )}
       </button>
+      <AiMatchModal
+        isOpen={showMatchModal}
+        onClose={() => setShowMatchModal(false)}
+        matches={matches}
+      />
     </CreateAdLayout>
   );
 }

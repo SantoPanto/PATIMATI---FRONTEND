@@ -2,7 +2,7 @@
 // `defineConfig` bilerek 'vite'ten degil 'vitest/config'ten aliniyor: ikisi ayni
 // yapilandirmayi uretir, ama yalniz bu ikincisi `test` alanini TANIR. 'vite'ten
 // alinirsa `test` bloguna tsc "boyle bir alan yok" der ve tip denetimi kirilir.
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 

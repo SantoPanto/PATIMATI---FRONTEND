@@ -16,7 +16,9 @@ import {
 } from "lucide-react";
 
 import CreateAdLayout from "../components/CreateAdLayout";
+import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
+import { analyzeImage, extractFeaturesFromAiAnalysis } from "../services/ai";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 
@@ -108,6 +110,8 @@ export default function AdoptionCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [dateError, setDateError] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -260,6 +264,60 @@ export default function AdoptionCreatePage() {
         (image) => image.id !== imageId,
       );
     });
+  };
+
+  const runAiAnalysis = async () => {
+    if (images.length === 0) {
+      setErrorMessage("AI analizi için önce en az bir fotoğraf yükleyin.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setAnalysisMessage("Fotoğraf AI tarafından analiz ediliyor...");
+
+    try {
+      const analysis = await analyzeImage(images[0].file);
+
+      if (analysis.is_pet === false) {
+        setAnalysisMessage(
+          "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
+        );
+      } else {
+        const extracted = extractFeaturesFromAiAnalysis(analysis);
+        if (extracted.species) updateForm("species", extracted.species);
+        if (extracted.breed) updateForm("breed", extracted.breed);
+        if (extracted.colors && extracted.colors.length > 0) {
+          const colorLabels: Record<string, string> = {
+            BLACK: "Siyah",
+            WHITE: "Beyaz",
+            GRAY: "Gri",
+            BROWN: "Kahverengi",
+            ORANGE: "Turuncu",
+            CREAM: "Krem",
+            GOLDEN: "Altın",
+            BEIGE: "Bej",
+            OTHER: "Diğer",
+          };
+          const colorText = extracted.colors
+            .map((c) => colorLabels[c] || c)
+            .join(", ");
+          updateForm("color", colorText);
+        }
+
+        setAnalysisMessage(
+          "AI analizi tamamlandı. Nitelikler forma aktarıldı.",
+        );
+      }
+    } catch (error) {
+      console.error("AI analiz hatası:", error);
+      setAnalysisMessage("");
+      setErrorMessage(
+        getUserErrorMessage(error, "AI analizi sırasında hata oluştu."),
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleUseLocation = () => {
@@ -443,6 +501,7 @@ export default function AdoptionCreatePage() {
       eyeColor: "UNKNOWN",
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
+      isMatchRequired: false,
     };
 
     /*
@@ -600,6 +659,13 @@ export default function AdoptionCreatePage() {
                     {images.length}/{MAX_IMAGES} fotoğraf
                     yüklendi.
                   </p>
+
+                  <AiAutofillCard
+                    onAnalyze={runAiAnalysis}
+                    isAnalyzing={isAnalyzing}
+                    disabled={isSubmitting}
+                    analysisMessage={analysisMessage}
+                  />
                 </>
               )}
             </FormCard>
