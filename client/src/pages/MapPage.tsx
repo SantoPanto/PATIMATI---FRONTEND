@@ -13,46 +13,30 @@ import "leaflet/dist/leaflet.css";
 import MainLayout from "../components/MainLayout";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getPublicAds } from "../services/ads";
-import type { AdResponse, AdType } from "../services/types";
+import type { AdResponse } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
+import {
+  getMarkerType,
+  haritaOdagi,
+  VARSAYILAN_MERKEZ,
+  type HaritaOdagi,
+} from "../utils/haritaSunum";
 
 type MapFilter = "ALL" | "LOST" | "FOUND";
 
-const BURSA_CENTER: [number, number] = [40.195, 29.06];
-
-function MapController({
-  center,
-}: {
-  center: [number, number];
-}) {
+function MapController({ odak }: { odak: HaritaOdagi }) {
   const map = useMap();
 
   useEffect(() => {
-    map.setView(center, 12);
-  }, [center, map]);
+    if (odak.tip === "sinir") {
+      map.fitBounds(odak.noktalar, { padding: [48, 48], maxZoom: 13 });
+      return;
+    }
+
+    map.setView(odak.nokta, odak.yakinlik);
+  }, [odak, map]);
 
   return null;
-}
-
-function getMarkerType(adType: AdType) {
-  if (adType === "LOST") {
-    return {
-      label: "Kayıp",
-      className: "lost",
-    };
-  }
-
-  if (adType === "FOUND") {
-    return {
-      label: "Bulunan",
-      className: "found",
-    };
-  }
-
-  return {
-    label: "Sahiplendirme",
-    className: "adoption",
-  };
 }
 
 function getSpeciesLabel(species: AdResponse["species"]) {
@@ -149,23 +133,27 @@ export default function MapPage() {
     [mappedAds],
   );
 
-  const center = useMemo<[number, number]>(() => {
-    if (selectedAd && selectedAd.latitude != null && selectedAd.longitude != null) {
-      return [
-        selectedAd.latitude,
-        selectedAd.longitude,
-      ];
-    }
+  const noktalar = useMemo<[number, number][]>(
+    () =>
+      adsWithCoordinates.map((ad) => [
+        ad.latitude as number,
+        ad.longitude as number,
+      ]),
+    [adsWithCoordinates],
+  );
 
-    if (adsWithCoordinates.length > 0 && adsWithCoordinates[0].latitude != null && adsWithCoordinates[0].longitude != null) {
-      return [
-        adsWithCoordinates[0].latitude,
-        adsWithCoordinates[0].longitude,
-      ];
-    }
-
-    return BURSA_CENTER;
-  }, [selectedAd, adsWithCoordinates]);
+  const odak = useMemo(
+    () =>
+      haritaOdagi(
+        selectedAd &&
+          selectedAd.latitude != null &&
+          selectedAd.longitude != null
+          ? [selectedAd.latitude, selectedAd.longitude]
+          : null,
+        noktalar,
+      ),
+    [selectedAd, noktalar],
+  );
 
   return (
     <MainLayout showFooter={true} className="map-page-layout">
@@ -279,12 +267,12 @@ export default function MapPage() {
       ) : (
         <section className="map-art">
           <MapContainer
-            center={center}
+            center={VARSAYILAN_MERKEZ}
             zoom={12}
             scrollWheelZoom
             className="real-map"
           >
-            <MapController center={center} />
+            <MapController odak={odak} />
 
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -309,6 +297,12 @@ export default function MapPage() {
                   }
                   pathOptions={{
                     className: `pet-map-marker pet-map-marker--${marker.className}`,
+                    // Renk className'e bırakılmaz: canlıda sınıf SVG path'e
+                    // ulaşmıyordu, 20 işaretçi de varsayılan maviydi (22.08).
+                    fillColor: marker.fillColor,
+                    fillOpacity: 0.9,
+                    color: "#ffffff",
+                    weight: 3,
                   }}
                   eventHandlers={{
                     click: () => {
@@ -356,6 +350,25 @@ export default function MapPage() {
               );
             })}
           </MapContainer>
+
+          <div className="map-legend">
+            <span>
+              <i className="lost" />
+              Kayıp
+            </span>
+
+            <span>
+              <i className="found" />
+              Bulunan
+            </span>
+
+            {filter === "ALL" && (
+              <span>
+                <i className="adoption" />
+                Sahiplendirme
+              </span>
+            )}
+          </div>
 
           {!loading &&
             adsWithCoordinates.length === 0 && (
