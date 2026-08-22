@@ -123,7 +123,10 @@ function formatPattern(pattern?: AdResponse["coatPattern"]): string {
   // degerlerin besi (UNKNOWN, STRIPED, PATCHED, CALICO, TORTOISESHELL) eksikti,
   // o ilanlarda kullaniciya ham kod ("TORTOISESHELL") gosteriliyordu.
   const patterns: Record<AdResponse["coatPattern"], string> = {
-    UNKNOWN: "Desen belirtilmemiş",
+    // Hücrenin başlığı zaten "DESEN"; değerde kelimeyi tekrarlamak hem
+    // gereksiz hem 390px'te hücreye sığmıyordu (ölçüldü: 136px > 111px,
+    // truncate "Desen belirtil…" kesiyordu). CİNSİYET hücresiyle tutarlı.
+    UNKNOWN: "Belirtilmemiş",
     SOLID: "Tek Renk",
     STRIPED: "Çizgili / Tekir",
     SPOTTED: "Benekli",
@@ -580,7 +583,9 @@ export default function PetDetailPage() {
                   <span className="block text-[11px] font-semibold text-slate-400">
                     DESEN
                   </span>
-                  <strong className="mt-1 block truncate text-sm font-bold text-slate-800">
+                  {/* truncate bilerek YOK: ızgaradaki diğer üç hücre gibi
+                      uzun değer ("Kaplumbağa Kabuğu") kesilmek yerine sarar. */}
+                  <strong className="mt-1 block text-sm font-bold text-slate-800">
                     {formatPattern(ad.coatPattern)}
                   </strong>
                 </div>
