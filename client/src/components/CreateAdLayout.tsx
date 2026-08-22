@@ -239,7 +239,7 @@ export default function CreateAdLayout({
               <div
                 role="tablist"
                 aria-label="İlan Türü Seçimi"
-                className="inline-flex items-center gap-1 rounded-2xl border border-[#E2E8F0] bg-white/90 p-1.5 shadow-sm backdrop-blur-xs"
+                className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-[#E2E8F0] bg-white/90 p-1.5 shadow-sm backdrop-blur-xs"
               >
                 {TABS.map((tab) => {
                   const isActive = tab.type === activeTabType;

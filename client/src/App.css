@@ -725,15 +725,15 @@ img {
 
 .listing-filters {
   display: flex;
-  overflow-x: auto;
+  /* Dar ekranda kutucuklar alta sarar. Eskiden overflow-x: auto +
+     gizli scrollbar vardı: 390px'te "Sahiplendirme" kesiliyordu ve
+     kaydırılabildiğine dair hiçbir ipucu yoktu (B-resp-1, gerçek
+     telefonda görüldü; kapsayıcı kırptığı için sayfa taşma ölçümü
+     yakalayamıyordu). */
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 30px;
   padding-bottom: 4px;
-  scrollbar-width: none;
-}
-
-.listing-filters::-webkit-scrollbar {
-  display: none;
 }
 
 .listing-filters button {
