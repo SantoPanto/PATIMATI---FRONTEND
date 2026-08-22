@@ -358,7 +358,7 @@ export default function AdoptionCreatePage() {
      * Sehir/ilce metni koordinat yerine gecmez.
      */
     if (!form.latitude || !form.longitude) {
-      return '"Mevcut konumumu kullan" ile ilanın konumunu ekleyin.';
+      return '"Mevcut konumumu kullan" düğmesiyle ya da enlem/boylam alanlarına elle girerek ilanın konumunu ekleyin.';
     }
 
     if (!form.title.trim()) {
@@ -814,6 +814,44 @@ export default function AdoptionCreatePage() {
                   <MapPin size={17} />
                   Mevcut konumumu kullan
                 </button>
+              </div>
+
+              {/* Konum izni kapalıyken form kilitleniyordu (22.08 saha
+                  bulgusu): koordinatın tek kaynağı GPS'ti, il/ilçe metni
+                  koordinat yerine geçmiyor. Kayıp ve bulundu formlarındaki
+                  elle giriş deseninin aynısı. */}
+              <div className="mb-5 grid gap-5 sm:grid-cols-2">
+                <Field label="Enlem" required>
+                  <input
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    required
+                    value={form.latitude}
+                    onChange={(e) =>
+                      updateForm("latitude", e.target.value)
+                    }
+                    placeholder="40.195000"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Boylam" required>
+                  <input
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    required
+                    value={form.longitude}
+                    onChange={(e) =>
+                      updateForm("longitude", e.target.value)
+                    }
+                    placeholder="29.060000"
+                    className={inputClass}
+                  />
+                </Field>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
