@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AdType } from "../services/types";
 import {
   getMarkerType,
+  haritadaGorunur,
   haritaOdagi,
   VARSAYILAN_MERKEZ,
 } from "./haritaSunum";
@@ -56,5 +57,46 @@ describe("haritaOdagi", () => {
       nokta: VARSAYILAN_MERKEZ,
       yakinlik: 12,
     });
+  });
+});
+
+/*
+ * 22.08 mobil taraması: sahiplendirme işaretçileri haritada çizilip lejantta
+ * yer aldığı hâlde süzgeçte Sahiplendirme SEÇENEĞİ yoktu. Bu blok, üç ilan
+ * tipinin de tek başına süzülebildiğini ve aramanın süzgeçle BİRLİKTE
+ * çalıştığını kilitler.
+ */
+describe("haritadaGorunur", () => {
+  const ilan = (
+    adType: AdType,
+    title = "",
+    breed = "",
+  ) => ({ adType, title, breed, species: "CAT" as const });
+
+  it("ALL her üç tipi de geçirir", () => {
+    const tipler: AdType[] = ["LOST", "FOUND", "ADOPTION"];
+
+    tipler.forEach((tip) => {
+      expect(haritadaGorunur(ilan(tip), "ALL", "")).toBe(true);
+    });
+  });
+
+  it("ADOPTION seçiliyken yalnız sahiplendirme kalır", () => {
+    expect(haritadaGorunur(ilan("ADOPTION"), "ADOPTION", "")).toBe(true);
+    expect(haritadaGorunur(ilan("LOST"), "ADOPTION", "")).toBe(false);
+    expect(haritadaGorunur(ilan("FOUND"), "ADOPTION", "")).toBe(false);
+  });
+
+  it("arama başlık, cins veya tür etiketi üzerinden — süzgeçle birlikte", () => {
+    const tekir = ilan("ADOPTION", "Sevimli dost", "Tekir");
+
+    // Cins eşleşiyor + tip uyuyor.
+    expect(haritadaGorunur(tekir, "ADOPTION", "tekir")).toBe(true);
+    // Tür etiketi ("Kedi") Türkçe küçük-büyük duyarsız eşleşir.
+    expect(haritadaGorunur(tekir, "ALL", "KEDİ")).toBe(true);
+    // Arama tutuyor ama tip uymuyor — süzgeç önce gelir.
+    expect(haritadaGorunur(tekir, "LOST", "tekir")).toBe(false);
+    // Hiçbir alan tutmuyor.
+    expect(haritadaGorunur(tekir, "ALL", "papağan")).toBe(false);
   });
 });
