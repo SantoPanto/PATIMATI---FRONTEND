@@ -1,4 +1,5 @@
-import type { AdType } from "../services/types";
+import type { AdResponse, AdType } from "../services/types";
+import { getSpeciesLabel } from "./adPresentation";
 
 /*
  * Harita işaretçi renkleri — styles/map.css'teki .pet-map-marker--* paletiyle
@@ -62,4 +63,35 @@ export function haritaOdagi(
   }
 
   return { tip: "varsayilan", nokta: VARSAYILAN_MERKEZ, yakinlik: 12 };
+}
+
+/*
+ * Harita süzgeci — sayfadaki çipler (Tümü/Kayıp/Bulunan/Sahiplendirme) ve
+ * arama kutusunun tek doğruluk kaynağı. Sahiplendirme işaretçileri haritada
+ * zaten çiziliyor ve lejantta yer alıyordu ama süzgeçte SEÇENEĞİ yoktu
+ * (22.08 mobil taraması) — tip "ALL" | AdType olduğu için yeni bir ilan tipi
+ * gelirse süzgeç davranışı çip unutulsa bile tanımlı kalır.
+ */
+export type HaritaFiltresi = "ALL" | AdType;
+
+export function haritadaGorunur(
+  ad: Pick<AdResponse, "adType" | "title" | "breed" | "species">,
+  filtre: HaritaFiltresi,
+  arama: string,
+): boolean {
+  if (filtre !== "ALL" && ad.adType !== filtre) {
+    return false;
+  }
+
+  const normalize = (deger: string) => deger.toLocaleLowerCase("tr-TR");
+  const aranan = normalize(arama.trim());
+  if (!aranan) {
+    return true;
+  }
+
+  return Boolean(
+    (ad.title && normalize(ad.title).includes(aranan)) ||
+      (ad.breed && normalize(ad.breed).includes(aranan)) ||
+      normalize(getSpeciesLabel(ad.species)).includes(aranan),
+  );
 }

@@ -17,12 +17,12 @@ import type { AdResponse } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 import {
   getMarkerType,
+  haritadaGorunur,
   haritaOdagi,
   VARSAYILAN_MERKEZ,
+  type HaritaFiltresi,
   type HaritaOdagi,
 } from "../utils/haritaSunum";
-
-type MapFilter = "ALL" | "LOST" | "FOUND";
 
 function MapController({ odak }: { odak: HaritaOdagi }) {
   const map = useMap();
@@ -45,7 +45,7 @@ function getSpeciesLabel(species: AdResponse["species"]) {
 
 export default function MapPage() {
   const [ads, setAds] = useState<AdResponse[]>([]);
-  const [filter, setFilter] = useState<MapFilter>("ALL");
+  const [filter, setFilter] = useState<HaritaFiltresi>("ALL");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,38 +90,12 @@ export default function MapPage() {
     };
   }, []);
 
-  const mappedAds = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase("tr-TR");
-
-    return ads.filter((ad) => {
-      /*
-       * Adoption ads can exist in the database, but the map's
-       * primary purpose is lost/found animals.
-       */
-      if (
-        filter !== "ALL" &&
-        ad.adType !== filter
-      ) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return (
-        ad.title
-          ?.toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        ad.breed
-          ?.toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        getSpeciesLabel(ad.species)
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch)
-      );
-    });
-  }, [ads, filter, search]);
+  // Süzgeç + arama kuralı utils/haritaSunum'da (saf, testli): sahiplendirme
+  // işaretçileri çizilip lejantta yer aldığı hâlde süzgeçte seçeneği yoktu.
+  const mappedAds = useMemo(
+    () => ads.filter((ad) => haritadaGorunur(ad, filter, search)),
+    [ads, filter, search],
+  );
 
   const adsWithCoordinates = useMemo(
     () =>
@@ -209,6 +183,17 @@ export default function MapPage() {
         >
           <MapPin size={16} />
           Bulunan
+        </button>
+
+        <button
+          type="button"
+          className={`map-filter-chip ${
+            filter === "ADOPTION" ? "active" : ""
+          }`}
+          onClick={() => setFilter("ADOPTION")}
+        >
+          <MapPin size={16} />
+          Sahiplendirme
         </button>
       </section>
 
