@@ -1,0 +1,19 @@
+# patimati.me — arama motoru yönergeleri
+# Genel sayfalar taranabilir; oturum gerektiren ve kişisel alanlar tarama
+# dışıdır (mahremiyet + tarama bütçesi).
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /settings
+Disallow: /chat
+Disallow: /notifications
+Disallow: /favorites
+Disallow: /my-matches
+Disallow: /oauth-redirect
+Disallow: /reset-password
+Disallow: /change-password
+Disallow: /unauthorized
+
+Sitemap: https://patimati.me/sitemap.xml
