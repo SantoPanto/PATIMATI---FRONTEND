@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import CreateAdLayout from "../components/CreateAdLayout";
+import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import type { PetColor } from "../services/types";
@@ -44,6 +45,37 @@ const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   diğer: "OTHER",
   diger: "OTHER",
   other: "OTHER",
+};
+
+const COLOR_LABELS: Record<PetColor, string> = {
+  BLACK: "Siyah",
+  WHITE: "Beyaz",
+  GRAY: "Gri",
+  BROWN: "Kahverengi",
+  ORANGE: "Turuncu",
+  CREAM: "Krem",
+  GOLDEN: "Altın",
+  BEIGE: "Bej",
+  OTHER: "Diğer",
+};
+
+const AI_COLOR_MAP: Record<string, PetColor> = {
+  black: "BLACK",
+  white: "WHITE",
+  gray: "GRAY",
+  grey: "GRAY",
+  brown: "BROWN",
+  orange: "ORANGE",
+  cream: "CREAM",
+  golden: "GOLDEN",
+  beige: "BEIGE",
+};
+
+type AiAnalysis = {
+  species?: string;
+  is_pet?: boolean;
+  breed?: string | null;
+  labels?: string[];
 };
 
 function parseColorsFromText(text: string): PetColor[] {
@@ -109,6 +141,67 @@ export default function AdoptionCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [dateError, setDateError] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState("");
+
+  const runAiAnalysis = async () => {
+    if (images.length === 0) {
+      setErrorMessage("AI analizi için önce en az bir fotoğraf yükleyin.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setAnalysisMessage("Fotoğraf AI tarafından analiz ediliyor...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", images[0].file);
+
+      const analysis = await request<AiAnalysis>("/api/ai/analyze", {
+        method: "POST",
+        body: formData,
+        requiresAuth: true,
+      });
+
+      if (analysis.is_pet === false) {
+        setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
+      } else {
+        if (analysis.species === "cat" || analysis.species === "CAT") {
+          updateForm("species", "CAT");
+        } else if (analysis.species === "dog" || analysis.species === "DOG") {
+          updateForm("species", "DOG");
+        }
+
+        if (analysis.breed && analysis.breed.trim()) {
+          updateForm("breed", analysis.breed.trim());
+        }
+
+        const etiketten = (onek: string) =>
+          (analysis.labels ?? [])
+            .filter((e) => e.startsWith(onek))
+            .map((e) => e.slice(onek.length).toLowerCase());
+
+        const detectedColors = etiketten("soft:color_")
+          .map((ad) => AI_COLOR_MAP[ad])
+          .filter((c): c is PetColor => Boolean(c));
+
+        if (detectedColors.length > 0) {
+          const uniqueColors = [...new Set(detectedColors)];
+          const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
+          updateForm("color", colorNames);
+        }
+
+        setAnalysisMessage("AI analizi tamamlandı. Bilgiler forma aktarıldı.");
+      }
+    } catch (err) {
+      console.error("AI analiz hatası:", err);
+      setAnalysisMessage("");
+      setErrorMessage(getUserErrorMessage(err, "AI analizi sırasında hata oluştu."));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -477,6 +570,7 @@ export default function AdoptionCreatePage() {
        */
       city: form.city.trim() || undefined,
       district: form.district.trim() || undefined,
+      isMatchRequired: false,
     };
 
     /*
@@ -636,6 +730,15 @@ export default function AdoptionCreatePage() {
                   </p>
                 </>
               )}
+
+              <AiAutofillCard
+                onAnalyze={runAiAnalysis}
+                isAnalyzing={isAnalyzing}
+                disabled={isSubmitting}
+                analysisMessage={analysisMessage}
+                hasImages={images.length > 0}
+                variant="adoption"
+              />
             </FormCard>
 
             <FormCard

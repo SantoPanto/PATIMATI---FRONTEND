@@ -177,6 +177,7 @@ export type AdCreateRequest = {
   distinctiveMarks?: string;
   latitude: number;
   longitude: number;
+  isMatchRequired?: boolean;
 };
 
 export type AdUpdateRequest = Partial<AdCreateRequest>;
@@ -278,6 +279,7 @@ export type AdoptionAdCreateRequest = {
   microchipNumber?: string | null;
   latitude: number;
   longitude: number;
+  isMatchRequired?: boolean;
 };
 
 export type AdoptionAdUpdateRequest = Partial<AdoptionAdCreateRequest>;
