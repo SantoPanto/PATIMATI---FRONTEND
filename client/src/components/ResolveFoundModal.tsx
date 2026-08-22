@@ -311,7 +311,7 @@ export default function ResolveFoundModal({
                     {eslesme.partnerAd?.photoUrl && (
                       <img
                         src={getImageUrl(eslesme.partnerAd.photoUrl)}
-                        alt=""
+                        alt={baslik}
                         className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 object-cover"
                       />
                     )}
