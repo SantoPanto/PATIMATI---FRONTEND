@@ -29,12 +29,26 @@ export default function ListingsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
   const [ads, setAds] = useState<AdResponse[]>([]);
 
+  // Kutudaki anlık metin ile sunucuya giden terim ayrı tutuluyor: istek
+  // her tuşta değil, yazma durunca (ya da Enter'da) gitsin diye.
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const zamanlayici = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, 350);
+
+    return () => window.clearTimeout(zamanlayici);
+  }, [searchInput]);
 
   const loadAds = useCallback(async () => {
     setIsLoading(true);
@@ -44,6 +58,7 @@ export default function ListingsPage() {
       const response = await getPublicAds({
         page,
         size: PAGE_SIZE,
+        ...(search.length > 0 ? { search } : {}),
         ...(activeFilter !== "ALL"
           ? { adType: activeFilter }
           : {}),
@@ -68,7 +83,7 @@ export default function ListingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeFilter, page]);
+  }, [activeFilter, page, search]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- filtre/sayfa degistiginde sunucudan veri cekmek (dis sistemle senkronizasyon), loadAds kendi ici setIsLoading/setError cagirir
@@ -81,6 +96,19 @@ export default function ListingsPage() {
     }
 
     setActiveFilter(filter);
+    setPage(0);
+  };
+
+  // Enter, bekletmeyi (debounce) beklemeden aramayı hemen gönderir — ana
+  // sayfadaki kutuda "Enter hiçbir şey yapmıyor" şikâyetinin (B5) dersi.
+  const flushSearch = () => {
+    setSearch(searchInput.trim());
+    setPage(0);
+  };
+
+  const clearSearch = () => {
+    setSearchInput("");
+    setSearch("");
     setPage(0);
   };
 
@@ -135,6 +163,27 @@ export default function ListingsPage() {
               </button>
             ))}
           </div>
+
+          <div className="relative mx-auto mt-6 max-w-xl">
+            <Search
+              size={18}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+            />
+
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  flushSearch();
+                }
+              }}
+              placeholder="Başlık, ırk veya açıklamada ara"
+              aria-label="İlanlarda ara"
+              className="w-full rounded-xl border border-[#E2E8F0] bg-white py-3 pl-11 pr-4 text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316]"
+            />
+          </div>
         </section>
 
         <section className="listings-section">
@@ -144,7 +193,9 @@ export default function ListingsPage() {
                 <strong className="text-[#0F172A]">
                   {isLoading
                     ? "İlanlar yükleniyor"
-                    : `${totalElements} ilan`}
+                    : search.length > 0
+                      ? `"${search}" için ${totalElements} ilan`
+                      : `${totalElements} ilan`}
                 </strong>
 
                 {!isLoading && totalPages > 0 && (
@@ -203,6 +254,23 @@ export default function ListingsPage() {
                 {ads.map((ad) => (
                   <PetListingCard key={ad.id} ad={ad} />
                 ))}
+              </div>
+            ) : search.length > 0 ? (
+              <div className="empty-listings">
+                <span>
+                  <Search size={28} />
+                </span>
+
+                <h3>Aramana uyan ilan bulunamadı</h3>
+
+                <p>
+                  {`"${search}" başlık, ırk ya da açıklamasında geçen
+                  aktif bir ilan yok Farklı bir kelime deneyebilirsin`}
+                </p>
+
+                <button type="button" onClick={clearSearch}>
+                  Aramayı temizle
+                </button>
               </div>
             ) : (
               <div className="empty-listings">
