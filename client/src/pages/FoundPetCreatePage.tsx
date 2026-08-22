@@ -21,6 +21,7 @@ import CreateAdLayout from "../components/CreateAdLayout";
 import { request } from "../services/api";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+import { ilIlcedenKoordinat } from "../utils/geokod";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   siyah: "BLACK",
@@ -327,24 +328,26 @@ export default function FoundPetCreatePage() {
     );
   };
 
-  const validateForm = () => {
+  /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
+     zenginleşmiş kopya doğrulanabilsin diye (state henüz eskiyken). */
+  const validateForm = (f: typeof form = form) => {
     if (images.length < MIN_IMAGES) {
       return "En az 1 fotoğraf yüklemelisiniz.";
     }
 
-    if (!form.species) {
+    if (!f.species) {
       return "Hayvan türünü seçin.";
     }
 
-    if (!form.foundDate) {
+    if (!f.foundDate) {
       return "Hayvanı bulduğunuz tarihi seçin.";
     }
 
-    if (!form.city.trim()) {
+    if (!f.city.trim()) {
       return "Şehir bilgisini girin.";
     }
 
-    if (!form.district.trim()) {
+    if (!f.district.trim()) {
       return "İlçe bilgisini girin.";
     }
 
@@ -352,15 +355,15 @@ export default function FoundPetCreatePage() {
      * Backend konumu zorunlu tutuyor ve eslestirme mesafeye bakiyor.
      * Sehir/ilce metni koordinat yerine gecmez.
      */
-    if (!form.latitude || !form.longitude) {
+    if (!f.latitude || !f.longitude) {
       return '"Mevcut konumumu kullan" düğmesiyle ya da enlem/boylam alanlarına elle girerek hayvanı bulduğunuz konumu ekleyin.';
     }
 
-    if (!form.description.trim()) {
+    if (!f.description.trim()) {
       return "Hayvan hakkında kısa bir açıklama girin.";
     }
 
-    if (!form.acceptResponsibility) {
+    if (!f.acceptResponsibility) {
       return "İlan bilgilerinin doğru olduğunu onaylamalısınız.";
     }
 
@@ -370,7 +373,30 @@ export default function FoundPetCreatePage() {
   const handleSubmit = async () => {
     setErrorMessage("");
 
-    const validationError = validateForm();
+    /*
+     * Koordinat boş ama il/ilçe beyanı varsa ilçe merkezinden yaklaşık
+     * doldur (22.08 saha bulgusu sınıfı: konum izni vermeyen kullanıcı
+     * kilitlenmesin). GPS ve elle giriş her zaman önceliklidir — yalnız
+     * ikisi de boşken devreye girer; başarısız olursa mevcut doğrulama
+     * mesajı yolları gösterir.
+     */
+    let gonderilecek = form;
+
+    if ((!form.latitude || !form.longitude) && form.city.trim()) {
+      const tahmin = await ilIlcedenKoordinat(form.city, form.district);
+
+      if (tahmin) {
+        gonderilecek = {
+          ...form,
+          latitude: String(tahmin.latitude),
+          longitude: String(tahmin.longitude),
+        };
+        updateForm("latitude", gonderilecek.latitude);
+        updateForm("longitude", gonderilecek.longitude);
+      }
+    }
+
+    const validationError = validateForm(gonderilecek);
 
     if (validationError) {
       setErrorMessage(validationError);
@@ -437,8 +463,8 @@ export default function FoundPetCreatePage() {
       ]
         .filter(Boolean)
         .join(" · "),
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
+      latitude: Number(gonderilecek.latitude),
+      longitude: Number(gonderilecek.longitude),
       /*
        * İl/ilçe beyanı (BE V19): form zaten soruyor; yapılandırılmış alan
        * olarak da gider ki kartlar ham koordinat yerine bunu gösterebilsin.
