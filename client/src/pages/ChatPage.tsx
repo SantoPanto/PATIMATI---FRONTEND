@@ -120,11 +120,14 @@ export default function ChatPage() {
   // 3. WebSocket incoming message handler
   const handleIncomingMessage = useCallback(
     (incomingMessage: MessageResponse) => {
-      const senderId = incomingMessage.senderId;
-      const recipientId = incomingMessage.recipientId;
-      const otherId = senderId === currentUserId ? recipientId : senderId;
+      const senderId = Number(incomingMessage.senderId);
+      const recipientId = Number(incomingMessage.recipientId);
+      const currentId = Number(currentUserId);
+      const activeId = activeUserId ? Number(activeUserId) : null;
+
+      const otherId = senderId === currentId ? recipientId : senderId;
       const otherName =
-        senderId === currentUserId
+        senderId === currentId
           ? incomingMessage.recipientName
           : incomingMessage.senderName;
 
@@ -136,17 +139,17 @@ export default function ChatPage() {
         incomingMessage.timestamp,
       );
 
-      // If incoming message belongs to active chat, append to messages
-      if (activeUserId && (senderId === activeUserId || recipientId === activeUserId)) {
+      // If incoming message belongs to active chat, append to messages state
+      if (activeId && (senderId === activeId || recipientId === activeId)) {
         setMessages((prev) => {
-          // If exact ID exists, ignore
-          if (prev.some((m) => m.id === incomingMessage.id)) return prev;
+          // If exact ID exists, ignore duplicate
+          if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) return prev;
 
           // Replace matching optimistic message if present
           const optIndex = prev.findIndex(
             (m) =>
-              m.senderId === incomingMessage.senderId &&
-              m.recipientId === incomingMessage.recipientId &&
+              Number(m.senderId) === senderId &&
+              Number(m.recipientId) === recipientId &&
               m.content === incomingMessage.content,
           );
 
@@ -160,9 +163,13 @@ export default function ChatPage() {
         });
 
         // Mark as read if received from active partner
-        if (senderId === activeUserId && !incomingMessage.isRead) {
+        if (senderId === activeId && !incomingMessage.isRead) {
           void markMessageAsRead(incomingMessage.id).catch(console.error);
         }
+      } else if (senderId !== currentId) {
+        // Not active chat -> trigger toast notification for incoming message
+        setToastMessage(`${otherName}: ${incomingMessage.content}`);
+        setTimeout(() => setToastMessage(null), 4000);
       }
     },
     [activeUserId, currentUserId, upsertContact],
@@ -260,6 +267,7 @@ export default function ChatPage() {
   const scrollToBottom = useCallback((smooth = true) => {
     messagesEndRef.current?.scrollIntoView({
       behavior: smooth ? "smooth" : "auto",
+      block: "nearest",
     });
   }, []);
 
@@ -443,19 +451,19 @@ export default function ChatPage() {
     getStatusBadge();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       <Header />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-[600px] overflow-hidden flex flex-col md:flex-row">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col h-[calc(100vh-80px)] min-h-0 overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-0 h-full overflow-hidden flex flex-col md:flex-row">
           {/* Left Contacts / Rooms Sidebar */}
           <div
-            className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 ${
+            className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 min-h-0 h-full overflow-hidden ${
               activeUserId ? "hidden md:flex" : "flex"
             }`}
           >
             {/* Sidebar Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
               <div className="flex items-center gap-2.5">
                 <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                   <MessageSquare size={20} />
@@ -474,7 +482,7 @@ export default function ChatPage() {
             </div>
 
             {/* Contacts / Chat Rooms List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100/80">
+            <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-slate-100/80">
               {loadingRooms ? (
                 <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
                   <Loader2 size={20} className="animate-spin text-blue-600" />
@@ -536,14 +544,14 @@ export default function ChatPage() {
 
           {/* Right Active Chat Window */}
           <div
-            className={`flex-1 flex flex-col bg-white ${
+            className={`flex-1 flex flex-col bg-white min-h-0 h-full overflow-hidden ${
               !activeUserId ? "hidden md:flex" : "flex"
             }`}
           >
             {activeUserId ? (
               <>
                 {/* Active Chat Header */}
-                <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -588,7 +596,7 @@ export default function ChatPage() {
                 </div>
 
                 {/* Messages Body */}
-                <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/30">
+                <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-0 space-y-4 bg-slate-50/30">
                   {loadingHistory ? (
                     <div className="h-full flex items-center justify-center text-slate-400 gap-2">
                       <Loader2 size={24} className="animate-spin text-blue-600" />
@@ -659,7 +667,7 @@ export default function ChatPage() {
                 </div>
 
                 {/* Chat Input Bar */}
-                <div className="p-4 border-t border-slate-100 bg-white">
+                <div className="p-4 border-t border-slate-100 bg-white shrink-0">
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -699,7 +707,7 @@ export default function ChatPage() {
         </div>
       </main>
 
-      <Footer />
+      {/* Report User Modal */}
 
       {/* Report User Modal */}
       {activeUserId && (
