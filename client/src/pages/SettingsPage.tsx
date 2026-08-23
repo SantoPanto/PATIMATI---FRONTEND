@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   ChevronDown,
@@ -6,9 +6,16 @@ import {
   ChevronUp,
   Eye,
   Lock,
+  MapPin,
   Trash2,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import {
+  getMyAlertSubscription,
+  saveAlertSubscription,
+  type AlertSubscription,
+} from "../services/alerts";
+import { ilIlcedenKoordinat } from "../utils/geokod";
 
 export default function SettingsPage() {
   const [, navigate] = useLocation();
@@ -20,7 +27,6 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState({
     messages: true,
     matches: true,
-    nearbyListings: false,
   });
 
   const [privacy, setPrivacy] = useState({
@@ -114,18 +120,7 @@ export default function SettingsPage() {
                   }
                 />
 
-                <SettingSwitch
-                  title="Yakındaki ilanlar"
-                  description="Yakınında yeni bir ilan oluşturulduğunda bildir."
-                  checked={notifications.nearbyListings}
-                  onChange={() =>
-                    setNotifications((current) => ({
-                      ...current,
-                      nearbyListings: !current.nearbyListings,
-                    }))
-                  }
-                  isLast
-                />
+                <CevreUyarilariAyari />
               </div>
             )}
           </div>
@@ -289,6 +284,314 @@ function SettingSwitch({
           }`}
         />
       </button>
+    </div>
+  );
+}
+
+/*
+ * Çevre uyarıları — "seçtiğim konumun çevresinde kayıp ilanı çıkınca
+ * bildirim al." Bu bölümdeki diğer anahtarların aksine yerel süs değil:
+ * sunucudaki aboneliği okur/yazar (GET/PUT /api/alert-subscriptions/me,
+ * kullanıcı başına tek kayıt; sunucu yalnız KAYIP ilanları bildirir ve
+ * kişi başı günlük tavan uygular).
+ *
+ * Konum üç yolla dolar (ilan formlarındaki #102/#105 desenleri):
+ * GPS · il/ilçeden geokodlama (Nominatim, asla fırlatmaz) · elle koordinat.
+ */
+function CevreUyarilariAyari() {
+  const [abonelik, setAbonelik] = useState<AlertSubscription | null>(null);
+  const [acik, setAcik] = useState(false);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [kaydediliyor, setKaydediliyor] = useState(false);
+  const [mesaj, setMesaj] = useState("");
+  const [hata, setHata] = useState("");
+
+  const [enlem, setEnlem] = useState("");
+  const [boylam, setBoylam] = useState("");
+  const [il, setIl] = useState("");
+  const [ilce, setIlce] = useState("");
+  const [yaricap, setYaricap] = useState("10");
+
+  useEffect(() => {
+    let iptal = false;
+
+    getMyAlertSubscription()
+      .then((mevcut) => {
+        if (iptal || !mevcut) {
+          return;
+        }
+        setAbonelik(mevcut);
+        setAcik(mevcut.enabled);
+        setEnlem(String(mevcut.latitude));
+        setBoylam(String(mevcut.longitude));
+        setYaricap(String(mevcut.radiusKm));
+      })
+      .catch(() => {
+        if (!iptal) {
+          setHata("Çevre uyarısı ayarların yüklenemedi.");
+        }
+      })
+      .finally(() => {
+        if (!iptal) {
+          setYukleniyor(false);
+        }
+      });
+
+    return () => {
+      iptal = true;
+    };
+  }, []);
+
+  const sunucuyaYaz = async (govde: AlertSubscription) => {
+    setKaydediliyor(true);
+    setMesaj("");
+    setHata("");
+    try {
+      const sonuc = await saveAlertSubscription(govde);
+      setAbonelik(sonuc);
+      setAcik(sonuc.enabled);
+      setMesaj(
+        sonuc.enabled
+          ? "Çevre uyarıları açık — çevrende kayıp ilanı çıkınca bildirim alacaksın."
+          : "Çevre uyarıları kapatıldı.",
+      );
+    } catch (sorun) {
+      setHata(
+        sorun instanceof Error && sorun.message
+          ? sorun.message
+          : "Ayar kaydedilemedi.",
+      );
+    } finally {
+      setKaydediliyor(false);
+    }
+  };
+
+  const anahtarDegisti = () => {
+    if (yukleniyor || kaydediliyor) {
+      return;
+    }
+    setMesaj("");
+    setHata("");
+
+    if (acik) {
+      setAcik(false);
+      if (abonelik) {
+        void sunucuyaYaz({ ...abonelik, enabled: false });
+      }
+      return;
+    }
+
+    setAcik(true);
+    if (abonelik) {
+      // Konum zaten kayıtlı: tek dokunuşla yeniden açılır.
+      void sunucuyaYaz({ ...abonelik, enabled: true });
+    }
+    // Abonelik yoksa panel açılır; kayıt ilk "Kaydet"te oluşur.
+  };
+
+  const konumuKullan = () => {
+    setMesaj("");
+    setHata("");
+    if (!navigator.geolocation) {
+      setHata("Tarayıcın konum özelliğini desteklemiyor.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setEnlem(coords.latitude.toFixed(6));
+        setBoylam(coords.longitude.toFixed(6));
+        setMesaj("Konum alındı — Kaydet'e basmayı unutma.");
+      },
+      () => {
+        setHata("Konum alınamadı. Konum izni verdiğinden emin ol.");
+      },
+    );
+  };
+
+  const ilIlcedenBul = async () => {
+    setMesaj("");
+    setHata("");
+    const sonuc = await ilIlcedenKoordinat(il, ilce);
+    if (!sonuc) {
+      setHata("İl/ilçeden konum bulunamadı. Yazımı kontrol et.");
+      return;
+    }
+    setEnlem(sonuc.latitude.toFixed(6));
+    setBoylam(sonuc.longitude.toFixed(6));
+    setMesaj("Konum il/ilçeden dolduruldu — Kaydet'e basmayı unutma.");
+  };
+
+  const formuKaydet = () => {
+    const lat = Number(enlem.trim().replace(",", "."));
+    const lng = Number(boylam.trim().replace(",", "."));
+    if (
+      enlem.trim() === "" ||
+      boylam.trim() === "" ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng)
+    ) {
+      setHata("Önce konum seç: GPS, il/ilçe ya da elle koordinat.");
+      return;
+    }
+    void sunucuyaYaz({
+      latitude: lat,
+      longitude: lng,
+      radiusKm: Number(yaricap),
+      enabled: true,
+    });
+  };
+
+  const girdiSinifi =
+    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm " +
+    "text-slate-900 focus:border-orange-400 focus:outline-none";
+
+  return (
+    <div>
+      <SettingSwitch
+        title="Çevre uyarıları"
+        description="Seçtiğin konumun çevresinde yeni bir kayıp ilanı çıkınca bildirim al."
+        checked={acik}
+        onChange={anahtarDegisti}
+        isLast
+      />
+
+      {yukleniyor ? (
+        <p className="pb-2 text-sm text-slate-400">Ayarların yükleniyor…</p>
+      ) : (
+        acik && (
+          <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={konumuKullan}
+                className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                <MapPin size={16} />
+                Konumumu kullan
+              </button>
+              <span className="text-sm text-slate-400">
+                ya da il/ilçe yaz:
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_auto]">
+              <div>
+                <label
+                  htmlFor="cevre-il"
+                  className="mb-1 block text-xs font-medium text-slate-500"
+                >
+                  İl
+                </label>
+                <input
+                  id="cevre-il"
+                  type="text"
+                  value={il}
+                  onChange={(olay) => setIl(olay.target.value)}
+                  placeholder="Örn. Bursa"
+                  className={girdiSinifi}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="cevre-ilce"
+                  className="mb-1 block text-xs font-medium text-slate-500"
+                >
+                  İlçe
+                </label>
+                <input
+                  id="cevre-ilce"
+                  type="text"
+                  value={ilce}
+                  onChange={(olay) => setIlce(olay.target.value)}
+                  placeholder="Örn. Nilüfer"
+                  className={girdiSinifi}
+                />
+              </div>
+              <div className="col-span-2 flex items-end sm:col-span-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void ilIlcedenBul();
+                  }}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-orange-400 hover:text-orange-500"
+                >
+                  Bul
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div>
+                <label
+                  htmlFor="cevre-enlem"
+                  className="mb-1 block text-xs font-medium text-slate-500"
+                >
+                  Enlem
+                </label>
+                <input
+                  id="cevre-enlem"
+                  type="text"
+                  inputMode="decimal"
+                  value={enlem}
+                  onChange={(olay) => setEnlem(olay.target.value)}
+                  placeholder="40.1928"
+                  className={girdiSinifi}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="cevre-boylam"
+                  className="mb-1 block text-xs font-medium text-slate-500"
+                >
+                  Boylam
+                </label>
+                <input
+                  id="cevre-boylam"
+                  type="text"
+                  inputMode="decimal"
+                  value={boylam}
+                  onChange={(olay) => setBoylam(olay.target.value)}
+                  placeholder="29.0610"
+                  className={girdiSinifi}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="cevre-yaricap"
+                  className="mb-1 block text-xs font-medium text-slate-500"
+                >
+                  Yarıçap
+                </label>
+                <select
+                  id="cevre-yaricap"
+                  value={yaricap}
+                  onChange={(olay) => setYaricap(olay.target.value)}
+                  className={girdiSinifi}
+                >
+                  <option value="5">5 km</option>
+                  <option value="10">10 km</option>
+                  <option value="25">25 km</option>
+                  <option value="50">50 km</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={formuKaydet}
+              disabled={kaydediliyor}
+              className="mt-4 rounded-xl bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
+            >
+              {kaydediliyor ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+          </div>
+        )
+      )}
+
+      {hata && <p className="pb-2 text-sm text-red-600">{hata}</p>}
+      {!hata && mesaj && (
+        <p className="pb-2 text-sm text-emerald-600">{mesaj}</p>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Heart, Home, List, Map } from "lucide-react";
+import { Heart, Home, List, Map, MessageCircle } from "lucide-react";
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -29,6 +29,10 @@ const TABS = [
   { href: "/listings", label: "İlanlar", Icon: List },
   { href: "/map", label: "Harita", Icon: Map },
   { href: "/adoption", label: "Sahiplendirme", Icon: Heart },
+  // 22.08 mobil taraması: Mesajlar'a ne header'dan ne bu çubuktan
+  // ulaşılabiliyordu — tek yol Profil→Mesajlarım kartıydı. Tasarım sınırı
+  // 5 eleman (yukarıdaki DESIGN_SYSTEM notu), bu beşincisi.
+  { href: "/chat", label: "Mesajlar", Icon: MessageCircle },
 ];
 
 export default function BottomNav() {

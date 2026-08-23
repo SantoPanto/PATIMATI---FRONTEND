@@ -26,8 +26,10 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
 import AdEditModal from "../components/AdEditModal";
+import SightingModal from "../components/SightingModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { getSightings, type Sighting } from "../services/sightings";
 import { request } from "../services/api";
 import { downloadLostPoster } from "../services/posters";
 import { createOrGetChatRoom } from "../services/messages";
@@ -133,6 +135,9 @@ export default function PetDetailPage() {
   const [copied, setCopied] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSightingModalOpen, setIsSightingModalOpen] = useState(false);
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [sightingsError, setSightingsError] = useState<string | null>(null);
   const [isPosterDownloading, setIsPosterDownloading] = useState(false);
   const [posterError, setPosterError] = useState<string | null>(null);
 
@@ -176,6 +181,33 @@ export default function PetDetailPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ilan id'si degistiginde sunucudan veri cekmek (dis sistemle senkronizasyon), fetchAdDetail kendi ici setIsLoading/setError cagirir
     void fetchAdDetail();
   }, [fetchAdDetail]);
+
+  /* Görülmeler yalnız ilan sahibine yüklenir (sunucu da sahiplik dışını
+     reddediyor); sahip olmayanın boşuna 403 yemesin diye istemci de süzer. */
+  const gorulmeleriYukle = isOwner && ad?.adType === "LOST" && isValidId;
+  useEffect(() => {
+    if (!gorulmeleriYukle) {
+      return;
+    }
+
+    let iptal = false;
+    getSightings(adId)
+      .then((liste) => {
+        if (!iptal) {
+          setSightings(liste);
+          setSightingsError(null);
+        }
+      })
+      .catch(() => {
+        if (!iptal) {
+          setSightingsError("Görülmeler yüklenemedi.");
+        }
+      });
+
+    return () => {
+      iptal = true;
+    };
+  }, [gorulmeleriYukle, adId]);
 
   useEffect(() => {
     if (!user || !isValidId) {
@@ -722,9 +754,25 @@ export default function PetDetailPage() {
 
               <div
                 className={`mt-6 grid gap-3 ${
-                  isOwner ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                  isOwner
+                    ? "sm:grid-cols-2"
+                    : ad.adType === "LOST"
+                      ? "sm:grid-cols-2"
+                      : "sm:grid-cols-3"
                 }`}
               >
+                {/* Kayıp ilanında en görünür eylem: afiş QR'ından gelen
+                    girişsiz ziyaretçi de dahil herkes görülme bırakabilir. */}
+                {!isOwner && ad.adType === "LOST" && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSightingModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-emerald-700"
+                  >
+                    <Eye size={19} />
+                    Bu Hayvanı Gördüm
+                  </button>
+                )}
                 {!isOwner ? (
                   <button
                     type="button"
@@ -769,6 +817,77 @@ export default function PetDetailPage() {
                   </button>
                 )}
               </div>
+
+              {isOwner && ad.adType === "LOST" && (
+                <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5">
+                  <h3 className="flex items-center gap-2 text-base font-bold text-slate-900">
+                    <Eye size={18} className="text-emerald-600" />
+                    Görülmeler
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                      {sightings.length}
+                    </span>
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    &quot;Bu hayvanı gördüm&quot; bildirimleri yalnız sana görünür.
+                  </p>
+
+                  {sightingsError ? (
+                    <p className="mt-3 text-sm text-red-600">{sightingsError}</p>
+                  ) : sightings.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500">
+                      Henüz görülme bildirimi yok. Afişini paylaş — QR&apos;ı
+                      okutan, üye olmadan buraya bildirim bırakabilir.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 space-y-3">
+                      {sightings.map((gorulme) => (
+                        <li
+                          key={gorulme.id}
+                          className="rounded-xl border border-slate-200 bg-white p-4"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                            <span>
+                              {new Date(gorulme.createdAt).toLocaleString("tr-TR", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </span>
+                            <a
+                              href={`https://www.openstreetmap.org/?mlat=${gorulme.latitude}&mlon=${gorulme.longitude}#map=16/${gorulme.latitude}/${gorulme.longitude}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 font-medium text-emerald-700 hover:underline"
+                            >
+                              <MapPin size={13} />
+                              Haritada aç
+                            </a>
+                          </div>
+
+                          {gorulme.note && (
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                              {gorulme.note}
+                            </p>
+                          )}
+
+                          {gorulme.photoUrl && (
+                            <img
+                              src={gorulme.photoUrl}
+                              alt="Görülme fotoğrafı"
+                              className="mt-2 h-32 w-32 rounded-lg object-cover"
+                            />
+                          )}
+
+                          {gorulme.reporterContact && (
+                            <p className="mt-2 text-sm font-medium text-slate-600">
+                              İletişim: {gorulme.reporterContact}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -784,6 +903,14 @@ export default function PetDetailPage() {
             targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
             targetId={ad.id}
             targetTitle={ad.title}
+          />
+
+          <SightingModal
+            isOpen={isSightingModalOpen}
+            onClose={() => setIsSightingModalOpen(false)}
+            adId={ad.id}
+            adTitle={ad.title}
+            defaultContact={user?.phone || user?.email || undefined}
           />
 
           <AdEditModal

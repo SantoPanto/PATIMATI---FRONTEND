@@ -16,11 +16,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  * `createOrGetChatRoom` cagrisini gorup "sohbet aciliyor" sanir.
  */
 
-const { navigate, oturum, ilanGetir, odaAc } = vi.hoisted(() => ({
+const { navigate, oturum, ilanGetir, odaAc, gorulmeGetir } = vi.hoisted(() => ({
   navigate: vi.fn(),
   oturum: { user: null as { id?: number } | null, isAuthenticated: false },
   ilanGetir: vi.fn(),
   odaAc: vi.fn(),
+  gorulmeGetir: vi.fn(),
 }))
 
 vi.mock('wouter', () => ({
@@ -38,6 +39,11 @@ vi.mock('../services/ads', () => ({
 
 vi.mock('../services/messages', () => ({
   createOrGetChatRoom: odaAc,
+}))
+
+vi.mock('../services/sightings', () => ({
+  getSightings: gorulmeGetir,
+  createSighting: vi.fn(),
 }))
 
 // Header/Footer kendi baglamlarini (yonlendirme, oturum, bildirim) cekiyor;
@@ -85,6 +91,8 @@ beforeEach(() => {
   odaAc.mockResolvedValue({ id: 1 })
   ilanGetir.mockReset()
   ilanGetir.mockResolvedValue(ILAN)
+  gorulmeGetir.mockReset()
+  gorulmeGetir.mockResolvedValue([])
   oturum.user = null
   oturum.isAuthenticated = false
   window.history.replaceState({}, '', '/pet/74')
@@ -170,5 +178,58 @@ describe('PetDetailPage — DESEN hücresi', () => {
     render(<PetDetailPage />)
 
     expect(await screen.findByText('Kaplumbağa Kabuğu')).toBeTruthy()
+  })
+})
+
+/**
+ * "Gördüm" bildirimi görünürlüğü (özellik ①, 22.08).
+ *
+ * <p>Taşıyıcı iddialar: düğme KAYIP ilanında sahip olmayan HERKESE (girişsiz
+ * dahil — afiş QR'ı senaryosu) görünür; Görülmeler bölümü YALNIZ sahibine
+ * görünür ve listeyi sunucudan çeker. Tip denetimi hangi JSX dalının
+ * çizildiğini göremez, o yüzden render edip bakıyoruz.
+ */
+describe('PetDetailPage — Gördüm bildirimi', () => {
+  it('girissiz ziyaretci kayip ilaninda "Bu Hayvanı Gördüm" dugmesini gorur; Gorulmeler bolumunu GORMEZ', async () => {
+    render(<PetDetailPage />)
+
+    expect(
+      await screen.findByRole('button', { name: /Bu Hayvanı Gördüm/ }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Görülmeler')).toBeNull()
+    expect(gorulmeGetir).not.toHaveBeenCalled()
+  })
+
+  it('kayip DISI ilanda dugme cizilmez', async () => {
+    ilanGetir.mockResolvedValue({ ...ILAN, adType: 'FOUND' })
+
+    render(<PetDetailPage />)
+
+    await screen.findByRole('button', { name: /Mesaj Gönder/i })
+    expect(screen.queryByRole('button', { name: /Bu Hayvanı Gördüm/ })).toBeNull()
+  })
+
+  it('sahibi dugme yerine Gorulmeler bolumunu gorur ve liste sunucudan cekilir', async () => {
+    oturum.user = { id: 7 }
+    oturum.isAuthenticated = true
+    gorulmeGetir.mockResolvedValue([
+      {
+        id: 99,
+        latitude: 40.19,
+        longitude: 29.06,
+        note: 'Parkta gördüm',
+        reporterContact: '0555 111 22 33',
+        photoUrl: null,
+        createdAt: '2026-08-22T18:00:00Z',
+      },
+    ])
+
+    render(<PetDetailPage />)
+
+    expect(await screen.findByText('Görülmeler')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Bu Hayvanı Gördüm/ })).toBeNull()
+    await waitFor(() => expect(gorulmeGetir).toHaveBeenCalledWith(74))
+    expect(await screen.findByText('Parkta gördüm')).toBeInTheDocument()
+    expect(screen.getByText(/0555 111 22 33/)).toBeInTheDocument()
   })
 })
