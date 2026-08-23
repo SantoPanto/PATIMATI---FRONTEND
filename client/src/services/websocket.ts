@@ -60,6 +60,8 @@ export function connectWebSocket(
     return stompClient;
   }
 
+  console.log("[WebSocket Debug] WebSocket connecting...");
+
   stompClient = new Client({
     webSocketFactory: () =>
       new SockJS(`${API_BASE_URL}/ws-connect`),
@@ -80,23 +82,29 @@ export function connectWebSocket(
     reconnectDelay: 5000,
 
     onConnect: () => {
-      console.log("WebSocket connected");
+      console.log("[WebSocket Debug] WebSocket connected successfully");
       callbacks?.onConnect?.();
 
       // Subscribe to private messages (/user/queue/messages and fallback /queue/messages)
       const handleMessageFrame = (frame: { body: string }) => {
+        console.log("[WebSocket Debug] received MESSAGE frame:", frame.body);
         try {
           const message: MessageResponse = JSON.parse(frame.body);
+          console.log("[WebSocket Debug] parsed message:", message);
           messageListeners.forEach((listener) => listener(message));
         } catch (parseErr) {
-          console.error("Mesaj ayrıştırma hatası:", parseErr);
+          console.error("[WebSocket Debug] Mesaj ayrıştırma hatası:", parseErr);
         }
       };
 
+      console.log("[WebSocket Debug] subscribed destination: /user/queue/messages");
       stompClient?.subscribe("/user/queue/messages", handleMessageFrame);
+
+      console.log("[WebSocket Debug] subscribed destination: /queue/messages");
       stompClient?.subscribe("/queue/messages", handleMessageFrame);
 
       // Subscribe to real-time user online/offline status topic
+      console.log("[WebSocket Debug] subscribed destination: /topic/user-status");
       stompClient?.subscribe("/topic/user-status", (frame) => {
         try {
           const statusEvent: UserStatusEvent = JSON.parse(frame.body);
