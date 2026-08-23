@@ -19,8 +19,8 @@ import Footer from "../components/Footer";
 function Bolum({ baslik, children }: { baslik: string; children: ReactNode }) {
   return (
     <section className="mt-10 first:mt-0">
-      <h2 className="text-xl font-bold text-[#0F172A] sm:text-2xl">{baslik}</h2>
-      <div className="mt-3 space-y-3 text-base leading-7 text-[#475569]">
+      <h2 className="text-xl font-bold text-[#0F172A] sm:text-2xl dark:text-slate-50">{baslik}</h2>
+      <div className="mt-3 space-y-3 text-base leading-7 text-[#475569] dark:text-slate-400">
         {children}
       </div>
     </section>
@@ -29,7 +29,7 @@ function Bolum({ baslik, children }: { baslik: string; children: ReactNode }) {
 
 export default function GizlilikPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -40,7 +40,7 @@ export default function GizlilikPage() {
               KVKK aydınlatması
             </span>
 
-            <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl dark:text-[#0F172A]">
               Gizlilik Politikası
             </h1>
 
@@ -52,7 +52,7 @@ export default function GizlilikPage() {
         </section>
 
         <section className="mx-auto max-w-[900px] px-4 py-12 sm:px-6 lg:px-8">
-          <article className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-10">
+          <article className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-10 dark:border-slate-800 dark:bg-slate-900">
             <Bolum baslik="Biz kimiz?">
               <p>
                 PATIMATI (patimati.me), kayıp ve bulunan hayvanlar ile

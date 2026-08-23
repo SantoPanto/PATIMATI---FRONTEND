@@ -25,6 +25,7 @@ import { request } from "../services/api";
 import type { MatchedAdResponseDTO, PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
@@ -165,14 +166,25 @@ export default function FoundPetCreatePage() {
       if (analysis.is_pet === false) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
       } else {
+        /*
+         * AI servisi öznitelik çıkarımı patladığında sessizce boş sonuç
+         * dönüyor (PATIMATI-AI/app/main.py:145-152) ama `is_pet: true`
+         * olduğu için burası "tamamlandı" yazıyordu. Mesajı artık GERÇEKTEN
+         * doldurulan alan sayısı belirliyor.
+         */
+        let uygulanan = 0;
+
         if (analysis.species === "cat" || analysis.species === "CAT") {
           updateForm("species", "CAT");
+          uygulanan += 1;
         } else if (analysis.species === "dog" || analysis.species === "DOG") {
           updateForm("species", "DOG");
+          uygulanan += 1;
         }
 
         if (analysis.breed && analysis.breed.trim()) {
           updateForm("breed", analysis.breed.trim());
+          uygulanan += 1;
         }
 
         const etiketten = (onek: string) =>
@@ -188,18 +200,25 @@ export default function FoundPetCreatePage() {
           const uniqueColors = [...new Set(detectedColors)];
           const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
           updateForm("color", colorNames);
+          uygulanan += 1;
         }
 
         const collar = etiketten("bonus:collar_");
         if (collar.length > 0) {
           if (collar[0] === "collar") {
             updateForm("collarStatus", "YES");
+            uygulanan += 1;
           } else if (collar[0] === "no_collar") {
             updateForm("collarStatus", "NO");
+            uygulanan += 1;
           }
         }
 
-        setAnalysisMessage("AI analizi tamamlandı. Olası eşleşmeler aranıyor...");
+        setAnalysisMessage(
+          uygulanan > 0
+            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
+        );
 
         try {
           const matchFormData = new FormData();
@@ -401,19 +420,22 @@ export default function FoundPetCreatePage() {
     setErrorMessage("");
   };
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
-      return;
-    }
-
+  const handleUseCurrentLocation = async () => {
     setErrorMessage("");
     setIsLocationLoading(true);
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
+    // Hata kodu ayrımı + zaman aşımında ikinci deneme: utils/konum.ts
+    let koordinat;
+    try {
+      koordinat = await konumAl();
+    } catch (hata) {
+      setIsLocationLoading(false);
+      setErrorMessage(konumHataMesaji(hata));
+      return;
+    }
+
+    {
+      const coords = { latitude: koordinat.enlem, longitude: koordinat.boylam };
         /*
          * Koordinati ONCE sakla: ilan icin zorunlu olan bu, adres
          * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
@@ -467,20 +489,7 @@ export default function FoundPetCreatePage() {
         } finally {
           setIsLocationLoading(false);
         }
-      },
-      () => {
-        setIsLocationLoading(false);
-
-        setErrorMessage(
-          "Konum alınamadı. Tarayıcıdan konum izni verdiğinizden emin olun.",
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    }
   };
 
   /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
@@ -726,9 +735,9 @@ export default function FoundPetCreatePage() {
             type="button"
             onClick={openFilePicker}
             disabled={isCompressing}
-            className="flex min-h-[230px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] disabled:opacity-50"
+            className="flex min-h-[230px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-blue-500/10"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DBEAFE] text-[#2563EB]">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DBEAFE] text-[#2563EB] dark:bg-blue-500/15 dark:text-blue-400">
               {isCompressing ? (
                 <Loader2 size={30} className="animate-spin" />
               ) : (
@@ -740,12 +749,12 @@ export default function FoundPetCreatePage() {
               {isCompressing ? "Sıkıştırılıyor..." : "Fotoğraf yükle"}
             </strong>
 
-            <span className="mt-2 max-w-md text-sm leading-6 text-[#64748B]">
+            <span className="mt-2 max-w-md text-sm leading-6 text-[#64748B] dark:text-slate-400">
               Bulduğun hayvanı tanımaya yardımcı olacak
               en fazla {MAX_IMAGES} fotoğraf yükleyebilirsin.
             </span>
 
-            <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">
+            <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
               JPG, PNG veya WEBP · her biri {MAX_FILE_SIZE_MB} MB
             </span>
@@ -756,7 +765,7 @@ export default function FoundPetCreatePage() {
               {images.map((image, index) => (
                 <div
                   key={image.id}
-                  className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9]"
+                  className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9] dark:border-slate-700 dark:bg-slate-800"
                 >
                   <img
                     src={image.preview}
@@ -790,7 +799,7 @@ export default function FoundPetCreatePage() {
                   type="button"
                   onClick={openFilePicker}
                   disabled={isCompressing}
-                  className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] hover:text-[#2563EB] disabled:opacity-50"
+                  className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] hover:text-[#2563EB] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-blue-500/10"
                 >
                   {isCompressing ? (
                     <>
@@ -807,7 +816,7 @@ export default function FoundPetCreatePage() {
               )}
             </div>
 
-            <p className="mt-3 text-sm text-[#64748B]">
+            <p className="mt-3 text-sm text-[#64748B] dark:text-slate-400">
               {images.length}/{MAX_IMAGES} fotoğraf
               yüklendi.
             </p>
@@ -938,7 +947,7 @@ export default function FoundPetCreatePage() {
             type="button"
             onClick={handleUseCurrentLocation}
             disabled={isLocationLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2.5 text-sm font-bold text-[#2563EB] transition hover:bg-[#DBEAFE] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2.5 text-sm font-bold text-[#2563EB] transition hover:bg-[#DBEAFE] disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/15"
           >
             <MapPin size={17} />
 
@@ -1155,13 +1164,13 @@ export default function FoundPetCreatePage() {
       {errorMessage && (
         <div
           role="alert"
-          className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C]"
+          className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
         >
           {errorMessage}
         </div>
       )}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <input
           type="checkbox"
           checked={form.acceptResponsibility}
@@ -1175,12 +1184,12 @@ export default function FoundPetCreatePage() {
         />
 
         <div>
-          <strong className="text-sm text-[#0F172A]">
+          <strong className="text-sm text-[#0F172A] dark:text-slate-100">
             Bilgilerin doğru olduğunu
             onaylıyorum.
           </strong>
 
-          <p className="mt-1 text-sm leading-6 text-[#64748B]">
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
             Bu hayvanı bulduğumu ve ilan
             bilgilerinin bildiğim kadarıyla doğru
             olduğunu kabul ediyorum.
@@ -1189,7 +1198,7 @@ export default function FoundPetCreatePage() {
       </label>
 
       {images.length < MIN_IMAGES && (
-        <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
           <ImagePlus size={17} />
           İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
         </p>
@@ -1224,7 +1233,7 @@ export default function FoundPetCreatePage() {
 }
 
 const inputClass =
-  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:ring-4 focus:ring-[#BFDBFE]/40";
+  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:ring-4 focus:ring-[#BFDBFE]/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 type FormCardProps = {
   icon: React.ReactNode;
@@ -1240,18 +1249,18 @@ function FormCard({
   children,
 }: FormCardProps) {
   return (
-    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7">
-      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
+    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5 dark:border-slate-800">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB] dark:bg-blue-500/10 dark:text-blue-400">
           {icon}
         </div>
 
         <div>
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold dark:text-slate-50">
             {title}
           </h2>
 
-          <p className="mt-1 text-sm leading-6 text-[#64748B]">
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
             {description}
           </p>
         </div>
@@ -1277,7 +1286,7 @@ function Field({
 }: FieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-[#334155]">
+      <span className="text-sm font-semibold text-[#334155] dark:text-slate-300">
         {label}
 
         {required && (

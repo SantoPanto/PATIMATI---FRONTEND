@@ -476,25 +476,25 @@ export default function ChatPage() {
       case "CONNECTED":
         return {
           label: "Canlı",
-          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
           dotClass: "bg-emerald-500",
         };
       case "CONNECTING":
         return {
           label: "Bağlanıyor...",
-          badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+          badgeClass: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
           dotClass: "bg-amber-500 animate-pulse",
         };
       case "ERROR":
         return {
           label: "Bağlantı Hatası",
-          badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
+          badgeClass: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
           dotClass: "bg-rose-500",
         };
       default:
         return {
           label: "Bağlantı Kesildi",
-          badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+          badgeClass: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
           dotClass: "bg-slate-400",
         };
     }
@@ -504,24 +504,24 @@ export default function ChatPage() {
     getStatusBadge();
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden dark:bg-slate-950">
       <Header />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col h-[calc(100vh-80px)] min-h-0 overflow-hidden">
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-0 h-full overflow-hidden flex flex-col md:flex-row">
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-0 h-full overflow-hidden flex flex-col md:flex-row dark:bg-slate-900 dark:border-slate-800">
           {/* Left Contacts / Rooms Sidebar */}
           <div
-            className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 min-h-0 h-full overflow-hidden ${
+            className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 min-h-0 h-full overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 ${
               activeUserId ? "hidden md:flex" : "flex"
             }`}
           >
             {/* Sidebar Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl dark:bg-blue-500/10 dark:text-blue-400">
                   <MessageSquare size={20} />
                 </span>
-                <h1 className="text-lg font-extrabold text-slate-900">
+                <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
                   Mesajlarım
                 </h1>
               </div>
@@ -535,19 +535,19 @@ export default function ChatPage() {
             </div>
 
             {/* Contacts / Chat Rooms List */}
-            <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-slate-100/80">
+            <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-slate-100/80 dark:divide-slate-800">
               {loadingRooms ? (
-                <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 size={20} className="animate-spin text-blue-600" />
+                <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2 dark:text-slate-500">
+                  <Loader2 size={20} className="animate-spin text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-medium">Odalar yükleniyor...</span>
                 </div>
               ) : contacts.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
+                <div className="p-8 text-center text-slate-400 dark:text-slate-500">
                   <MessageSquareOff size={36} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-semibold text-slate-600">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                     Henüz sohbetiniz yok
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-1 dark:text-slate-500">
                     İlan detay sayfalarından kullanıcılarla sohbet başlatabilirsiniz.
                   </p>
                 </div>
@@ -561,21 +561,21 @@ export default function ChatPage() {
                       onClick={() => navigate(`/chat/${c.userId}`)}
                       className={`w-full p-4 flex items-start gap-3 text-left transition-all ${
                         isActive
-                          ? "bg-blue-50/80 border-l-4 border-blue-600"
-                          : "hover:bg-slate-100/80 bg-white md:bg-transparent"
+                          ? "bg-blue-50/80 border-l-4 border-blue-600 dark:bg-blue-500/10"
+                          : "hover:bg-slate-100/80 bg-white md:bg-transparent dark:bg-slate-900 dark:md:bg-transparent dark:hover:bg-slate-800/60"
                       }`}
                     >
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 font-extrabold text-blue-700">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 font-extrabold text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
                         {c.userName ? c.userName.charAt(0).toUpperCase() : "U"}
                       </span>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <h3 className="text-sm font-bold text-slate-900 truncate">
+                          <h3 className="text-sm font-bold text-slate-900 truncate dark:text-slate-50">
                             {c.userName || `Kullanıcı #${c.userId}`}
                           </h3>
                           {c.lastTimestamp && (
-                            <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                            <span className="text-[11px] font-medium text-slate-400 shrink-0 dark:text-slate-500">
                               {new Date(c.lastTimestamp).toLocaleTimeString(
                                 "tr-TR",
                                 { hour: "2-digit", minute: "2-digit" },
@@ -584,7 +584,7 @@ export default function ChatPage() {
                           )}
                         </div>
 
-                        <p className="text-xs font-medium text-slate-500 truncate">
+                        <p className="text-xs font-medium text-slate-500 truncate dark:text-slate-400">
                           {c.lastMessage || "Sohbeti görüntülemek için tıklayın"}
                         </p>
                       </div>
@@ -597,19 +597,19 @@ export default function ChatPage() {
 
           {/* Right Active Chat Window */}
           <div
-            className={`flex-1 flex flex-col bg-white min-h-0 h-full overflow-hidden ${
+            className={`flex-1 flex flex-col bg-white min-h-0 h-full overflow-hidden dark:bg-slate-900 ${
               !activeUserId ? "hidden md:flex" : "flex"
             }`}
           >
             {activeUserId ? (
               <>
                 {/* Active Chat Header */}
-                <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0">
+                <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0 dark:border-slate-800 dark:bg-slate-900/40">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => navigate("/chat")}
-                      className="md:hidden p-2 text-slate-500 hover:text-slate-900"
+                      className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                     >
                       &larr;
                     </button>
@@ -617,16 +617,16 @@ export default function ChatPage() {
                       <User size={20} />
                     </span>
                     <div>
-                      <h2 className="text-base font-extrabold text-slate-900">
+                      <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-50">
                         {activePartnerName}
                       </h2>
                       {userStatus?.online ? (
-                        <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                        <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 dark:text-emerald-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Çevrim içi
                         </span>
                       ) : (
-                        <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                        <span className="text-xs font-semibold text-slate-400 flex items-center gap-1 dark:text-slate-500">
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                           {userStatus?.lastSeen
                             ? `Son görülme ${formatLastSeen(userStatus.lastSeen)}`
@@ -640,7 +640,7 @@ export default function ChatPage() {
                   <button
                     type="button"
                     onClick={() => setIsReportModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/60 hover:border-rose-300 transition-all shadow-2xs"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/60 hover:border-rose-300 transition-all shadow-2xs dark:text-rose-400 dark:hover:bg-rose-500/10 dark:border-rose-500/20 dark:hover:border-rose-500/40"
                     title="Kullanıcıyı Şikayet Et"
                   >
                     <Flag size={14} />
@@ -649,26 +649,26 @@ export default function ChatPage() {
                 </div>
 
                 {/* Messages Body */}
-                <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-0 space-y-4 bg-slate-50/30">
+                <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-0 space-y-4 bg-slate-50/30 dark:bg-slate-900/40">
                   {loadingHistory ? (
-                    <div className="h-full flex items-center justify-center text-slate-400 gap-2">
-                      <Loader2 size={24} className="animate-spin text-blue-600" />
+                    <div className="h-full flex items-center justify-center text-slate-400 gap-2 dark:text-slate-500">
+                      <Loader2 size={24} className="animate-spin text-blue-600 dark:text-blue-400" />
                       <span className="text-sm font-medium">
                         Mesaj geçmişi yükleniyor...
                       </span>
                     </div>
                   ) : error ? (
-                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold rounded-2xl flex items-center gap-2">
+                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold rounded-2xl flex items-center gap-2 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400">
                       <AlertCircle size={18} />
                       <span>{error}</span>
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400">
+                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-500">
                       <MessageSquare size={40} className="mb-2 opacity-40" />
-                      <p className="text-sm font-bold text-slate-700">
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                         Henüz mesajınız yok
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-400 mt-1 dark:text-slate-500">
                         Aşağıdaki alandan ilk mesajınızı yazıp gönderebilirsiniz.
                       </p>
                     </div>
@@ -686,7 +686,7 @@ export default function ChatPage() {
                             className={`max-w-[80%] sm:max-w-[70%] px-4 py-3 rounded-2xl text-sm font-medium shadow-xs ${
                               isMine
                                 ? "bg-blue-600 text-white rounded-br-none"
-                                : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-none"
+                                : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-none dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
                             }`}
                           >
                             <p className="whitespace-pre-wrap break-words leading-relaxed">
@@ -694,7 +694,7 @@ export default function ChatPage() {
                             </p>
                             <div
                               className={`mt-1.5 flex items-center justify-end gap-1 text-[10px] ${
-                                isMine ? "text-blue-100" : "text-slate-400"
+                                isMine ? "text-blue-100" : "text-slate-400 dark:text-slate-500"
                               }`}
                             >
                               <span>
@@ -722,7 +722,7 @@ export default function ChatPage() {
                 {/* Chat Input Bar */}
                 <form
                   onSubmit={handleFormSubmit}
-                  className="p-4 border-t border-slate-100 bg-white shrink-0"
+                  className="p-4 border-t border-slate-100 bg-white shrink-0 dark:border-slate-800 dark:bg-slate-900"
                 >
                   <div className="flex items-center gap-2">
                     <input
@@ -732,7 +732,7 @@ export default function ChatPage() {
                       onKeyDown={handleKeyDown}
                       placeholder="Bir mesaj yazın..."
                       maxLength={2000}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:focus:bg-slate-800 dark:focus:ring-blue-500/20"
                     />
 
                     <button
@@ -746,14 +746,14 @@ export default function ChatPage() {
                 </form>
               </>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mb-4">
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500">
+                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mb-4 dark:bg-blue-500/10 dark:text-blue-400">
                   <MessageSquare size={32} />
                 </div>
-                <h2 className="text-xl font-extrabold text-slate-800">
+                <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
                   Sohbet Başlatın
                 </h2>
-                <p className="text-sm text-slate-500 mt-1 max-w-sm">
+                <p className="text-sm text-slate-500 mt-1 max-w-sm dark:text-slate-400">
                   Sol taraftaki kişilerden birini seçin veya ilan detay sayfalarından doğrudan mesaj gönderin.
                 </p>
               </div>

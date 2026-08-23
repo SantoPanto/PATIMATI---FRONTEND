@@ -72,24 +72,24 @@ export default function OAuthRedirectHandler() {
   }, [navigate, refreshUser]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-8 dark:bg-slate-950">
+      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
         {errorMessage ? (
           <>
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-500">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-500 dark:bg-red-500/10 dark:text-red-400">
               <AlertCircle size={32} />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">Giriş Başarısız</h2>
-            <p className="text-sm text-slate-600">{errorMessage}</p>
-            <p className="text-xs text-slate-400">Giriş sayfasına yönlendiriliyorsunuz...</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Giriş Başarısız</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{errorMessage}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Giriş sayfasına yönlendiriliyorsunuz...</p>
           </>
         ) : (
           <>
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
               <Loader2 size={36} className="animate-spin" />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">Google ile Giriş Yapılıyor</h2>
-            <p className="text-sm text-slate-600">Lütfen bekleyin, oturumunuz doğrulanıyor...</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Google ile Giriş Yapılıyor</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Lütfen bekleyin, oturumunuz doğrulanıyor...</p>
           </>
         )}
       </div>

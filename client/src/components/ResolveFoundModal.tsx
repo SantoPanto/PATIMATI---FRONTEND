@@ -210,21 +210,21 @@ export default function ResolveFoundModal({
         aria-labelledby="bulundu-baslik"
         aria-modal="true"
         role="dialog"
-        className="flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-2xl shadow-slate-950/25"
+        className="flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-2xl shadow-slate-950/25 dark:border-slate-800 dark:bg-slate-900"
         onMouseDown={(olay) => olay.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
               <PartyPopper size={24} aria-hidden="true" />
             </span>
             <div>
-              <span className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400">
                 Mutlu Son
               </span>
               <h2
                 id="bulundu-baslik"
-                className="mt-0.5 text-xl font-extrabold text-slate-900"
+                className="mt-0.5 text-xl font-extrabold text-slate-900 dark:text-slate-50"
               >
                 Hayvanımı Buldum
               </h2>
@@ -234,7 +234,7 @@ export default function ResolveFoundModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Pencereyi kapat"
           >
             <X size={19} />
@@ -242,21 +242,21 @@ export default function ResolveFoundModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          <p className="text-sm text-slate-600">
-            <strong className="font-bold text-slate-900">“{ad.title}”</strong>{" "}
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            <strong className="font-bold text-slate-900 dark:text-slate-100">“{ad.title}”</strong>{" "}
             ilanı bulundu olarak kapatılacak ve yayından kalkacak.
           </p>
 
-          <h3 className="mt-6 text-sm font-bold text-slate-900">
+          <h3 className="mt-6 text-sm font-bold text-slate-900 dark:text-slate-50">
             Hangi ilan sayesinde bulundu?
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Eşleşen ilanı seçersen bulan kişiye ödül puanı verilir ve eşleşmenin
             gerçekten tuttuğu kayda geçer. Seçmeden de kapatabilirsin.
           </p>
 
           <div className="mt-4 space-y-2">
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50">
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
               <input
                 type="radio"
                 name="bulundu-aday"
@@ -265,22 +265,22 @@ export default function ResolveFoundModal({
                 onChange={() => void adaySec(null)}
               />
               <span>
-                <span className="block text-sm font-bold text-slate-900">
+                <span className="block text-sm font-bold text-slate-900 dark:text-slate-100">
                   Kendim buldum / eşleşen ilan yok
                 </span>
-                <span className="block text-xs text-slate-500">
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
                   İlan yalnızca bulundu olarak kapatılır.
                 </span>
               </span>
             </label>
 
             {adaylarYukleniyor ? (
-              <p className="flex items-center gap-2 px-1 py-2 text-sm text-slate-500">
+              <p className="flex items-center gap-2 px-1 py-2 text-sm text-slate-500 dark:text-slate-400">
                 <Loader2 size={16} className="animate-spin" />
                 Eşleşmeler yükleniyor...
               </p>
             ) : adaylar.length === 0 ? (
-              <p className="px-1 py-2 text-xs text-slate-500">
+              <p className="px-1 py-2 text-xs text-slate-500 dark:text-slate-400">
                 Bu ilan için kayıtlı eşleşme yok.
               </p>
             ) : (
@@ -300,7 +300,7 @@ export default function ResolveFoundModal({
                 return (
                   <label
                     key={eslesme.id ?? partnerId}
-                    className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50"
+                    className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
                   >
                     <input
                       type="radio"
@@ -312,14 +312,14 @@ export default function ResolveFoundModal({
                       <img
                         src={getImageUrl(eslesme.partnerAd.photoUrl)}
                         alt={baslik}
-                        className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 object-cover"
+                        className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 object-cover dark:border-slate-700"
                       />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold text-slate-900">
+                      <span className="block truncate text-sm font-bold text-slate-900 dark:text-slate-100">
                         {baslik}
                       </span>
-                      <span className="block text-xs text-slate-500">
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
                         Eşleşme oranı %{oran}
                       </span>
                     </span>
@@ -331,7 +331,7 @@ export default function ResolveFoundModal({
 
           {bagUyarisi && (
             <div
-              className="mt-4 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800"
+              className="mt-4 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400"
               role="status"
             >
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
@@ -341,7 +341,7 @@ export default function ResolveFoundModal({
 
           {hataMesaji && (
             <div
-              className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+              className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
               role="alert"
             >
               {hataMesaji}
@@ -349,11 +349,11 @@ export default function ResolveFoundModal({
           )}
         </div>
 
-        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4">
+        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4 dark:border-slate-800">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Vazgeç
           </button>

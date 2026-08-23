@@ -77,7 +77,7 @@ export default function RequireAuth({
   if (isAuthLoading) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500 dark:bg-slate-950 dark:text-slate-400"
         role="status"
       >
         Oturum kontrol ediliyor...
@@ -89,7 +89,7 @@ export default function RequireAuth({
     if (!rolUyuyor) {
       return (
         <div
-          className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+          className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500 dark:bg-slate-950 dark:text-slate-400"
           role="status"
         >
           Yetki kontrol ediliyor...
@@ -102,7 +102,7 @@ export default function RequireAuth({
   if (mode === "redirect") {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500 dark:bg-slate-950 dark:text-slate-400"
         role="status"
       >
         Giriş sayfasına yönlendiriliyor...
@@ -112,7 +112,7 @@ export default function RequireAuth({
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50" aria-hidden="true" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950" aria-hidden="true" />
       <AuthRequiredModal
         isOpen
         onClose={closeModal}

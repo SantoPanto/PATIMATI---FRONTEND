@@ -13,6 +13,42 @@ let isReconnecting = false;
 const messageListeners = new Set<(message: MessageResponse) => void>();
 const userStatusListeners = new Set<(event: UserStatusEvent) => void>();
 
+/*
+ * BAĞLANTI DURUMU DİNLEYİCİLERİ — neden küme:
+ *
+ * `connectWebSocket` zaten etkin bir istemci bulduğunda erken dönüyor. O anda
+ * istemci HENÜZ BAĞLANMAMIŞSA (active=true, connected=false) yeni çağıranın
+ * geri çağrıları hiçbir yere yazılmıyordu; bağlantı sonradan kurulunca
+ * yalnızca İLK çağıranın `onConnect`'i çalışıyor, o da genelde çoktan
+ * unmount olmuş oluyor (`isMounted=false`) ve durum güncellenmiyordu.
+ *
+ * Sonuç, tarayıcıda ölçüldü (24.08, yerel): soket BAĞLI, PING/PONG akıyor,
+ * mesaj canlı düşüyor — ama ekranda kalıcı olarak "Bağlanıyor..." yazıyor.
+ * Kullanıcı bunu "mesajlar canlı değil" diye okuyor.
+ *
+ * Tetiklendiği yerler: React StrictMode'un çift mount'u (geliştirme) ve
+ * üründe /chat -> /chat/{id} geçişi (ChatDetailPage aynı ChatPage'i yeniden
+ * mount ediyor) bağlantı kurulurken.
+ */
+const connectionCallbacks = new Set<WebSocketCallbacks>();
+
+function tumCagiranlaraHaberVer(
+  olay: keyof WebSocketCallbacks,
+  arguman?: unknown,
+): void {
+  connectionCallbacks.forEach((geriCagri) => {
+    try {
+      if (olay === "onError") {
+        geriCagri.onError?.(arguman);
+      } else {
+        geriCagri[olay]?.();
+      }
+    } catch (hata) {
+      console.error("[WS CALLBACK] Dinleyici hata verdi:", hata);
+    }
+  });
+}
+
 export interface WebSocketCallbacks {
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -74,6 +110,9 @@ export function connectWebSocket(
   if (onUserStatus) {
     userStatusListeners.add(onUserStatus);
   }
+  if (callbacks) {
+    connectionCallbacks.add(callbacks);
+  }
 
   const token = getStoredToken();
 
@@ -88,7 +127,7 @@ export function connectWebSocket(
   if (stompClient?.active) {
     console.log(`[WS CONNECT] Existing active client instance found. connected=${stompClient.connected}, messageListeners=${messageListeners.size}`);
     if (stompClient.connected) {
-      callbacks?.onConnect?.();
+      tumCagiranlaraHaberVer("onConnect");
     }
     return stompClient;
   }
@@ -149,7 +188,7 @@ export function connectWebSocket(
       });
       activeSubscriptions = [];
 
-      callbacks?.onConnect?.();
+      tumCagiranlaraHaberVer("onConnect");
 
       const handleMessageFrame = (msgFrame: { body: string }) => {
         console.log(`[WS MESSAGE] [Instance #${instanceId}] Received frame on /user/queue/messages:`, msgFrame.body);
@@ -184,7 +223,7 @@ export function connectWebSocket(
 
     onDisconnect: () => {
       console.log(`[WS DISCONNECT] [Instance #${instanceId}] STOMP disconnected at ${new Date().toISOString()}`);
-      callbacks?.onDisconnect?.();
+      tumCagiranlaraHaberVer("onDisconnect");
     },
 
     onStompError: (frame) => {
@@ -196,18 +235,18 @@ export function connectWebSocket(
         clearAuthStorage();
         notifyUnauthorized();
       }
-      callbacks?.onError?.(frame);
+      tumCagiranlaraHaberVer("onError", frame);
     },
 
     onWebSocketError: (event) => {
       console.error(`[WS ERROR] [Instance #${instanceId}] WebSocket Error event:`, event);
-      callbacks?.onError?.(event);
+      tumCagiranlaraHaberVer("onError", event);
     },
 
     onWebSocketClose: (event) => {
       console.log(`[WS CLOSE] [Instance #${instanceId}] WebSocket closed at ${new Date().toISOString()}. code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
       isReconnecting = true;
-      callbacks?.onDisconnect?.();
+      tumCagiranlaraHaberVer("onDisconnect");
     },
   });
 
@@ -235,8 +274,20 @@ export function sendMessage(
   });
 }
 
+/**
+ * Bir çağıranın bağlantı-durumu geri çağrılarını bırakır.
+ *
+ * <p>Unmount olan bileşenin geri çağrıları kümede kalırsa her yeniden
+ * bağlanmada boşuna çağrılır ve küme oturum boyunca büyür. Soketi
+ * kapatmadan yalnızca dinlemeyi bırakmak isteyen çağıran bunu kullanır.
+ */
+export function removeConnectionCallbacks(callbacks: WebSocketCallbacks): void {
+  connectionCallbacks.delete(callbacks);
+}
+
 export function disconnectWebSocket() {
   console.log(`[WS DISCONNECT] disconnectWebSocket called. Deactivating global STOMP client.`);
+  connectionCallbacks.clear();
   activeSubscriptions.forEach((sub) => {
     try { sub.unsubscribe(); } catch {}
   });

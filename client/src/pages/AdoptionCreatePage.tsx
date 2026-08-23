@@ -20,6 +20,7 @@ import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
@@ -170,14 +171,25 @@ export default function AdoptionCreatePage() {
       if (analysis.is_pet === false) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
       } else {
+        /*
+         * AI servisi öznitelik çıkarımı patladığında sessizce boş sonuç
+         * dönüyor (PATIMATI-AI/app/main.py:145-152) ama `is_pet: true`
+         * olduğu için burası "tamamlandı" yazıyordu. Mesajı artık GERÇEKTEN
+         * doldurulan alan sayısı belirliyor.
+         */
+        let uygulanan = 0;
+
         if (analysis.species === "cat" || analysis.species === "CAT") {
           updateForm("species", "CAT");
+          uygulanan += 1;
         } else if (analysis.species === "dog" || analysis.species === "DOG") {
           updateForm("species", "DOG");
+          uygulanan += 1;
         }
 
         if (analysis.breed && analysis.breed.trim()) {
           updateForm("breed", analysis.breed.trim());
+          uygulanan += 1;
         }
 
         const etiketten = (onek: string) =>
@@ -193,9 +205,14 @@ export default function AdoptionCreatePage() {
           const uniqueColors = [...new Set(detectedColors)];
           const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
           updateForm("color", colorNames);
+          uygulanan += 1;
         }
 
-        setAnalysisMessage("AI analizi tamamlandı. Bilgiler forma aktarıldı.");
+        setAnalysisMessage(
+          uygulanan > 0
+            ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
+        );
       }
     } catch (err) {
       console.error("AI analiz hatası:", err);
@@ -382,22 +399,30 @@ export default function AdoptionCreatePage() {
     });
   };
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
+  const handleUseLocation = async () => {
+    setErrorMessage("");
+
+    /*
+     * Konum alma ortak yardımcıya taşındı (utils/konum.ts): hata KODU
+     * ayrıştırılıyor ve zaman aşımında yüksek doğruluk kapalı ikinci
+     * deneme yapılıyor. Eskiden üç ayrı arıza için tek metin basılıyordu:
+     * "konum iznini etkinleştirin" — telefonda en sık görülen hata ise
+     * izin reddi değil, GPS kilidinin gelmemesiydi.
+     */
+    let koordinat;
+    try {
+      koordinat = await konumAl();
+    } catch (hata) {
+      setErrorMessage(konumHataMesaji(hata));
       return;
     }
 
-    setErrorMessage("");
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        /*
-         * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
-         * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
-         */
+    {
+      const coords = { latitude: koordinat.enlem, longitude: koordinat.boylam };
+      /*
+       * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
+       * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
+       */
         updateForm(
           "latitude",
           String(coords.latitude),
@@ -434,13 +459,7 @@ export default function AdoptionCreatePage() {
             "Konum bilgisi şehir adına dönüştürülemedi.",
           );
         }
-      },
-      () => {
-        setErrorMessage(
-          "Konum alınamadı. Lütfen konum izni verdiğinizden emin olun.",
-        );
-      },
-    );
+    }
   };
 
   /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
@@ -690,9 +709,9 @@ export default function AdoptionCreatePage() {
                   type="button"
                   onClick={openFilePicker}
                   disabled={isCompressing}
-                  className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#FB923C] hover:bg-[#FFF7ED] disabled:opacity-50"
+                  className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#FB923C] hover:bg-[#FFF7ED] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-orange-500/10"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400">
                     {isCompressing ? (
                       <Loader2 size={30} className="animate-spin" />
                     ) : (
@@ -704,7 +723,7 @@ export default function AdoptionCreatePage() {
                     {isCompressing ? "Sıkıştırılıyor..." : "Fotoğraf yükle"}
                   </strong>
 
-                  <span className="mt-2 text-sm text-[#64748B]">
+                  <span className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
                     En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
                     her biri {MAX_FILE_SIZE_MB} MB · JPG, PNG veya WEBP
                   </span>
@@ -715,7 +734,7 @@ export default function AdoptionCreatePage() {
                     {images.map((image, index) => (
                       <div
                         key={image.id}
-                        className="relative overflow-hidden rounded-2xl border border-[#E2E8F0]"
+                        className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] dark:border-slate-700"
                       >
                         <img
                           src={image.preview}
@@ -746,7 +765,7 @@ export default function AdoptionCreatePage() {
                         type="button"
                         onClick={openFilePicker}
                         disabled={isCompressing}
-                        className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-50"
+                        className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-orange-500/10"
                       >
                         {isCompressing ? (
                           <>
@@ -765,7 +784,7 @@ export default function AdoptionCreatePage() {
                     )}
                   </div>
 
-                  <p className="mt-3 text-sm text-[#64748B]">
+                  <p className="mt-3 text-sm text-[#64748B] dark:text-slate-400">
                     {images.length}/{MAX_IMAGES} fotoğraf
                     yüklendi.
                   </p>
@@ -979,7 +998,7 @@ export default function AdoptionCreatePage() {
                 <button
                   type="button"
                   onClick={handleUseLocation}
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-2.5 text-sm font-bold text-[#EA580C] transition hover:bg-[#FFEDD5]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-2.5 text-sm font-bold text-[#EA580C] transition hover:bg-[#FFEDD5] dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400 dark:hover:bg-orange-500/15"
                 >
                   <MapPin size={17} />
                   Mevcut konumumu kullan
@@ -1102,13 +1121,13 @@ export default function AdoptionCreatePage() {
             {errorMessage && (
               <div
                 role="alert"
-                className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C]"
+                className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
               >
                 {errorMessage}
               </div>
             )}
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
               <input
                 type="checkbox"
                 checked={form.acceptResponsibility}
@@ -1122,11 +1141,11 @@ export default function AdoptionCreatePage() {
               />
 
               <div>
-                <strong className="text-sm text-[#0F172A]">
+                <strong className="text-sm text-[#0F172A] dark:text-slate-100">
                   Bilgilerin doğruluğunu onaylıyorum.
                 </strong>
 
-                <p className="mt-1 text-sm leading-6 text-[#64748B]">
+                <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
                   İlanda verdiğim bilgilerin doğru olduğunu
                   ve sahiplendirme sürecinde hayvanın
                   güvenliğini önceliklendireceğimi kabul
@@ -1138,7 +1157,7 @@ export default function AdoptionCreatePage() {
             {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
                 formu baştan sona kontrol etmeye zorlar. */}
             {images.length < MIN_IMAGES && (
-              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
                 <ImagePlus size={17} />
                 İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
               </p>
@@ -1167,7 +1186,7 @@ export default function AdoptionCreatePage() {
 }
 
 const inputClass =
-  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]/40";
+  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 type FormCardProps = {
   icon: React.ReactNode;
@@ -1183,18 +1202,18 @@ function FormCard({
   children,
 }: FormCardProps) {
   return (
-    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7">
-      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5 dark:border-slate-800">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10 dark:text-orange-400">
           {icon}
         </div>
 
         <div>
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold dark:text-slate-50">
             {title}
           </h2>
 
-          <p className="mt-1 text-sm leading-6 text-[#64748B]">
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
             {description}
           </p>
         </div>
@@ -1218,7 +1237,7 @@ function Field({
 }: FieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-[#334155]">
+      <span className="text-sm font-semibold text-[#334155] dark:text-slate-300">
         {label}
 
         {required && (
@@ -1247,7 +1266,7 @@ function CheckBox({
   description,
 }: CheckBoxProps) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition hover:border-[#FDBA74]">
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition hover:border-[#FDBA74] dark:border-slate-700 dark:bg-slate-800/60">
       <input
         type="checkbox"
         checked={checked}
@@ -1262,7 +1281,7 @@ function CheckBox({
           {title}
         </strong>
 
-        <p className="mt-1 text-xs leading-5 text-[#64748B]">
+        <p className="mt-1 text-xs leading-5 text-[#64748B] dark:text-slate-400">
           {description}
         </p>
       </div>

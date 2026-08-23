@@ -90,15 +90,15 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8">
-      <div className="pointer-events-none absolute left-0 top-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 dark:bg-slate-950">
+      <div className="pointer-events-none absolute left-0 top-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl dark:bg-orange-500/10" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl dark:bg-blue-500/10" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-lg items-center">
-        <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-10">
+        <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-10 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/40">
           <Link
             href="/login"
-            className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500"
+            className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500 dark:text-slate-400"
           >
             <ArrowLeft size={18} />
             Giriş sayfasına dön
@@ -119,11 +119,11 @@ export default function ResetPasswordPage() {
 
           {!token ? (
             <div>
-              <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900">
+              <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
                 Bağlantı eksik
               </h1>
 
-              <p className="mb-8 text-slate-500">
+              <p className="mb-8 text-slate-500 dark:text-slate-400">
                 Bu sayfa yalnız e-postandaki şifre sıfırlama
                 bağlantısıyla açılabilir. Bağlantının süresi 15
                 dakikadır; yeni bir bağlantı isteyebilirsin.
@@ -138,15 +138,15 @@ export default function ResetPasswordPage() {
             </div>
           ) : isDone ? (
             <div>
-              <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-500">
+              <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400">
                 <CheckCircle2 size={28} />
               </span>
 
-              <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900">
+              <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
                 Şifren güncellendi
               </h1>
 
-              <p className="mb-8 text-slate-500">
+              <p className="mb-8 text-slate-500 dark:text-slate-400">
                 Artık yeni şifrenle giriş yapabilirsin.
               </p>
 
@@ -160,15 +160,15 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <div className="mb-8">
-                <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 text-orange-500">
+                <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
                   <KeyRound size={28} />
                 </span>
 
-                <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900">
+                <h1 className="mb-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
                   Yeni şifreni belirle
                 </h1>
 
-                <p className="text-slate-500">
+                <p className="text-slate-500 dark:text-slate-400">
                   En az 8 karakter; bir büyük harf, bir küçük harf ve
                   bir rakam içermeli.
                 </p>
@@ -178,7 +178,7 @@ export default function ResetPasswordPage() {
                 <div>
                   <label
                     htmlFor="newPassword"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
+                    className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
                   >
                     Yeni şifre
                   </label>
@@ -189,14 +189,14 @@ export default function ResetPasswordPage() {
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
                     autoComplete="new-password"
-                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-orange-500"
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-orange-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="confirmPassword"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
+                    className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
                   >
                     Yeni şifre (tekrar)
                   </label>
@@ -207,14 +207,14 @@ export default function ResetPasswordPage() {
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     autoComplete="new-password"
-                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-orange-500"
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-orange-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
 
                 {errorMessage && (
                   <p
                     role="alert"
-                    className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+                    className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400"
                   >
                     {errorMessage}
                   </p>

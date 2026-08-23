@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+/* Karanlık tema, medya sorgusu yerine .dark sınıfına bağlanır — böylece
+   ThemeContext'teki manuel anahtar sistem tercihini ezebilir. */
+@custom-variant dark (&:where(.dark, .dark *));

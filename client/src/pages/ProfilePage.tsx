@@ -451,11 +451,11 @@ function ProfileContent() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
         <Header />
         <main className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-            <p className="text-base text-[#64748B]">
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm dark:border-[#334155] dark:bg-[#1E293B]">
+            <p className="text-base text-[#64748B] dark:text-[#94A3B8]">
               Profil bilgileri yükleniyor
             </p>
           </div>
@@ -466,7 +466,7 @@ function ProfileContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
@@ -475,11 +475,11 @@ function ProfileContent() {
             Hesabım
           </p>
 
-          <h1 className="mt-1 text-[32px] font-bold leading-10 text-[#0F172A]">
+          <h1 className="mt-1 text-[32px] font-bold leading-10 text-[#0F172A] dark:text-[#F1F5F9]">
             Profil
           </h1>
 
-          <p className="mt-2 text-base leading-6 text-[#64748B]">
+          <p className="mt-2 text-base leading-6 text-[#64748B] dark:text-[#94A3B8]">
             Kişisel bilgilerinizi ve PATIMATI hesabınızı buradan
             yönetebilirsiniz
           </p>
@@ -487,35 +487,35 @@ function ProfileContent() {
 
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm dark:border-[#334155] dark:bg-[#1E293B]">
               <div className="flex flex-col items-center text-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#FFF7ED] text-2xl font-bold text-[#F97316]">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#FFF7ED] text-2xl font-bold text-[#F97316] dark:bg-orange-500/10">
                   {getInitials(user)}
                 </div>
 
-                <h2 className="mt-4 text-xl font-semibold leading-7">
+                <h2 className="mt-4 text-xl font-semibold leading-7 dark:text-[#F1F5F9]">
                   {displayName}
                 </h2>
 
-                <p className="mt-1 break-all text-sm leading-5 text-[#64748B]">
+                <p className="mt-1 break-all text-sm leading-5 text-[#64748B] dark:text-[#94A3B8]">
                   {user?.email || "E-posta belirtilmemiş"}
                 </p>
 
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-3 py-1 text-xs font-medium text-[#15803D]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-3 py-1 text-xs font-medium text-[#15803D] dark:bg-emerald-500/10 dark:text-emerald-400">
                     <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
                     {user?.role === "ADMIN" ? "Yönetici" : "Kullanıcı"}
                   </span>
 
                   {typeof user?.lostBadgeLevel === "number" && user.lostBadgeLevel > 0 && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                       <Award size={13} />
                       Kayıp Seviye {user.lostBadgeLevel}
                     </span>
                   )}
 
                   {typeof user?.adoptionBadgeLevel === "number" && user.adoptionBadgeLevel > 0 && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                       <Shield size={13} />
                       Sahiplendirme Seviye {user.adoptionBadgeLevel}
                     </span>
@@ -525,7 +525,7 @@ function ProfileContent() {
                 <button
                   type="button"
                   onClick={openEditMode}
-                  className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#CBD5E1] bg-white px-4 font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE]"
+                  className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#CBD5E1] bg-white px-4 font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE] dark:border-[#475569] dark:bg-[#1E293B] dark:text-[#F1F5F9] dark:hover:bg-[#334155]"
                 >
                   <Pencil size={18} />
                   Profili düzenle
@@ -533,7 +533,7 @@ function ProfileContent() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm dark:border-[#334155] dark:bg-[#1E293B]">
               <ProfileMenuItem
                 icon={<PawPrint size={20} />}
                 label="İlanlarım"
@@ -573,14 +573,14 @@ function ProfileContent() {
           </aside>
 
           <div className="space-y-6">
-            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6">
+            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6 dark:border-[#334155] dark:bg-[#1E293B]">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold leading-7">
+                  <h2 className="text-xl font-semibold leading-7 dark:text-[#F1F5F9]">
                     Kişisel bilgiler
                   </h2>
 
-                  <p className="mt-1 text-sm leading-5 text-[#64748B]">
+                  <p className="mt-1 text-sm leading-5 text-[#64748B] dark:text-[#94A3B8]">
                     İletişim ve hesap bilgileriniz
                   </p>
                 </div>
@@ -589,7 +589,7 @@ function ProfileContent() {
                   <button
                     type="button"
                     onClick={openEditMode}
-                    className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-[#F97316] transition hover:bg-[#FFF7ED] focus:outline-none focus:ring-4 focus:ring-[#FED7AA]"
+                    className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-[#F97316] transition hover:bg-[#FFF7ED] focus:outline-none focus:ring-4 focus:ring-[#FED7AA] dark:hover:bg-orange-500/10"
                   >
                     <Pencil size={16} />
                     Düzenle
@@ -641,7 +641,7 @@ function ProfileContent() {
 
                     {isResolvingCity && (
                       <p
-                        className="mt-2 text-xs text-[#64748B]"
+                        className="mt-2 text-xs text-[#64748B] dark:text-[#94A3B8]"
                         role="status"
                       >
                         Şehir bilgisi belirleniyor...
@@ -650,7 +650,7 @@ function ProfileContent() {
 
                     {locationError && (
                       <p
-                        className="mt-2 text-xs text-[#DC2626]"
+                        className="mt-2 text-xs text-[#DC2626] dark:text-red-400"
                         role="alert"
                       >
                         {locationError}
@@ -668,7 +668,7 @@ function ProfileContent() {
 
                   {message && (
                     <p
-                      className="rounded-xl bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D] sm:col-span-2"
+                      className="rounded-xl bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D] sm:col-span-2 dark:bg-emerald-500/10 dark:text-emerald-400"
                       role="status"
                     >
                       {message}
@@ -680,7 +680,7 @@ function ProfileContent() {
                       type="button"
                       onClick={cancelEditMode}
                       disabled={isSaving}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#CBD5E1] bg-white px-4 font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#CBD5E1] bg-white px-4 font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#475569] dark:bg-[#1E293B] dark:text-[#F1F5F9] dark:hover:bg-[#334155]"
                     >
                       <X size={18} />
                       Vazgeç
@@ -748,12 +748,12 @@ function ProfileContent() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6">
-              <h2 className="text-xl font-semibold leading-7">
+            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6 dark:border-[#334155] dark:bg-[#1E293B]">
+              <h2 className="text-xl font-semibold leading-7 dark:text-[#F1F5F9]">
                 Hesap güvenliği
               </h2>
 
-              <p className="mt-1 text-sm leading-5 text-[#64748B]">
+              <p className="mt-1 text-sm leading-5 text-[#64748B] dark:text-[#94A3B8]">
                 Şifrenizi ve oturum bilgilerinizi yönetin
               </p>
 
@@ -761,18 +761,18 @@ function ProfileContent() {
                 <button
                   type="button"
                   onClick={() => navigate("/change-password")}
-                  className="flex w-full items-center gap-3 rounded-xl border border-[#E2E8F0] p-4 text-left transition hover:border-[#CBD5E1] hover:bg-[#F8FAFC] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE]"
+                  className="flex w-full items-center gap-3 rounded-xl border border-[#E2E8F0] p-4 text-left transition hover:border-[#CBD5E1] hover:bg-[#F8FAFC] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE] dark:border-[#334155] dark:hover:border-[#475569] dark:hover:bg-[#334155]/40"
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#3B82F6]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#3B82F6] dark:bg-blue-500/10 dark:text-blue-400">
                     <LockKeyhole size={20} />
                   </span>
 
                   <span className="min-w-0 flex-1">
-                    <strong className="block text-base font-semibold">
+                    <strong className="block text-base font-semibold dark:text-[#F1F5F9]">
                       Şifre değiştir
                     </strong>
 
-                    <span className="mt-1 block text-sm text-[#64748B]">
+                    <span className="mt-1 block text-sm text-[#64748B] dark:text-[#94A3B8]">
                       Hesap şifrenizi güvenli şekilde yenileyin
                     </span>
                   </span>
@@ -786,7 +786,7 @@ function ProfileContent() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#FEF2F2] px-4 font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2] focus:outline-none focus:ring-4 focus:ring-[#FECACA]"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#FEF2F2] px-4 font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2] focus:outline-none focus:ring-4 focus:ring-[#FECACA] dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
                 >
                   <LogOut size={20} />
                   Çıkış Yap
@@ -829,7 +829,7 @@ function ProfileInput({
 }: ProfileInputProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-[#0F172A]">
+      <span className="mb-2 block text-sm font-medium text-[#0F172A] dark:text-[#F1F5F9]">
         {label}
       </span>
 
@@ -839,7 +839,7 @@ function ProfileInput({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-base text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]"
+        className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-base text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA] dark:border-[#475569] dark:bg-[#1E293B] dark:text-[#F1F5F9]"
       />
     </label>
   );
@@ -853,17 +853,17 @@ type InfoItemProps = {
 
 function InfoItem({ icon, label, value }: InfoItemProps) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-      <span className="mt-0.5 shrink-0 text-[#64748B]">
+    <div className="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-[#334155] dark:bg-[#0F172A]">
+      <span className="mt-0.5 shrink-0 text-[#64748B] dark:text-[#94A3B8]">
         {icon}
       </span>
 
       <div className="min-w-0">
-        <span className="block text-xs leading-4 text-[#64748B]">
+        <span className="block text-xs leading-4 text-[#64748B] dark:text-[#94A3B8]">
           {label}
         </span>
 
-        <strong className="mt-1 block truncate text-sm font-semibold text-[#0F172A]">
+        <strong className="mt-1 block truncate text-sm font-semibold text-[#0F172A] dark:text-[#F1F5F9]">
           {value}
         </strong>
       </div>
@@ -890,20 +890,20 @@ function ProfileMenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 p-4 text-left transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-4 focus:ring-inset focus:ring-[#DBEAFE] ${
-        isLast ? "" : "border-b border-[#E2E8F0]"
+      className={`flex w-full items-center gap-3 p-4 text-left transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-4 focus:ring-inset focus:ring-[#DBEAFE] dark:hover:bg-[#0F172A] ${
+        isLast ? "" : "border-b border-[#E2E8F0] dark:border-[#334155]"
       }`}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
         {icon}
       </span>
 
       <span className="min-w-0 flex-1">
-        <strong className="block text-sm font-semibold text-[#0F172A]">
+        <strong className="block text-sm font-semibold text-[#0F172A] dark:text-[#F1F5F9]">
           {label}
         </strong>
 
-        <span className="mt-1 block truncate text-xs text-[#64748B]">
+        <span className="mt-1 block truncate text-xs text-[#64748B] dark:text-[#94A3B8]">
           {description}
         </span>
       </span>

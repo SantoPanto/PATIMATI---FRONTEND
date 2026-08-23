@@ -61,11 +61,20 @@ vi.mock("../services/firebase", () => ({
 }));
 
 import Header from "./Header";
+import { ThemeProvider } from "../contexts/ThemeContext";
 import {
   clearInAppNotifications,
   markAllNotificationsAsRead,
   recordForegroundNotification,
 } from "../services/notifications";
+
+function renderHeader() {
+  return render(
+    <ThemeProvider>
+      <Header />
+    </ThemeProvider>,
+  );
+}
 
 function noktayiBul(): Element | null {
   return document.querySelector(".notification-dot");
@@ -88,7 +97,7 @@ beforeEach(() => {
 
 describe("Header zil noktası", () => {
   it("hic bildirim yokken nokta CIZILMEZ", () => {
-    render(<Header />);
+    renderHeader();
 
     expect(
       screen.getByLabelText("Bildirimleri görüntüle"),
@@ -97,7 +106,7 @@ describe("Header zil noktası", () => {
   });
 
   it("okunmamis bildirim gelince nokta yanar", () => {
-    render(<Header />);
+    renderHeader();
 
     act(() => {
       okunmamisBildirimEkle();
@@ -111,7 +120,7 @@ describe("Header zil noktası", () => {
       okunmamisBildirimEkle();
     });
 
-    render(<Header />);
+    renderHeader();
     expect(noktayiBul()).not.toBeNull();
 
     act(() => {

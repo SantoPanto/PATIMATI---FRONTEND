@@ -13,6 +13,7 @@ import {
 } from "../utils/adPresentation";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { mesafeKm } from "../utils/mesafe";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../App.css";
@@ -299,17 +300,28 @@ export default function HomePage() {
     setSearchValue("");
   };
 
-  const handleChangeLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Tarayıcınız konum özelliğini desteklemiyor");
+  const handleChangeLocation = async () => {
+    setIsLocationLoading(true);
+
+    /*
+     * Konum alma ortak yardımcıda (utils/konum.ts): zaman aşımında yüksek
+     * doğruluk kapalı ikinci deneme yapılıyor. Buradaki eski kod hata
+     * kodlarını AYIRIYORDU ama kapalı alanda GPS kilidi gelmeyince tek
+     * yaptığı "zaman aşımı oluştu" deyip pes etmekti.
+     */
+    let konum;
+    try {
+      konum = await konumAl();
+    } catch (hata) {
+      console.error("Konum alınamadı", hata);
+      setIsLocationLoading(false);
+      alert(konumHataMesaji(hata));
       return;
     }
 
-    setIsLocationLoading(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    {
+      const latitude = konum.enlem;
+      const longitude = konum.boylam;
 
         // Koordinat yalnız şehir adına çevrilip atılmıyor: mesafe süzgeci ve
         // kartlardaki "x km" bu değerden hesaplanıyor.
@@ -344,37 +356,7 @@ export default function HomePage() {
         } finally {
           setIsLocationLoading(false);
         }
-      },
-      (error) => {
-        console.error("Konum alınamadı", error);
-
-        setIsLocationLoading(false);
-
-        if (error.code === error.PERMISSION_DENIED) {
-          alert(
-            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.",
-          );
-          return;
-        }
-
-        if (error.code === error.POSITION_UNAVAILABLE) {
-          alert("Konum bilgisi şu anda alınamıyor");
-          return;
-        }
-
-        if (error.code === error.TIMEOUT) {
-          alert("Konum alınırken zaman aşımı oluştu");
-          return;
-        }
-
-        alert("Konumunuz alınamadı. Lütfen tekrar deneyin.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    }
   };
 
   if (isAuthLoading) {

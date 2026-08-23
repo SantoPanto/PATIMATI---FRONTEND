@@ -15,7 +15,7 @@ export default function RequireGuest({ component: GuestComponent }: { component:
 
   if (isAuthLoading || isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500" role="status">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500 dark:bg-slate-950 dark:text-slate-400" role="status">
         Sayfa hazırlanıyor...
       </div>
     );

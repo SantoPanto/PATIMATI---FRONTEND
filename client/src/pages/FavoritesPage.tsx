@@ -126,17 +126,17 @@ export default function FavoritesPage() {
   };
 
   return (
-    <div className="home-page min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
+    <div className="home-page min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main className="mx-auto flex-1 w-full max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFF7ED] via-white to-[#EFF6FF] p-5 sm:p-7">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFF7ED] via-white to-[#EFF6FF] p-5 sm:p-7 dark:from-orange-500/10 dark:via-slate-900 dark:to-blue-500/10">
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#FED7AA]/40" />
           <div className="absolute -bottom-12 right-28 h-32 w-32 rounded-full bg-[#BFDBFE]/30" />
 
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#F97316] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#F97316] shadow-sm dark:bg-slate-800">
                 <Heart size={16} fill="currentColor" />
                 Kaydettiğin ilanlar
               </div>
@@ -145,18 +145,18 @@ export default function FavoritesPage() {
                 Favorilerim
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] sm:text-base">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] sm:text-base dark:text-slate-400">
                 Takip etmek istediğin kayıp, bulundu ve sahiplendirme ilanlarına buradan hızlıca ulaşabilirsin.
               </p>
             </div>
 
-            <div className="flex min-w-[180px] items-center gap-3 rounded-2xl border border-white bg-white/80 p-4 shadow-sm backdrop-blur">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+            <div className="flex min-w-[180px] items-center gap-3 rounded-2xl border border-white bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
                 <Heart size={23} fill="currentColor" />
               </span>
 
               <div>
-                <span className="block text-xs font-medium text-[#64748B]">
+                <span className="block text-xs font-medium text-[#64748B] dark:text-slate-400">
                   Toplam favori
                 </span>
 
@@ -169,7 +169,7 @@ export default function FavoritesPage() {
         </section>
 
         {/* Filter Section */}
-        <section className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
+        <section className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-md">
               <Search
@@ -182,12 +182,12 @@ export default function FavoritesPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="İlan başlığı, ırk veya konum ara..."
-                className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-4 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]"
+                className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-4 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-2 pb-1 lg:pb-0">
-              <span className="mr-1 hidden shrink-0 items-center gap-2 text-sm font-medium text-[#64748B] sm:inline-flex">
+              <span className="mr-1 hidden shrink-0 items-center gap-2 text-sm font-medium text-[#64748B] sm:inline-flex dark:text-slate-400">
                 <SlidersHorizontal size={17} />
                 Filtrele
               </span>
@@ -203,7 +203,7 @@ export default function FavoritesPage() {
                     className={`h-10 shrink-0 rounded-xl px-4 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-[#FED7AA] ${
                       isSelected
                         ? "bg-[#F97316] text-[#ffffff] shadow-sm"
-                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#FDBA74] hover:bg-[#FFF7ED] hover:text-[#EA580C]"
+                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#FDBA74] hover:bg-[#FFF7ED] hover:text-[#EA580C] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-orange-500/10"
                     }`}
                   >
                     {category}
@@ -217,7 +217,7 @@ export default function FavoritesPage() {
         <div className="mt-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">Favori ilanların</h2>
-            <p className="mt-1 text-sm text-[#64748B]">
+            <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
               {filteredFavorites.length} ilan gösteriliyor
             </p>
           </div>
@@ -239,7 +239,7 @@ export default function FavoritesPage() {
             {Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="h-80 animate-pulse rounded-2xl bg-slate-200"
+                className="h-80 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800"
               />
             ))}
           </div>
@@ -279,18 +279,18 @@ function EmptyFavorites({
   onExplore,
 }: EmptyFavoritesProps) {
   return (
-    <section className="mt-6 rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-5 py-14 text-center shadow-sm">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FFF7ED] text-[#F97316]">
+    <section className="mt-6 rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-5 py-14 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
         {hasFavorites ? <Search size={34} /> : <Heart size={34} />}
       </div>
 
-      <h2 className="mt-5 text-xl font-bold text-[#0F172A]">
+      <h2 className="mt-5 text-xl font-bold text-[#0F172A] dark:text-slate-50">
         {hasFavorites
           ? "Aramana uygun ilan bulunamadı"
           : "Henüz favori ilanın yok"}
       </h2>
 
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#64748B]">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#64748B] dark:text-slate-400">
         {hasFavorites
           ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin."
           : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin."}
