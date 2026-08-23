@@ -6,20 +6,28 @@ vi.mock("browser-image-compression", () => {
   return {
     default: vi.fn(async (_file: File, options?: any) => {
       // Return a dummy blob representing compressed image
-      const type = options?.fileType || "image/webp";
+      const type = options?.fileType || "image/jpeg";
       return new Blob(["compressed-content"], { type });
     }),
   };
 });
 
 describe("imageCompression utility", () => {
-  it("compresses an image file and returns a WebP File object by default", async () => {
-    const originalFile = new File(["dummy content"], "dog.jpg", { type: "image/jpeg" });
-    const compressed = await compressImage(originalFile);
+  it("compresses an image file and returns a JPEG File object by default", async () => {
+    const originalPng = new File(["dummy content"], "dog.png", { type: "image/png" });
+    const compressed = await compressImage(originalPng);
 
     expect(compressed).toBeInstanceOf(File);
-    expect(compressed.name).toBe("dog.webp");
-    expect(compressed.type).toBe("image/webp");
+    expect(compressed.name).toBe("dog.jpg");
+    expect(compressed.type).toBe("image/jpeg");
+  });
+
+  it("converts webp original files to .jpg extension and image/jpeg type", async () => {
+    const originalWebp = new File(["dummy content"], "cat.webp", { type: "image/webp" });
+    const compressed = await compressImage(originalWebp);
+
+    expect(compressed.name).toBe("cat.jpg");
+    expect(compressed.type).toBe("image/jpeg");
   });
 
   it("preserves non-image files without attempting compression", async () => {
@@ -37,7 +45,9 @@ describe("imageCompression utility", () => {
 
     const results = await compressImages(files);
     expect(results).toHaveLength(2);
-    expect(results[0].type).toBe("image/webp");
-    expect(results[1].type).toBe("image/webp");
+    expect(results[0].type).toBe("image/jpeg");
+    expect(results[0].name).toBe("cat.jpg");
+    expect(results[1].type).toBe("image/jpeg");
+    expect(results[1].name).toBe("pet.jpeg");
   });
 });
