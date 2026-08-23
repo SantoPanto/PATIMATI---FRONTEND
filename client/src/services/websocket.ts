@@ -105,6 +105,10 @@ export function connectWebSocket(
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
 
+    debug: (msg: string) => {
+      console.log(`[STOMP DEBUG] [Instance #${instanceId}] ${msg}`);
+    },
+
     beforeConnect: () => {
       const freshToken = getStoredToken();
       if (isReconnecting) {
@@ -131,8 +135,9 @@ export function connectWebSocket(
 
     reconnectDelay: 5000,
 
-    onConnect: () => {
-      console.log(`[WS CONNECT] [Instance #${instanceId}] STOMP Connected successfully at ${new Date().toISOString()}`);
+    onConnect: (frame) => {
+      console.log(`[WS CONNECTED] [Instance #${instanceId}] STOMP Connected successfully at ${new Date().toISOString()}`);
+      console.log(`[WS CONNECTED] [Instance #${instanceId}] Server heart-beat header: "${frame.headers["heart-beat"]}". Client configured: incoming=${stompClient?.heartbeatIncoming}, outgoing=${stompClient?.heartbeatOutgoing}`);
       isReconnecting = false;
 
       // Clean up previous active subscriptions to prevent duplicates on reconnect
@@ -146,10 +151,10 @@ export function connectWebSocket(
 
       callbacks?.onConnect?.();
 
-      const handleMessageFrame = (frame: { body: string }) => {
-        console.log(`[WS MESSAGE] [Instance #${instanceId}] Received frame on /user/queue/messages:`, frame.body);
+      const handleMessageFrame = (msgFrame: { body: string }) => {
+        console.log(`[WS MESSAGE] [Instance #${instanceId}] Received frame on /user/queue/messages:`, msgFrame.body);
         try {
-          const message: MessageResponse = JSON.parse(frame.body);
+          const message: MessageResponse = JSON.parse(msgFrame.body);
           console.log(`[WS MESSAGE] [Instance #${instanceId}] Parsed message id=${message.id}, content="${message.content}". Listener count: ${messageListeners.size}`);
           messageListeners.forEach((listener) => listener(message));
         } catch (parseErr) {
@@ -166,9 +171,9 @@ export function connectWebSocket(
       if (subQueueFallback) activeSubscriptions.push(subQueueFallback);
 
       console.log(`[WS SUBSCRIBE] [Instance #${instanceId}] Subscribing to /topic/user-status`);
-      const subStatus = stompClient?.subscribe("/topic/user-status", (frame) => {
+      const subStatus = stompClient?.subscribe("/topic/user-status", (statusFrame) => {
         try {
-          const statusEvent: UserStatusEvent = JSON.parse(frame.body);
+          const statusEvent: UserStatusEvent = JSON.parse(statusFrame.body);
           userStatusListeners.forEach((listener) => listener(statusEvent));
         } catch (parseErr) {
           console.error("Kullanıcı durum ayrıştırma hatası:", parseErr);
@@ -195,12 +200,12 @@ export function connectWebSocket(
     },
 
     onWebSocketError: (event) => {
-      console.error(`[WS ERROR] [Instance #${instanceId}] WebSocket Error:`, event);
+      console.error(`[WS ERROR] [Instance #${instanceId}] WebSocket Error event:`, event);
       callbacks?.onError?.(event);
     },
 
     onWebSocketClose: (event) => {
-      console.log(`[WS DISCONNECT] [Instance #${instanceId}] WebSocket closed (Code: ${event.code}, Reason: ${event.reason}). Will attempt reconnect.`);
+      console.log(`[WS CLOSE] [Instance #${instanceId}] WebSocket closed at ${new Date().toISOString()}. code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
       isReconnecting = true;
       callbacks?.onDisconnect?.();
     },
