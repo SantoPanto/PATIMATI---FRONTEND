@@ -22,7 +22,7 @@ import { request } from "../services/api";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
-import { compressImages } from "../utils/imageCompression";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   siyah: "BLACK",
@@ -335,8 +335,21 @@ export default function AdoptionCreatePage() {
 
     try {
       setIsCompressing(true);
-      const compressedFiles = await compressImages(filesToAdd);
-      const newImages = compressedFiles.map((file) => ({
+
+      // Sıkıştırma SONRASI yeniden ölç (bkz. imageCompression.ts): sıkıştırma
+      // başarısız olursa orijinal dosya geri geliyor ve sunucudan 413 alınıyor.
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages = accepted.map((file) => ({
         id: createImageId(file),
         file,
         preview: URL.createObjectURL(file),
