@@ -17,23 +17,23 @@ export default function AiMatchModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6">
-          <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6 dark:border-slate-800">
+          <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2 dark:text-slate-50">
             <Sparkles className="text-[#F97316]" size={24} />
             Olası Eşleşmeler Bulundu!
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition"
+            className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition dark:text-slate-400 dark:hover:bg-slate-800"
             aria-label="Kapat"
           >
             <X size={24} />
           </button>
         </div>
 
-        <p className="text-[#64748B] mb-6">
+        <p className="text-[#64748B] mb-6 dark:text-slate-400">
           İlanını oluşturmadan önce, sistemimizde fotoğrafı yüklediğin hayvana benzeyen bazı ilanlar bulduk. Lütfen bunları incele:
         </p>
 

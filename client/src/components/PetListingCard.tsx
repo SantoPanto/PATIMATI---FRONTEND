@@ -100,7 +100,7 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
           <img src={image} alt={ad.title} loading="lazy" />
         ) : (
           <div
-            className="flex h-full min-h-[220px] w-full items-center justify-center bg-[#FFF7ED] text-[#F97316]"
+            className="flex h-full min-h-[220px] w-full items-center justify-center bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10"
             aria-label="Fotoğraf bulunmuyor"
           >
             <Search size={42} />
@@ -150,7 +150,7 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
           <span className="truncate">{getAdLocation(ad)}</span>
         </div>
 
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B]">
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#64748B] dark:text-slate-400">
           <span>{getGenderLabel(ad.gender)}</span>
           <span>{getAgeLabel(ad.ageGroup)}</span>
         </div>

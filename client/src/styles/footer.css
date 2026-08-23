@@ -1,4 +1,6 @@
 .pm-footer { border-top: 1px solid var(--pm-border); background: #fff; }
+.dark .pm-footer { background: var(--pm-surface); }
+.dark .pm-footer__bottom { color: #64748b; }
 .pm-footer__inner { display: grid; grid-template-columns: 1.4fr 1fr; gap: 44px; padding: 42px 0 30px; }
 .pm-footer__logo { display: inline-flex; align-items: center; gap: 10px; }
 .pm-footer__logo > span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--pm-primary-soft); color: var(--pm-primary); }

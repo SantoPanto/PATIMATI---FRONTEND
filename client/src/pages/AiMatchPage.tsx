@@ -327,7 +327,7 @@ export default function AiMatchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -646,11 +646,11 @@ export default function AiMatchPage() {
               Nasıl çalışır?
             </span>
 
-            <h2 className="mt-3 text-3xl font-bold text-[#0F172A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-bold text-[#0F172A] sm:text-4xl dark:text-slate-50">
               Üç adımda benzer ilanları bul
             </h2>
 
-            <p className="mt-4 leading-7 text-[#64748B]">
+            <p className="mt-4 leading-7 text-[#64748B] dark:text-slate-400">
               Farklı açılardan yüklenen fotoğraflar birlikte
               incelenerek daha güçlü eşleştirme sonuçları
               oluşturulur.
@@ -681,7 +681,7 @@ export default function AiMatchPage() {
           </div>
         </section>
 
-        <section className="border-y border-[#E2E8F0] bg-white">
+        <section className="border-y border-[#E2E8F0] bg-white dark:border-slate-800 dark:bg-slate-900">
           <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 sm:px-6 md:grid-cols-3 md:py-16 lg:px-8">
             <Feature
               title="Çoklu fotoğraf analizi"
@@ -720,20 +720,20 @@ function InfoCard({
   description,
 }: InfoCardProps) {
   return (
-    <article className="relative rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
-      <span className="absolute right-6 top-5 text-4xl font-black text-[#F1F5F9]">
+    <article className="relative rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-orange-500/40">
+      <span className="absolute right-6 top-5 text-4xl font-black text-[#F1F5F9] dark:text-slate-800">
         {number}
       </span>
 
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/10">
         {icon}
       </div>
 
-      <h3 className="mt-6 text-xl font-bold text-[#0F172A]">
+      <h3 className="mt-6 text-xl font-bold text-[#0F172A] dark:text-slate-50">
         {title}
       </h3>
 
-      <p className="mt-3 leading-7 text-[#64748B]">
+      <p className="mt-3 leading-7 text-[#64748B] dark:text-slate-400">
         {description}
       </p>
     </article>
@@ -751,16 +751,16 @@ function Feature({
 }: FeatureProps) {
   return (
     <div className="flex gap-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#F97316]">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/10">
         <CheckCircle2 size={22} />
       </div>
 
       <div>
-        <h3 className="font-bold text-[#0F172A]">
+        <h3 className="font-bold text-[#0F172A] dark:text-slate-50">
           {title}
         </h3>
 
-        <p className="mt-2 text-sm leading-6 text-[#64748B]">
+        <p className="mt-2 text-sm leading-6 text-[#64748B] dark:text-slate-400">
           {description}
         </p>
       </div>

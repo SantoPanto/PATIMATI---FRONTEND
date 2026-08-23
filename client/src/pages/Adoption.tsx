@@ -405,13 +405,13 @@ export default function Adoption() {
                 type="button"
                 onClick={goToPreviousPage}
                 disabled={currentPage === 0}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 aria-label="Önceki sayfa"
               >
                 <ChevronLeft size={20} />
               </button>
 
-              <span className="min-w-24 text-center text-sm font-medium text-[#64748B]">
+              <span className="min-w-24 text-center text-sm font-medium text-[#64748B] dark:text-slate-400">
                 {currentPage + 1} / {totalPages}
               </span>
 
@@ -419,7 +419,7 @@ export default function Adoption() {
                 type="button"
                 onClick={goToNextPage}
                 disabled={currentPage >= totalPages - 1}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 aria-label="Sonraki sayfa"
               >
                 <ChevronRight size={20} />

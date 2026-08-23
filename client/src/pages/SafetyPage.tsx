@@ -11,7 +11,7 @@ import Footer from "../components/Footer";
 
 export default function SafetyPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -104,14 +104,14 @@ function SafetyCard({
   description: string;
 }) {
   return (
-    <article className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
-      <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[#EFF6FF] p-3 text-[#2563EB]">
+    <article className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[#EFF6FF] p-3 text-[#2563EB] dark:bg-blue-500/10 dark:text-blue-400">
         {icon}
       </div>
 
       <h2 className="mt-5 text-xl font-bold">{title}</h2>
 
-      <p className="mt-3 leading-7 text-[#64748B]">
+      <p className="mt-3 leading-7 text-[#64748B] dark:text-slate-400">
         {description}
       </p>
     </article>

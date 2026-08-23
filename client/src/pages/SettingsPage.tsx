@@ -44,58 +44,58 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
+    <main className="min-h-screen bg-slate-50 px-4 py-10 dark:bg-slate-950">
       <div className="mx-auto max-w-4xl">
         <button
           type="button"
           onClick={() => navigate("/profile")}
-          className="mb-8 flex items-center gap-2 text-base font-medium text-slate-600 transition hover:text-orange-500"
+          className="mb-8 flex items-center gap-2 text-base font-medium text-slate-600 transition hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400"
         >
           <ChevronLeft size={20} />
           Profile dön
         </button>
 
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-slate-950">
+          <h1 className="text-4xl font-bold text-slate-950 dark:text-slate-50">
             Ayarlar
           </h1>
 
-          <p className="mt-3 text-lg text-slate-500">
+          <p className="mt-3 text-lg text-slate-500 dark:text-slate-400">
             Hesap ve uygulama tercihlerini yönet.
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {/* Bildirimler */}
-          <div className="border-b border-slate-100">
+          <div className="border-b border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => toggleSection("notifications")}
-              className="flex w-full items-center gap-5 px-7 py-6 text-left transition hover:bg-slate-50"
+              className="flex w-full items-center gap-5 px-7 py-6 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
                 <Bell size={24} />
               </div>
 
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-slate-950">
+                <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
                   Bildirimler
                 </h2>
 
-                <p className="mt-1 text-base text-slate-500">
+                <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
                   Bildirim tercihlerini düzenle
                 </p>
               </div>
 
               {openSection === "notifications" ? (
-                <ChevronUp className="text-slate-400" size={22} />
+                <ChevronUp className="text-slate-400 dark:text-slate-500" size={22} />
               ) : (
-                <ChevronDown className="text-slate-400" size={22} />
+                <ChevronDown className="text-slate-400 dark:text-slate-500" size={22} />
               )}
             </button>
 
             {openSection === "notifications" && (
-              <div className="border-t border-slate-100 bg-slate-50 px-7 py-5">
+              <div className="border-t border-slate-100 bg-slate-50 px-7 py-5 dark:border-slate-800 dark:bg-slate-800/40">
                 <SettingSwitch
                   title="Yeni mesajlar"
                   description="Yeni mesaj aldığında bildirim gönder."
@@ -126,35 +126,35 @@ export default function SettingsPage() {
           </div>
 
           {/* Gizlilik */}
-          <div className="border-b border-slate-100">
+          <div className="border-b border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => toggleSection("privacy")}
-              className="flex w-full items-center gap-5 px-7 py-6 text-left transition hover:bg-slate-50"
+              className="flex w-full items-center gap-5 px-7 py-6 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:text-blue-400">
                 <Eye size={24} />
               </div>
 
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-slate-950">
+                <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
                   Gizlilik
                 </h2>
 
-                <p className="mt-1 text-base text-slate-500">
+                <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
                   Profil ve konum görünürlüğünü yönet
                 </p>
               </div>
 
               {openSection === "privacy" ? (
-                <ChevronUp className="text-slate-400" size={22} />
+                <ChevronUp className="text-slate-400 dark:text-slate-500" size={22} />
               ) : (
-                <ChevronDown className="text-slate-400" size={22} />
+                <ChevronDown className="text-slate-400 dark:text-slate-500" size={22} />
               )}
             </button>
 
             {openSection === "privacy" && (
-              <div className="border-t border-slate-100 bg-slate-50 px-7 py-5">
+              <div className="border-t border-slate-100 bg-slate-50 px-7 py-5 dark:border-slate-800 dark:bg-slate-800/40">
                 <SettingSwitch
                   title="Profilimi göster"
                   description="Diğer kullanıcılar profil bilgilerini görebilsin."
@@ -199,18 +199,18 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => navigate("/change-password")}
-            className="flex w-full items-center gap-5 border-b border-slate-100 px-7 py-6 text-left transition hover:bg-slate-50"
+            className="flex w-full items-center gap-5 border-b border-slate-100 px-7 py-6 text-left transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400">
               <Lock size={24} />
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
                 Şifre değiştir
               </h2>
 
-              <p className="mt-1 text-base text-slate-500">
+              <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
                 Hesap şifreni güvenli şekilde yenile
               </p>
             </div>
@@ -219,18 +219,18 @@ export default function SettingsPage() {
           {/* Hesap silme */}
           <button
             type="button"
-            className="flex w-full items-center gap-5 px-7 py-6 text-left transition hover:bg-red-50"
+            className="flex w-full items-center gap-5 px-7 py-6 text-left transition hover:bg-red-50 dark:hover:bg-red-500/10"
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400">
               <Trash2 size={24} />
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold text-red-600">
+              <h2 className="text-lg font-semibold text-red-600 dark:text-red-400">
                 Hesabı sil
               </h2>
 
-              <p className="mt-1 text-base text-slate-500">
+              <p className="mt-1 text-base text-slate-500 dark:text-slate-400">
                 Hesabını kalıcı olarak kapat
               </p>
             </div>
@@ -259,12 +259,12 @@ function SettingSwitch({
   return (
     <div
       className={`flex items-center justify-between gap-5 py-4 ${
-        isLast ? "" : "border-b border-slate-200"
+        isLast ? "" : "border-b border-slate-200 dark:border-slate-800"
       }`}
     >
       <div>
-        <h3 className="font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">
+        <h3 className="font-semibold text-slate-900 dark:text-slate-50">{title}</h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           {description}
         </p>
       </div>
@@ -275,7 +275,7 @@ function SettingSwitch({
         aria-checked={checked}
         onClick={onChange}
         className={`relative h-7 w-12 shrink-0 rounded-full transition ${
-          checked ? "bg-orange-500" : "bg-slate-300"
+          checked ? "bg-orange-500" : "bg-slate-300 dark:bg-slate-700"
         }`}
       >
         <span
@@ -443,7 +443,8 @@ function CevreUyarilariAyari() {
 
   const girdiSinifi =
     "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm " +
-    "text-slate-900 focus:border-orange-400 focus:outline-none";
+    "text-slate-900 focus:border-orange-400 focus:outline-none " +
+    "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   return (
     <div>
@@ -456,10 +457,10 @@ function CevreUyarilariAyari() {
       />
 
       {yukleniyor ? (
-        <p className="pb-2 text-sm text-slate-400">Ayarların yükleniyor…</p>
+        <p className="pb-2 text-sm text-slate-400 dark:text-slate-500">Ayarların yükleniyor…</p>
       ) : (
         acik && (
-          <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -469,7 +470,7 @@ function CevreUyarilariAyari() {
                 <MapPin size={16} />
                 Konumumu kullan
               </button>
-              <span className="text-sm text-slate-400">
+              <span className="text-sm text-slate-400 dark:text-slate-500">
                 ya da il/ilçe yaz:
               </span>
             </div>
@@ -478,7 +479,7 @@ function CevreUyarilariAyari() {
               <div>
                 <label
                   htmlFor="cevre-il"
-                  className="mb-1 block text-xs font-medium text-slate-500"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   İl
                 </label>
@@ -494,7 +495,7 @@ function CevreUyarilariAyari() {
               <div>
                 <label
                   htmlFor="cevre-ilce"
-                  className="mb-1 block text-xs font-medium text-slate-500"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   İlçe
                 </label>
@@ -513,7 +514,7 @@ function CevreUyarilariAyari() {
                   onClick={() => {
                     void ilIlcedenBul();
                   }}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-orange-400 hover:text-orange-500"
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-orange-400 hover:text-orange-500 dark:border-slate-700 dark:text-slate-300 dark:hover:border-orange-500/60"
                 >
                   Bul
                 </button>
@@ -524,7 +525,7 @@ function CevreUyarilariAyari() {
               <div>
                 <label
                   htmlFor="cevre-enlem"
-                  className="mb-1 block text-xs font-medium text-slate-500"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   Enlem
                 </label>
@@ -541,7 +542,7 @@ function CevreUyarilariAyari() {
               <div>
                 <label
                   htmlFor="cevre-boylam"
-                  className="mb-1 block text-xs font-medium text-slate-500"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   Boylam
                 </label>
@@ -558,7 +559,7 @@ function CevreUyarilariAyari() {
               <div>
                 <label
                   htmlFor="cevre-yaricap"
-                  className="mb-1 block text-xs font-medium text-slate-500"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   Yarıçap
                 </label>
@@ -588,9 +589,9 @@ function CevreUyarilariAyari() {
         )
       )}
 
-      {hata && <p className="pb-2 text-sm text-red-600">{hata}</p>}
+      {hata && <p className="pb-2 text-sm text-red-600 dark:text-red-400">{hata}</p>}
       {!hata && mesaj && (
-        <p className="pb-2 text-sm text-emerald-600">{mesaj}</p>
+        <p className="pb-2 text-sm text-emerald-600 dark:text-emerald-400">{mesaj}</p>
       )}
     </div>
   );

@@ -1,13 +1,16 @@
 import {
   Bell,
   LogOut,
+  Moon,
   PawPrint,
   ShieldAlert,
+  Sun,
   UserRound,
 } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   getNotificationSnapshot,
   subscribeToNotifications,
@@ -16,6 +19,7 @@ import {
 export default function Header() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const notifications = useSyncExternalStore(
     subscribeToNotifications,
     getNotificationSnapshot,
@@ -45,10 +49,10 @@ export default function Header() {
         {isAdmin && (
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
             aria-label="Yönetim Paneli"
           >
-            <ShieldAlert size={18} className="text-blue-600" />
+            <ShieldAlert size={18} className="text-blue-600 dark:text-blue-400" />
             <span>Admin Panel</span>
           </Link>
         )}
@@ -110,6 +114,19 @@ export default function Header() {
         </nav>
 
         <div className="home-header__actions">
+          <button
+            className="header-notification-button"
+            type="button"
+            aria-label={
+              theme === "dark"
+                ? "Aydınlık temaya geç"
+                : "Karanlık temaya geç"
+            }
+            onClick={toggleTheme}
+          >
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
           {isAuthenticated ? (
             <>
               <button

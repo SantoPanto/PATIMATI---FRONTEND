@@ -11,7 +11,7 @@ import Footer from "../components/Footer";
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -60,7 +60,7 @@ export default function AboutPage() {
             />
           </div>
 
-          <div className="mt-16 grid gap-10 rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm lg:grid-cols-2 lg:p-10">
+          <div className="mt-16 grid gap-10 rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm lg:grid-cols-2 lg:p-10 dark:border-slate-800 dark:bg-slate-900">
             <div>
               <span className="text-sm font-bold uppercase tracking-wider text-[#F97316]">
                 Amacımız
@@ -70,14 +70,14 @@ export default function AboutPage() {
                 Teknolojiyi iyilik için kullanmak
               </h2>
 
-              <p className="mt-5 leading-8 text-[#64748B]">
+              <p className="mt-5 leading-8 text-[#64748B] dark:text-slate-400">
                 Geleneksel kayıp ilanlarının ötesine geçerek
                 görsel eşleştirme konum bilgisi ilan yönetimi ve
                 topluluk desteğini tek platformda bir araya
                 getiriyoruz
               </p>
 
-              <p className="mt-4 leading-8 text-[#64748B]">
+              <p className="mt-4 leading-8 text-[#64748B] dark:text-slate-400">
                 Amacımız sadece ilan yayınlamak değil doğru bilgi
                 hızlı iletişim ve güvenli süreçlerle hayvanların
                 ailelerine ya da yeni yuvalarına ulaşmasını
@@ -85,14 +85,14 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl bg-[#FFF7ED] p-7">
+            <div className="rounded-2xl bg-[#FFF7ED] p-7 dark:bg-orange-500/10">
               <Users size={32} className="text-[#F97316]" />
 
               <h3 className="mt-5 text-2xl font-bold">
                 Topluluk gücü
               </h3>
 
-              <p className="mt-4 leading-7 text-[#64748B]">
+              <p className="mt-4 leading-7 text-[#64748B] dark:text-slate-400">
                 Bir kayıp hayvan ilanı ne kadar fazla kişiye
                 ulaşırsa bulunma ihtimali o kadar artar PATIMATI
                 kullanıcıların birbirine destek olduğu güçlü bir
@@ -102,11 +102,11 @@ export default function AboutPage() {
           </div>
 
           {/* Yeni Eklenen Sosyal Medya Paylaşım ve Takip Alanı */}
-          <div className="mt-10 flex flex-col items-center justify-center rounded-3xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm sm:p-12">
-            <h2 className="text-2xl font-bold text-[#0F172A] sm:text-3xl">
+          <div className="mt-10 flex flex-col items-center justify-center rounded-3xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm sm:p-12 dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-2xl font-bold text-[#0F172A] sm:text-3xl dark:text-slate-50">
               Daha fazla cana ulaşmak için paylaşın
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B] dark:text-slate-400">
               Topluluğumuzun gücü, sesimizi duyurabildiğimiz kadar büyüktür.
               Instagram hesabımızı takip edebilir, ilanlarımızı kendi sosyal
               medya hesaplarınızda paylaşarak minik dostlarımızın yeni
@@ -178,14 +178,14 @@ function InfoCard({
   description: string;
 }) {
   return (
-    <article className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#F97316]">
+    <article className="rounded-3xl border border-[#E2E8F0] bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
         {icon}
       </div>
 
       <h2 className="mt-5 text-xl font-bold">{title}</h2>
 
-      <p className="mt-3 leading-7 text-[#64748B]">
+      <p className="mt-3 leading-7 text-[#64748B] dark:text-slate-400">
         {description}
       </p>
     </article>

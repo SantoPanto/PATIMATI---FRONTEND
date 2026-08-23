@@ -119,7 +119,7 @@ export default function MapPicker({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-2 text-sm font-medium text-[#0F172A]">
+        <span className="flex items-center gap-2 text-sm font-medium text-[#0F172A] dark:text-slate-100">
           <MapPin size={16} className="text-[#F97316]" />
           {readOnly ? "Profil Konumu" : "Konum Seç (Haritaya Tıklayın)"}
         </span>
@@ -129,7 +129,7 @@ export default function MapPicker({
             type="button"
             onClick={handleGetCurrentLocation}
             disabled={isLocating}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
           >
             <Locate size={14} />
             {isLocating ? "Konum alınıyor..." : "Mevcut Konumumu Al"}
@@ -140,9 +140,9 @@ export default function MapPicker({
       <ErrorBoundary
         title="Harita yüklenemedi."
         fallback={
-          <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+          <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center dark:border-slate-700 dark:bg-slate-800">
             <MapPin size={32} className="text-slate-400" />
-            <p className="mt-2 text-sm font-medium text-slate-600">
+            <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-400">
               {hasCoordinates
                 ? `Konum: ${validLat?.toFixed(4)}, ${validLng?.toFixed(4)}`
                 : "Konum seçilmedi."}
@@ -150,7 +150,7 @@ export default function MapPicker({
           </div>
         }
       >
-        <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[#CBD5E1] shadow-inner">
+        <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[#CBD5E1] shadow-inner dark:border-slate-700">
           <MapContainer
             center={center}
             zoom={hasCoordinates ? 14 : 10}
@@ -186,15 +186,15 @@ export default function MapPicker({
       </ErrorBoundary>
 
       {hasCoordinates ? (
-        <p className="text-xs text-[#64748B]">
+        <p className="text-xs text-[#64748B] dark:text-slate-400">
           Seçilen Koordinat:{" "}
-          <span className="font-medium text-[#0F172A]">
+          <span className="font-medium text-[#0F172A] dark:text-slate-100">
             {validLat?.toFixed(6)}, {validLng?.toFixed(6)}
           </span>
         </p>
       ) : (
         !readOnly && (
-          <p className="text-xs text-[#94A3B8]">
+          <p className="text-xs text-[#94A3B8] dark:text-slate-500">
             Haritada bir noktaya tıklayarak enlem ve boylam bilginizi belirleyin.
           </p>
         )

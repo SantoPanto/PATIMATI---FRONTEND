@@ -18,9 +18,9 @@ import {
 } from "../utils/adPresentation";
 
 const categoryStyles: Record<AdType, { label: string; classNames: string }> = {
-  LOST: { label: "Kayıp", classNames: "bg-rose-100 text-rose-700 border-rose-200" },
-  FOUND: { label: "Bulundu", classNames: "bg-blue-100 text-blue-700 border-blue-200" },
-  ADOPTION: { label: "Sahiplendirme", classNames: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  LOST: { label: "Kayıp", classNames: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30" },
+  FOUND: { label: "Bulundu", classNames: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30" },
+  ADOPTION: { label: "Sahiplendirme", classNames: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" },
 };
 
 interface AdCardProps {
@@ -52,16 +52,16 @@ export default function AdCard({
 
   const badgeConfig = categoryStyles[ad?.adType] || {
     label: "İlan",
-    classNames: "bg-slate-100 text-slate-700 border-slate-200",
+    classNames: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
   };
 
   const detailPath = `/pet/${ad?.id}`;
 
   return (
-    <article className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
+    <article className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-orange-500/40">
       <div>
         {/* Image Container */}
-        <div className="relative h-56 overflow-hidden bg-[#F1F5F9]">
+        <div className="relative h-56 overflow-hidden bg-[#F1F5F9] dark:bg-slate-800">
           {photoUrl && !hasError ? (
             <img
               src={photoUrl}
@@ -71,9 +71,9 @@ export default function AdCard({
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 text-slate-400">
-              <PawPrint size={40} className="text-slate-300" />
-              <span className="mt-1 text-xs font-semibold text-slate-400">Görsel Yok</span>
+            <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+              <PawPrint size={40} className="text-slate-300 dark:text-slate-600" />
+              <span className="mt-1 text-xs font-semibold text-slate-400 dark:text-slate-500">Görsel Yok</span>
             </div>
           )}
 
@@ -131,21 +131,21 @@ export default function AdCard({
                 {getSpeciesLabel(ad.species)} · {ad.breed || "Cins Belirtilmemiş"}
               </p>
 
-              <h3 className="mt-1 truncate text-lg font-bold text-[#0F172A]">
+              <h3 className="mt-1 truncate text-lg font-bold text-[#0F172A] dark:text-slate-50">
                 {ad.title}
               </h3>
             </div>
 
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10 dark:text-orange-400">
               <PawPrint size={20} />
             </span>
           </div>
 
-          <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#64748B]">
+          <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#64748B] dark:text-slate-400">
             {ad.description || "Açıklama belirtilmemiş."}
           </p>
 
-          <div className="mt-4 space-y-2 border-t border-[#E2E8F0] pt-4 text-xs font-medium text-[#64748B]">
+          <div className="mt-4 space-y-2 border-t border-[#E2E8F0] pt-4 text-xs font-medium text-[#64748B] dark:border-slate-800 dark:text-slate-400">
             <div className="flex items-center gap-2">
               <MapPin size={16} className="shrink-0 text-[#2563EB]" />
               <span className="truncate">{getAdLocation(ad)}</span>
@@ -165,7 +165,7 @@ export default function AdCard({
           <button
             type="button"
             onClick={() => onRemoveFavorite(ad.id)}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/15"
             aria-label="Favorilerden kaldır"
             title="Favorilerden kaldır"
           >

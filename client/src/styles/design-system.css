@@ -17,6 +17,48 @@
   --pm-container: 1200px;
 }
 
+.dark {
+  --pm-primary: #fb923c;
+  --pm-primary-dark: #f97316;
+  --pm-primary-soft: rgba(251, 146, 60, 0.12);
+  --pm-text: #f1f5f9;
+  --pm-muted: #94a3b8;
+  --pm-border: #334155;
+  --pm-bg: #0f172a;
+  --pm-surface: #1e293b;
+  --pm-success: #4ade80;
+  --pm-danger: #f87171;
+}
+
+.dark .pm-button--secondary {
+  border-color: var(--pm-border);
+  background: var(--pm-surface);
+}
+.dark .pm-button--secondary:hover {
+  background: var(--pm-bg);
+}
+.dark .pm-button--danger {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.12);
+}
+.dark .pm-button--danger:hover {
+  background: rgba(248, 113, 113, 0.2);
+}
+.dark .pm-input {
+  border-color: var(--pm-border);
+  background: var(--pm-surface);
+}
+.dark .pm-input::placeholder {
+  color: #64748b;
+}
+.dark .pm-input:focus {
+  box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.25);
+}
+.dark .pm-status--success {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {

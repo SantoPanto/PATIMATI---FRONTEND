@@ -81,23 +81,23 @@ function MyMatchesContent() {
   const lowCount = matches.length - passedCount;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-50 text-slate-950 flex flex-col justify-between dark:bg-slate-950 dark:text-slate-50">
       <div>
         <Header />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
                 <Sparkles size={14} />
                 YAPAY ZEKA EŞLEŞTİRME SİSTEMİ
               </div>
 
-              <h1 className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl dark:text-slate-50">
                 Eşleşmelerim
               </h1>
 
-              <p className="mt-2 text-base text-slate-500 max-w-2xl">
+              <p className="mt-2 text-base text-slate-500 max-w-2xl dark:text-slate-400">
                 Kayıp ve bulunan dostlarımız için yapay zeka tarafından tespit edilen olasılık ve görsel benzerlik eşleşmelerini takip edin
               </p>
             </div>
@@ -107,7 +107,7 @@ function MyMatchesContent() {
                 type="button"
                 onClick={() => void loadMatches()}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 focus:outline-none disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 focus:outline-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <RefreshCw size={17} className={isLoading ? "animate-spin" : ""} />
                 Yenile
@@ -123,7 +123,7 @@ function MyMatchesContent() {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -131,7 +131,7 @@ function MyMatchesContent() {
                 className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                   filter === "all"
                     ? "bg-orange-500 text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-100"
+                    : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
                 }`}
               >
                 Tümü {matches.length}
@@ -143,7 +143,7 @@ function MyMatchesContent() {
                 className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition ${
                   filter === "passed"
                     ? "bg-emerald-600 text-white"
-                    : "bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+                    : "bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                 }`}
               >
                 Yüksek İhtimal {passedCount}
@@ -155,7 +155,7 @@ function MyMatchesContent() {
                 className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition ${
                   filter === "low"
                     ? "bg-amber-600 text-white"
-                    : "bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-700"
+                    : "bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                 }`}
               >
                 Düşük Engellenen {lowCount}
@@ -170,18 +170,18 @@ function MyMatchesContent() {
 
           {errorMessage && (
             <div
-              className="mt-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 shadow-xs"
+              className="mt-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 shadow-xs dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
               role="alert"
             >
               <div className="flex items-center gap-2.5">
-                <AlertCircle size={20} className="shrink-0 text-rose-600" />
+                <AlertCircle size={20} className="shrink-0 text-rose-600 dark:text-rose-400" />
                 <span>{errorMessage}</span>
               </div>
 
               <button
                 type="button"
                 onClick={() => void loadMatches()}
-                className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-800 transition hover:bg-rose-200"
+                className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-800 transition hover:bg-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
               >
                 Tekrar Dene
               </button>
@@ -196,18 +196,18 @@ function MyMatchesContent() {
               <SkeletonMatchCard />
             </div>
           ) : filteredMatches.length === 0 ? (
-            <div className="mt-12 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+            <div className="mt-12 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs dark:border-slate-700 dark:bg-slate-900">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
                 <Zap size={32} />
               </div>
 
-              <h3 className="mt-4 text-xl font-bold text-slate-900">
+              <h3 className="mt-4 text-xl font-bold text-slate-900 dark:text-slate-50">
                 {filter === "all"
                   ? "Henüz Bir Eşleşme Bulunmuyor"
                   : "Bu Kriterde Eşleşme Bulunamadı"}
               </h3>
 
-              <p className="mt-2 mx-auto max-w-md text-sm text-slate-500">
+              <p className="mt-2 mx-auto max-w-md text-sm text-slate-500 dark:text-slate-400">
                 {filter === "all"
                   ? "Sistemimiz yeni ilanları sürekli tarar ve yüksek benzerlik tespit ettiğinde burada listeler"
                   : "Filtre kriterlerinizi değiştirebilir veya tüm eşleşmeleri görüntüleyebilirsiniz"}
@@ -218,7 +218,7 @@ function MyMatchesContent() {
                   <button
                     type="button"
                     onClick={() => setFilter("all")}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                   >
                     Tüm Eşleşmeleri Göster
                   </button>
@@ -249,28 +249,28 @@ function MyMatchesContent() {
 
 function SkeletonMatchCard() {
   return (
-    <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div className="h-5 w-32 rounded-lg bg-slate-200" />
-        <div className="h-4 w-20 rounded-lg bg-slate-200" />
+    <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+        <div className="h-5 w-32 rounded-lg bg-slate-200 dark:bg-slate-800" />
+        <div className="h-4 w-20 rounded-lg bg-slate-200 dark:bg-slate-800" />
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 shrink-0 rounded-2xl bg-slate-200" />
+          <div className="h-16 w-16 shrink-0 rounded-2xl bg-slate-200 dark:bg-slate-800" />
 
           <div className="space-y-2">
-            <div className="h-5 w-40 rounded-md bg-slate-200" />
-            <div className="h-3 w-28 rounded-md bg-slate-200" />
+            <div className="h-5 w-40 rounded-md bg-slate-200 dark:bg-slate-800" />
+            <div className="h-3 w-28 rounded-md bg-slate-200 dark:bg-slate-800" />
           </div>
         </div>
 
-        <div className="h-12 w-20 rounded-2xl bg-slate-200" />
+        <div className="h-12 w-20 rounded-2xl bg-slate-200 dark:bg-slate-800" />
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-        <div className="h-4 w-28 rounded-md bg-slate-200" />
-        <div className="h-8 w-24 rounded-xl bg-slate-200" />
+      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+        <div className="h-4 w-28 rounded-md bg-slate-200 dark:bg-slate-800" />
+        <div className="h-8 w-24 rounded-xl bg-slate-200 dark:bg-slate-800" />
       </div>
     </div>
   );

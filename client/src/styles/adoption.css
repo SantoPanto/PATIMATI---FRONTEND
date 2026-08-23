@@ -589,6 +589,56 @@
   line-height: 1.65;
 }
 
+/* Karanlık tema: sayfa zemini üzerinde duran yüzeyler (hero, arama kutusu,
+   seçim kutuları, kart içi metin/rozetler). Kendi rengiyle gelen tanıtım
+   şeridi (.adoption-safety) ve fotoğraf üstü rozetler (kart tipi/favori)
+   kasıtlı olarak dışarıda bırakıldı — App.css'teki aynı desenle tutarlı. */
+.dark .adoption-hero {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(249, 115, 22, 0.16), transparent 32%),
+    linear-gradient(135deg, #0f172a 0%, #14203a 55%, #0f172a 100%);
+}
+
+.dark .adoption-hero__image {
+  border-color: rgba(30, 41, 59, 0.9);
+  background: #1e293b;
+}
+
+.dark .adoption-hero__floating-card {
+  border-color: rgba(51, 65, 85, 0.7);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.dark .adoption-hero__features span,
+.dark .adoption-card__meta span {
+  color: #cbd5e1;
+}
+
+.dark .adoption-filter__search,
+.dark .adoption-filter__selects select {
+  border-color: var(--pm-border);
+  background: var(--pm-surface);
+}
+
+.dark .adoption-card__image {
+  background: #334155;
+}
+
+.dark .adoption-health-badge--success {
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ade80;
+}
+
+.dark .adoption-health-badge--info {
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
+}
+
+.dark .adoption-health-badge--muted {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
 @media (max-width: 1050px) {
   .adoption-hero__content {
     grid-template-columns: minmax(0, 1fr) 390px;
