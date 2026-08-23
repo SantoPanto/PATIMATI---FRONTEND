@@ -701,7 +701,20 @@ export default function AddListingPage() {
           console.error("Eşleştirme hatası:", matchError);
         } finally {
           setIsAnalyzing(false);
-          setAnalysisMessage("");
+
+          /*
+           * Mesaj SADECE iş gerçekten yapıldıysa siliniyor.
+           *
+           * Tarayıcıda ölçüldü (24.08, yerel): AI boş cevap döndüğünde doğru
+           * metin ekrana geliyor ama eşleştirme isteği bitince bu blok onu
+           * hemen siliyordu — kullanıcı "alanları elle doldurun" uyarısını
+           * hiç okuyamıyordu. Alanlar dolduysa metnin kalmasına gerek yok
+           * (sonuç zaten formda görünüyor); dolmadıysa kullanıcıya ne
+           * yapacağını söyleyen TEK yer bu satır.
+           */
+          if (uygulananAlan > 0) {
+            setAnalysisMessage("");
+          }
         }
       }
     } catch (error) {
