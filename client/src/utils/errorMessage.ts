@@ -1,4 +1,9 @@
-import { ApiError } from "../services/api";
+import {
+  ApiError,
+  YUK_COK_BUYUK_MESAJI,
+  ZAMAN_ASIMI_DURUMU,
+  ZAMAN_ASIMI_MESAJI,
+} from "../services/api";
 
 const NETWORK_ERROR_MESSAGE =
   "Sunucuya bağlanılamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin.";
@@ -146,6 +151,21 @@ export function getUserErrorMessage(
 
     if (error.status === 404) {
       return NOT_FOUND_MESSAGE;
+    }
+
+    /*
+     * 413 ve 408 aşağıdaki RFC 7807 taramasından ÖNCE ele alınmalı:
+     * sunucu 413 için İngilizce bir `detail` ("Maximum upload size
+     * exceeded") döndürebiliyor ve o metin kullanıcıya hiçbir şey
+     * anlatmıyor. 408'i ise ağ katmanı değil biz üretiyoruz (istek zaman
+     * aşımı, bkz. services/api.ts).
+     */
+    if (error.status === 413) {
+      return YUK_COK_BUYUK_MESAJI;
+    }
+
+    if (error.status === ZAMAN_ASIMI_DURUMU) {
+      return ZAMAN_ASIMI_MESAJI;
     }
   }
 

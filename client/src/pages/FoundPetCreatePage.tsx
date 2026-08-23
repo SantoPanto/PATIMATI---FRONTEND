@@ -25,7 +25,7 @@ import { request } from "../services/api";
 import type { MatchedAdResponseDTO, PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
-import { compressImages } from "../utils/imageCompression";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   siyah: "BLACK",
@@ -351,9 +351,22 @@ export default function FoundPetCreatePage() {
 
     try {
       setIsCompressing(true);
-      const compressedFiles = await compressImages(filesToAdd);
+
+      // Sıkıştırma SONRASI yeniden ölç (bkz. imageCompression.ts): sıkıştırma
+      // başarısız olursa orijinal dosya geri geliyor ve sunucudan 413 alınıyor.
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
       const newImages: SelectedImage[] =
-        compressedFiles.map((file) => ({
+        accepted.map((file) => ({
           id: createImageId(file),
           file,
           preview: URL.createObjectURL(file),
@@ -729,7 +742,7 @@ export default function FoundPetCreatePage() {
 
             <span className="mt-2 max-w-md text-sm leading-6 text-[#64748B]">
               Bulduğun hayvanı tanımaya yardımcı olacak
-              en fazla 5 fotoğraf yükleyebilirsin.
+              en fazla {MAX_IMAGES} fotoğraf yükleyebilirsin.
             </span>
 
             <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">

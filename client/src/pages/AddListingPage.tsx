@@ -24,7 +24,7 @@ import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
 import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
-import { compressImages } from "../utils/imageCompression";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -381,8 +381,25 @@ export default function AddListingPage() {
 
     try {
       setIsCompressing(true);
-      const compressedFiles = await compressImages(filesToAdd);
-      const newImages = compressedFiles.map((file) => ({
+
+      /*
+       * Sıkıştırma SONRASI yeniden ölçülüyor: sıkıştırma başarısız olursa
+       * yardımcı orijinal dosyayı geri veriyor ve yukarıdaki boyut kontrolü
+       * (sıkıştırmadan önce) o dosyayı zaten geçirmiş oluyordu. Sonuç:
+       * sunucudan 413.
+       */
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages = accepted.map((file) => ({
         id: createImageId(file),
         file,
         preview: URL.createObjectURL(file),

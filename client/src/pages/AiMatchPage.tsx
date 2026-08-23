@@ -23,7 +23,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { request } from "../services/api";
-import { compressImages } from "../utils/imageCompression";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 type ListingType = "lost" | "found";
 
@@ -33,9 +33,22 @@ type SelectedImage = {
   preview: string;
 };
 
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı (23.08.2026 canlı ölçümü).
+// 19.08'de üç ilan formu sunucuyla hizalanmıştı ama BU SAYFA ATLANMIŞ; burada
+// hâlâ 10 MB yazıyordu, oysa sunucu 5 MB'ın üstünü kabul etmiyor:
+//   dosya başı 5 MB -> application.yml spring.servlet.multipart.max-file-size
+//      (canlı ölçüm: 4 MB -> 400, 6 MB -> 413 "Maximum upload size exceeded")
+//   toplam ~20 MB   -> ters vekil (nginx) client_max_body_size
+//      (canlı ölçüm: 16 MB geçti, 20 MB -> nginx'in HTML 413 sayfası)
+// Adet sınırı YOK: /api/ai-match fotoğrafları saklamıyor, yalnız analiz
+// ediyor (AiMatchController + AiMatchService.matchImages, adet kontrolü yok).
+// Bu yüzden 5 adet KORUNUYOR — çok fotoğraf eşleşme başarımını artırıyor.
 const MIN_IMAGES = 3;
 const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
+/** Ters vekilin gövde sınırı 20 MB; altında güvenli bir tavanda duruyoruz. */
+const MAX_TOPLAM_BOYUT = 15 * 1024 * 1024;
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -122,7 +135,7 @@ export default function AiMatchPage() {
 
       if (file.size > MAX_FILE_SIZE) {
         validationErrors.push(
-          `${file.name}: Fotoğraf boyutu 10 MB'dan büyük olamaz.`,
+          `${file.name}: Fotoğraf boyutu ${MAX_FILE_SIZE_MB} MB'dan büyük olamaz.`,
         );
         return;
       }
@@ -175,8 +188,21 @@ export default function AiMatchPage() {
 
     try {
       setIsCompressing(true);
-      const compressedFiles = await compressImages(filesToAdd);
-      const newImages: SelectedImage[] = compressedFiles.map(
+
+      // Sıkıştırma SONRASI yeniden ölç (bkz. imageCompression.ts): sıkıştırma
+      // başarısız olursa orijinal dosya geri geliyor ve sunucudan 413 alınıyor.
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages: SelectedImage[] = accepted.map(
         (file) => ({
           id: createImageId(file),
           file,
@@ -292,6 +318,27 @@ export default function AiMatchPage() {
       return;
     }
 
+    /*
+     * TOPLAM boyut kontrolü YALNIZ bu sayfada gerekli: ilan formları en fazla
+     * 3 × 5 MB = 15 MB gönderebiliyor, burada ise 5 × 5 MB = 25 MB mümkün ve
+     * bu, ters vekilin ~20 MB gövde sınırını aşıyor. Aşınca gelen cevap
+     * uygulamanın değil nginx'in HTML sayfası oluyor; kullanıcı sebebi
+     * anlamayan bir "(413)" görüyordu.
+     */
+    const toplamBoyut = selectedImages.reduce(
+      (toplam, image) => toplam + image.file.size,
+      0,
+    );
+
+    if (toplamBoyut > MAX_TOPLAM_BOYUT) {
+      setErrorMessage(
+        `Seçilen fotoğrafların toplamı ${(toplamBoyut / (1024 * 1024)).toFixed(1)} MB; ` +
+          `sunucu tek seferde en fazla ${MAX_TOPLAM_BOYUT / (1024 * 1024)} MB kabul ediyor. ` +
+          "Bir fotoğrafı çıkarıp tekrar deneyin.",
+      );
+      return;
+    }
+
     setIsMatching(true);
 
     const formData = new FormData();
@@ -390,7 +437,7 @@ export default function AiMatchPage() {
                     size={17}
                     className="text-[#22C55E]"
                   />
-                  En fazla 5 fotoğraf
+                  En fazla {MAX_IMAGES} fotoğraf
                 </span>
 
                 <span className="flex items-center gap-2">
