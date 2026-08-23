@@ -20,6 +20,7 @@ import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import type { PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
@@ -170,14 +171,25 @@ export default function AdoptionCreatePage() {
       if (analysis.is_pet === false) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
       } else {
+        /*
+         * AI servisi öznitelik çıkarımı patladığında sessizce boş sonuç
+         * dönüyor (PATIMATI-AI/app/main.py:145-152) ama `is_pet: true`
+         * olduğu için burası "tamamlandı" yazıyordu. Mesajı artık GERÇEKTEN
+         * doldurulan alan sayısı belirliyor.
+         */
+        let uygulanan = 0;
+
         if (analysis.species === "cat" || analysis.species === "CAT") {
           updateForm("species", "CAT");
+          uygulanan += 1;
         } else if (analysis.species === "dog" || analysis.species === "DOG") {
           updateForm("species", "DOG");
+          uygulanan += 1;
         }
 
         if (analysis.breed && analysis.breed.trim()) {
           updateForm("breed", analysis.breed.trim());
+          uygulanan += 1;
         }
 
         const etiketten = (onek: string) =>
@@ -193,9 +205,14 @@ export default function AdoptionCreatePage() {
           const uniqueColors = [...new Set(detectedColors)];
           const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
           updateForm("color", colorNames);
+          uygulanan += 1;
         }
 
-        setAnalysisMessage("AI analizi tamamlandı. Bilgiler forma aktarıldı.");
+        setAnalysisMessage(
+          uygulanan > 0
+            ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
+        );
       }
     } catch (err) {
       console.error("AI analiz hatası:", err);
@@ -382,22 +399,30 @@ export default function AdoptionCreatePage() {
     });
   };
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
+  const handleUseLocation = async () => {
+    setErrorMessage("");
+
+    /*
+     * Konum alma ortak yardımcıya taşındı (utils/konum.ts): hata KODU
+     * ayrıştırılıyor ve zaman aşımında yüksek doğruluk kapalı ikinci
+     * deneme yapılıyor. Eskiden üç ayrı arıza için tek metin basılıyordu:
+     * "konum iznini etkinleştirin" — telefonda en sık görülen hata ise
+     * izin reddi değil, GPS kilidinin gelmemesiydi.
+     */
+    let koordinat;
+    try {
+      koordinat = await konumAl();
+    } catch (hata) {
+      setErrorMessage(konumHataMesaji(hata));
       return;
     }
 
-    setErrorMessage("");
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        /*
-         * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
-         * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
-         */
+    {
+      const coords = { latitude: koordinat.enlem, longitude: koordinat.boylam };
+      /*
+       * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
+       * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
+       */
         updateForm(
           "latitude",
           String(coords.latitude),
@@ -434,13 +459,7 @@ export default function AdoptionCreatePage() {
             "Konum bilgisi şehir adına dönüştürülemedi.",
           );
         }
-      },
-      () => {
-        setErrorMessage(
-          "Konum alınamadı. Lütfen konum izni verdiğinizden emin olun.",
-        );
-      },
-    );
+    }
   };
 
   /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla

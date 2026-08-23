@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { CheckCircle2, Eye, Loader2, MapPin, X } from "lucide-react";
 import { createSighting } from "../services/sightings";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { compressImage } from "../utils/imageCompression";
 
@@ -83,23 +84,24 @@ export default function SightingModal({
 
   if (!isOpen) return null;
 
-  const konumuKullan = () => {
+  const konumuKullan = async () => {
     setHata(null);
     setBilgi("");
-    if (!navigator.geolocation) {
-      setHata("Tarayıcınız konum özelliğini desteklemiyor.");
-      return;
+
+    /*
+     * Eskiden buraya HİÇ seçenek geçirilmiyordu; tarayıcı varsayılanı
+     * `timeout: Infinity` olduğu için istek süresiz asılı kalabiliyordu
+     * ve kullanıcı hiçbir geri bildirim görmüyordu. Ortak yardımcı hem
+     * süre koyuyor hem hata kodunu ayırıyor (utils/konum.ts).
+     */
+    try {
+      const { enlem: yeniEnlem, boylam: yeniBoylam } = await konumAl();
+      setEnlem(yeniEnlem.toFixed(6));
+      setBoylam(yeniBoylam.toFixed(6));
+      setBilgi("Konum alındı.");
+    } catch (hata) {
+      setHata(konumHataMesaji(hata));
     }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setEnlem(coords.latitude.toFixed(6));
-        setBoylam(coords.longitude.toFixed(6));
-        setBilgi("Konum alındı.");
-      },
-      () => {
-        setHata("Konum alınamadı. Konum izni verdiğinizden emin olun.");
-      },
-    );
   };
 
   const ilIlcedenBul = async () => {

@@ -16,6 +16,7 @@ import {
   type AlertSubscription,
 } from "../services/alerts";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 
 export default function SettingsPage() {
   const [, navigate] = useLocation();
@@ -389,23 +390,20 @@ function CevreUyarilariAyari() {
     // Abonelik yoksa panel açılır; kayıt ilk "Kaydet"te oluşur.
   };
 
-  const konumuKullan = () => {
+  const konumuKullan = async () => {
     setMesaj("");
     setHata("");
-    if (!navigator.geolocation) {
-      setHata("Tarayıcın konum özelliğini desteklemiyor.");
-      return;
+
+    // Seçeneksiz çağrı süresiz bekleyebiliyordu; ortak yardımcı süre
+    // koyuyor ve hata kodunu ayırıyor (utils/konum.ts).
+    try {
+      const { enlem: yeniEnlem, boylam: yeniBoylam } = await konumAl();
+      setEnlem(yeniEnlem.toFixed(6));
+      setBoylam(yeniBoylam.toFixed(6));
+      setMesaj("Konum alındı — Kaydet'e basmayı unutma.");
+    } catch (hata) {
+      setHata(konumHataMesaji(hata));
     }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setEnlem(coords.latitude.toFixed(6));
-        setBoylam(coords.longitude.toFixed(6));
-        setMesaj("Konum alındı — Kaydet'e basmayı unutma.");
-      },
-      () => {
-        setHata("Konum alınamadı. Konum izni verdiğinden emin ol.");
-      },
-    );
   };
 
   const ilIlcedenBul = async () => {
