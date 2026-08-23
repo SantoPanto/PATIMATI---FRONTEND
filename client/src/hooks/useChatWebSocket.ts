@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   connectWebSocket,
-  disconnectWebSocket,
+  subscribeToMessages,
+  subscribeToUserStatus,
   sendMessage as stompSendMessage,
 } from "../services/websocket";
 import type { MessageResponse, UserStatusEvent, WebSocketStatus } from "../services/types";
@@ -35,11 +36,18 @@ export function useChatWebSocket(
     let isMounted = true;
     setStatus("CONNECTING");
 
+    // Register message and status listeners with cleanup functions
+    const unsubscribeMessages = subscribeToMessages((incomingMessage) => {
+      onMessageRef.current?.(incomingMessage);
+    });
+
+    const unsubscribeStatus = subscribeToUserStatus((statusEvent) => {
+      onUserStatusRef.current?.(statusEvent);
+    });
+
     try {
       connectWebSocket(
-        (incomingMessage) => {
-          onMessageRef.current?.(incomingMessage);
-        },
+        undefined,
         {
           onConnect: () => {
             if (isMounted) setStatus("CONNECTED");
@@ -52,9 +60,6 @@ export function useChatWebSocket(
             if (isMounted) setStatus("ERROR");
           },
         },
-        (statusEvent) => {
-          onUserStatusRef.current?.(statusEvent);
-        },
       );
     } catch (err) {
       console.error("WebSocket connection failure:", err);
@@ -63,8 +68,8 @@ export function useChatWebSocket(
 
     return () => {
       isMounted = false;
-      disconnectWebSocket();
-      setStatus("DISCONNECTED");
+      unsubscribeMessages();
+      unsubscribeStatus();
     };
   }, []);
 

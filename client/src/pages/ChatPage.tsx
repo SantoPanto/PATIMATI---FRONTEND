@@ -156,25 +156,32 @@ export default function ChatPage() {
 
       // If incoming message belongs to active chat, append to messages state
       if (activeId && (senderId === activeId || recipientId === activeId)) {
-        console.log("[WebSocket Debug] setMessages çağrısı (aktif sohbet mesajı alındı):", incomingMessage);
+        console.log(`[CHAT INCOMING] activeUserId=${activeId}, senderId=${senderId}, messageId=${incomingMessage.id}, content="${incomingMessage.content}"`);
         setMessages((prev) => {
+          console.log(`[CHAT SETMESSAGES] Source=INCOMING_WS, activeUserId=${activeId}, incomingId=${incomingMessage.id}, prevLength=${prev.length}`);
           // If exact ID exists, ignore duplicate
-          if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) return prev;
+          if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) {
+            console.log(`[CHAT SETMESSAGES] Message id=${incomingMessage.id} already exists in state, ignoring duplicate.`);
+            return prev;
+          }
 
-          // Replace matching optimistic message if present
+          // Replace matching optimistic message if present (ONLY if m.isOptimistic === true)
           const optIndex = prev.findIndex(
             (m) =>
+              m.isOptimistic === true &&
               Number(m.senderId) === senderId &&
               Number(m.recipientId) === recipientId &&
               m.content === incomingMessage.content,
           );
 
           if (optIndex !== -1) {
+            console.log(`[CHAT SETMESSAGES] Replacing optimistic message at index ${optIndex} with real message id=${incomingMessage.id}`);
             const updated = [...prev];
             updated[optIndex] = incomingMessage;
             return updated;
           }
 
+          console.log(`[CHAT SETMESSAGES] Appending new message id=${incomingMessage.id} to state. New length: ${prev.length + 1}`);
           return [...prev, incomingMessage];
         });
 
@@ -183,7 +190,7 @@ export default function ChatPage() {
           void markMessageAsRead(incomingMessage.id).catch(console.error);
         }
       } else if (senderId !== currentId) {
-        // Not active chat -> trigger toast notification for incoming message
+        console.log(`[CHAT INCOMING] Message from non-active partner (${otherName}): content="${incomingMessage.content}"`);
         setToastMessage(`${otherName}: ${incomingMessage.content}`);
         setTimeout(() => setToastMessage(null), 4000);
       }
@@ -323,6 +330,7 @@ export default function ChatPage() {
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
         );
 
+        console.log(`[CHAT HISTORY LOAD] activeUserId=${currentActiveUserId}, loadedCount=${sortedHistory.length}`);
         setMessages(sortedHistory);
 
         // Add or update active partner in contacts list
@@ -428,9 +436,11 @@ export default function ChatPage() {
       content,
       timestamp: new Date().toISOString(),
       isRead: false,
+      isOptimistic: true,
     };
 
     // Instant UI State Update (Reaktivite & F5 Çözümü)
+    console.log(`[CHAT HANDLE SEND] activeUserId=${targetUserId}, optimisticId=${optimisticMsg.id}, content="${content}"`);
     setMessages((prev) => [...prev, optimisticMsg]);
     upsertContact(
       targetUserId,
