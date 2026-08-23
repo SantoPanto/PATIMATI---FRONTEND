@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import AdminFilterBar from "../components/admin/AdminFilterBar";
 import {
   banUser,
   deleteAdminAd,
@@ -47,6 +48,10 @@ export default function AdminDashboardPage() {
   const [complaintSubTab, setComplaintSubTab] =
     useState<ComplaintSubTab>("ads");
 
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("createdAt,desc");
+
   // State for Users
   const [usersPage, setUsersPage] = useState<Page<UserDetailForAdminDTO> | null>(
     null,
@@ -75,11 +80,11 @@ export default function AdminDashboardPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   // Fetch Users
-  const fetchUsers = useCallback(async (pageIndex: number) => {
+  const fetchUsers = useCallback(async (pageIndex: number, search?: string, sort?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getAdminUsers({ page: pageIndex, size: 10 });
+      const res = await getAdminUsers({ page: pageIndex, size: 10, search, sort });
       setUsersPage(res);
     } catch (err) {
       console.error("Kullanıcılar yüklenemedi:", err);
@@ -90,11 +95,11 @@ export default function AdminDashboardPage() {
   }, []);
 
   // Fetch Ads
-  const fetchAds = useCallback(async (pageIndex: number) => {
+  const fetchAds = useCallback(async (pageIndex: number, search?: string, sort?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getAdminAds({ page: pageIndex, size: 10 });
+      const res = await getAdminAds({ page: pageIndex, size: 10, search, sort });
       setAdsPage(res);
     } catch (err) {
       console.error("İlanlar yüklenemedi:", err);
@@ -106,23 +111,27 @@ export default function AdminDashboardPage() {
 
   // Fetch Complaints
   const fetchComplaints = useCallback(
-    async (subTab: ComplaintSubTab, pageIndex: number) => {
+    async (subTab: ComplaintSubTab, pageIndex: number, search?: string, sort?: string) => {
       try {
         setLoading(true);
         setError(null);
         if (subTab === "ads") {
-          const res = await getAdminAdComplaints({ page: pageIndex, size: 10 });
+          const res = await getAdminAdComplaints({ page: pageIndex, size: 10, search, sort });
           setAdComplaintsPage(res);
         } else if (subTab === "users") {
           const res = await getAdminUserComplaints({
             page: pageIndex,
             size: 10,
+            search,
+            sort,
           });
           setUserComplaintsPage(res);
         } else {
           const res = await getAdminAdoptionComplaints({
             page: pageIndex,
             size: 10,
+            search,
+            sort,
           });
           setAdoptionComplaintsPage(res);
         }
@@ -136,30 +145,41 @@ export default function AdminDashboardPage() {
     [],
   );
 
-  // Effect to load data based on active tab
+  // Effect to load data based on active tab & filters
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect --
-       sekme/sayfa degistiginde sunucudan veri cekmek (dis sistemle
-       senkronizasyon) useEffect'in var olma sebebi; fetchUsers/fetchAds/
-       fetchComplaints kendi ici setLoading/setError cagrilarini yapiyor. */
     if (activeTab === "users") {
-      fetchUsers(usersPageIndex);
+      fetchUsers(usersPageIndex, searchQuery, sortOrder);
     } else if (activeTab === "ads") {
-      fetchAds(adsPageIndex);
+      fetchAds(adsPageIndex, searchQuery, sortOrder);
     } else if (activeTab === "complaints") {
-      fetchComplaints(complaintSubTab, complaintsPageIndex);
+      fetchComplaints(complaintSubTab, complaintsPageIndex, searchQuery, sortOrder);
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [
     activeTab,
     complaintSubTab,
     usersPageIndex,
     adsPageIndex,
     complaintsPageIndex,
+    searchQuery,
+    sortOrder,
     fetchUsers,
     fetchAds,
     fetchComplaints,
   ]);
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setUsersPageIndex(0);
+    setAdsPageIndex(0);
+    setComplaintsPageIndex(0);
+  };
+
+  const handleSortChange = (sort: string) => {
+    setSortOrder(sort);
+    setUsersPageIndex(0);
+    setAdsPageIndex(0);
+    setComplaintsPageIndex(0);
+  };
 
   // Action handlers
   const handleBanUser = async (userId: number, currentBanned?: boolean) => {
@@ -393,6 +413,23 @@ export default function AdminDashboardPage() {
             <Flag size={18} />
             <span>Şikayetler</span>
           </button>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="mb-6">
+          <AdminFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            sortOrder={sortOrder}
+            onSortChange={handleSortChange}
+            placeholder={
+              activeTab === "users"
+                ? "Kullanıcı ara (ad, e-posta)..."
+                : activeTab === "ads"
+                ? "İlan ara (başlık, açıklama)..."
+                : "Şikayet ara..."
+            }
+          />
         </div>
 
         {/* Tab Content */}

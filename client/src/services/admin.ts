@@ -2,6 +2,7 @@ import { request } from "./api";
 import type {
   AdComplaintAdminResponse,
   AdResponse,
+  AdminGetParams,
   AdoptionComplaintAdminResponse,
   Page,
   UserComplaintAdminResponse,
@@ -16,13 +17,12 @@ import type {
 /**
  * GET /api/admin/users
  */
-export function getAdminUsers(params?: {
-  page?: number;
-  size?: number;
-}): Promise<Page<UserDetailForAdminDTO>> {
+export function getAdminUsers(params?: AdminGetParams): Promise<Page<UserDetailForAdminDTO>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  if (params?.search?.trim()) searchParams.set("search", params.search.trim());
+  if (params?.sort?.trim()) searchParams.set("sort", params.sort.trim());
   searchParams.set("_t", String(Date.now()));
 
   const query = searchParams.toString();
@@ -58,13 +58,12 @@ export function unbanUser(userId: number): Promise<{ message: string }> {
 /**
  * GET /api/admin/ads
  */
-export function getAdminAds(params?: {
-  page?: number;
-  size?: number;
-}): Promise<Page<AdResponse>> {
+export function getAdminAds(params?: AdminGetParams): Promise<Page<AdResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  if (params?.search?.trim()) searchParams.set("search", params.search.trim());
+  if (params?.sort?.trim()) searchParams.set("sort", params.sort.trim());
   searchParams.set("_t", String(Date.now()));
 
   const query = searchParams.toString();
@@ -110,13 +109,12 @@ export function deleteAdminAd(adId: number): Promise<{ message: string }> {
 /**
  * GET /api/admin/complaints/ads
  */
-export function getAdminAdComplaints(params?: {
-  page?: number;
-  size?: number;
-}): Promise<Page<AdComplaintAdminResponse>> {
+export function getAdminAdComplaints(params?: AdminGetParams): Promise<Page<AdComplaintAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  if (params?.search?.trim()) searchParams.set("search", params.search.trim());
+  if (params?.sort?.trim()) searchParams.set("sort", params.sort.trim());
 
   const query = searchParams.toString();
   return request<Page<AdComplaintAdminResponse>>(
@@ -131,13 +129,12 @@ export function getAdminAdComplaints(params?: {
 /**
  * GET /api/admin/complaints/users
  */
-export function getAdminUserComplaints(params?: {
-  page?: number;
-  size?: number;
-}): Promise<Page<UserComplaintAdminResponse>> {
+export function getAdminUserComplaints(params?: AdminGetParams): Promise<Page<UserComplaintAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  if (params?.search?.trim()) searchParams.set("search", params.search.trim());
+  if (params?.sort?.trim()) searchParams.set("sort", params.sort.trim());
 
   const query = searchParams.toString();
   return request<Page<UserComplaintAdminResponse>>(
@@ -152,13 +149,12 @@ export function getAdminUserComplaints(params?: {
 /**
  * GET /api/admin/complaints/adoptions
  */
-export function getAdminAdoptionComplaints(params?: {
-  page?: number;
-  size?: number;
-}): Promise<Page<AdoptionComplaintAdminResponse>> {
+export function getAdminAdoptionComplaints(params?: AdminGetParams): Promise<Page<AdoptionComplaintAdminResponse>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.set("page", String(params.page));
   if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  if (params?.search?.trim()) searchParams.set("search", params.search.trim());
+  if (params?.sort?.trim()) searchParams.set("sort", params.sort.trim());
 
   const query = searchParams.toString();
   return request<Page<AdoptionComplaintAdminResponse>>(

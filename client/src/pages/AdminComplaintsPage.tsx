@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Trash2, Ban, MessageSquare, CheckCircle } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
+import AdminFilterBar from "../components/admin/AdminFilterBar";
 import { resolveAdoptionComplaint } from "../services/complaints";
 import {
   getAdminAdComplaints,
@@ -18,19 +19,12 @@ import type {
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { translateEnum } from "../utils/enumTranslator";
 
-/**
- * Üç ayrı uçtan gelen şikayetler tek listede gösteriliyor ama alanları
- * FARKLI: ilan/sahiplendirme kaydında `adId`+`adTitle`, kullanıcı kaydında
- * `reportedUserId` var. Eskiden hepsi tek bir tipe eziliyordu ve ekran
- * ikisinde de olmayan `reportedAdId`'yi okuyordu.
- *
- * `tur` alanı ayırt edici: hangi düğmenin çizileceğine tip düzeyinde karar
- * verilebiliyor, "alan var mı" tahminine gerek kalmıyor.
- */
 type AdminComplaint =
   | ({ tur: "ilan"; title: string } & AdComplaintAdminResponse)
   | ({ tur: "sahiplendirme"; title: string } & AdoptionComplaintAdminResponse)
   | ({ tur: "kullanici"; title: string } & UserComplaintAdminResponse);
+
+type ComplaintTab = "all" | "ads" | "users" | "adoptions";
 
 export default function AdminComplaintsPage() {
   const [, navigate] = useLocation();
@@ -38,22 +32,43 @@ export default function AdminComplaintsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("createdAt,desc");
+  const [activeTab, setActiveTab] = useState<ComplaintTab>("all");
+  const [page, setPage] = useState(0);
 
-  const fetchComplaints = () => {
+  const fetchComplaints = useCallback(() => {
     setLoading(true);
-    Promise.all([
-      getAdminAdComplaints({ page: 0, size: 50 }),
-      getAdminUserComplaints({ page: 0, size: 50 }),
-      getAdminAdoptionComplaints({ page: 0, size: 50 }),
-    ])
+    setError("");
+
+    const params = {
+      page,
+      size: 50,
+      search: searchQuery,
+      sort: sortOrder,
+    };
+
+    const promises = [
+      activeTab === "all" || activeTab === "ads"
+        ? getAdminAdComplaints(params)
+        : Promise.resolve({ content: [] }),
+      activeTab === "all" || activeTab === "users"
+        ? getAdminUserComplaints(params)
+        : Promise.resolve({ content: [] }),
+      activeTab === "all" || activeTab === "adoptions"
+        ? getAdminAdoptionComplaints(params)
+        : Promise.resolve({ content: [] }),
+    ] as const;
+
+    Promise.all(promises)
       .then(([adComplaints, userComplaints, adoptionComplaints]) => {
-        const ads: AdminComplaint[] = adComplaints.content.map((item) => ({
+        const ads: AdminComplaint[] = (adComplaints?.content || []).map((item) => ({
           ...item,
           tur: "ilan",
           title: item.adTitle || `İlan #${item.adId}`,
         }));
 
-        const users: AdminComplaint[] = userComplaints.content.map((item) => ({
+        const users: AdminComplaint[] = (userComplaints?.content || []).map((item) => ({
           ...item,
           tur: "kullanici",
           title:
@@ -62,28 +77,42 @@ export default function AdminComplaintsPage() {
             `Kullanıcı #${item.reportedUserId}`,
         }));
 
-        const adoptions: AdminComplaint[] =
-          adoptionComplaints.content.map((item) => ({
+        const adoptions: AdminComplaint[] = (adoptionComplaints?.content || []).map(
+          (item) => ({
             ...item,
             tur: "sahiplendirme",
             title: item.adTitle || `Sahiplendirme #${item.adId}`,
-          }));
+          }),
+        );
 
         setComplaints([...ads, ...users, ...adoptions]);
       })
       .catch((err) => {
-        setError(
-          getUserErrorMessage(err, "Şikayetler yüklenemedi."),
-        );
+        setError(getUserErrorMessage(err, "Şikayetler yüklenemedi."));
       })
       .finally(() => {
         setLoading(false);
       });
-  };
+  }, [activeTab, page, searchQuery, sortOrder]);
 
   useEffect(() => {
     fetchComplaints();
-  }, []);
+  }, [fetchComplaints]);
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setPage(0);
+  };
+
+  const handleSortChange = (sort: string) => {
+    setSortOrder(sort);
+    setPage(0);
+  };
+
+  const handleTabChange = (tab: ComplaintTab) => {
+    setActiveTab(tab);
+    setPage(0);
+  };
 
   // Şikayeti silme / kaldırma
   const handleDeleteComplaint = async (complaintId: number) => {
@@ -113,7 +142,6 @@ export default function AdminComplaintsPage() {
 
   // Şikayeti Çözme (Sahiplendirme Şikayeti)
   const handleResolveComplaint = async (complaintId: number) => {
-    // Optimistic UI güncellemesi: Yerel state'teki statüyü anında COZULDU yap
     const previousComplaints = complaints;
     setComplaints((prev) =>
       prev.map((c) =>
@@ -125,7 +153,6 @@ export default function AdminComplaintsPage() {
       setActionLoadingId(complaintId);
       await resolveAdoptionComplaint(complaintId);
     } catch (err) {
-      // Hata durumunda yerel state'i eski haline getir ve kullanıcıyı bilgilendir
       setComplaints(previousComplaints);
       alert(getUserErrorMessage(err, "Şikayet çözülürken bir hata oluştu."));
     } finally {
@@ -133,19 +160,6 @@ export default function AdminComplaintsPage() {
     }
   };
 
-  /**
-   * Kullanıcı ile yönetici sohbetini açar.
-   *
-   * Eskiden `POST /api/admin/chats/create-with-user/{userId}` çağrılıyordu —
-   * backend'de böyle bir uç HİÇ YOK (`/api/admin` altında 10 uç var, hiçbiri
-   * sohbet değil). Sonra `/chats/{chatId}` adresine gidiliyordu; öyle bir rota
-   * da yok (rota `/chat/:userId`, TEKİL ve KULLANICI kimliğiyle) ⇒ düğme iki
-   * kere birden 404'e düşüyordu.
-   *
-   * Ayrı bir uca gerek yok: `/chat/:userId` ekranı odayı kendisi açıyor
-   * (`POST /api/messages/rooms/{partnerId}`). Yöneticinin o çağrıyı
-   * yapabilmesi için gereken ADMIN muafiyeti backend PR'ında eklendi.
-   */
   const handleStartChat = (userId: number) => {
     navigate(`/chat/${userId}`);
   };
@@ -158,6 +172,48 @@ export default function AdminComplaintsPage() {
       </header>
 
       <section className="card-stack">
+        {/* Sub-tabs */}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+          <button
+            type="button"
+            onClick={() => handleTabChange("all")}
+            className={`button ${activeTab === "all" ? "button--primary" : "button--outline"}`}
+          >
+            Tümü
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange("ads")}
+            className={`button ${activeTab === "ads" ? "button--primary" : "button--outline"}`}
+          >
+            İlan Şikayetleri
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange("users")}
+            className={`button ${activeTab === "users" ? "button--primary" : "button--outline"}`}
+          >
+            Kullanıcı Şikayetleri
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange("adoptions")}
+            className={`button ${activeTab === "adoptions" ? "button--primary" : "button--outline"}`}
+          >
+            Sahiplendirme Şikayetleri
+          </button>
+        </div>
+
+        {/* Filter Bar */}
+        <AdminFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
+          placeholder="Şikayetlerde ara..."
+          className="mb-4"
+        />
+
         {loading && <p className="muted">Şikayetler yükleniyor...</p>}
 
         {error && <p className="muted">{error}</p>}
@@ -181,7 +237,6 @@ export default function AdminComplaintsPage() {
             <p>{item.description}</p>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
-              {/* Şikayeti Sil / Kaldır */}
               <button
                 className="button button--outline"
                 type="button"
@@ -192,7 +247,6 @@ export default function AdminComplaintsPage() {
                 Şikayeti Kaldır
               </button>
 
-              {/* Sahiplendirme şikayetleri için Çözüldü yapma butonu */}
               {item.tur === "sahiplendirme" && item.status !== "COZULDU" && (
                 <button
                   className="button button--primary"
@@ -205,9 +259,6 @@ export default function AdminComplaintsPage() {
                 </button>
               )}
 
-              {/* İlan ya da sahiplendirme şikayetiyse Askıya Al.
-                  Sahiplendirme ilanları da `ads` tablosunda (V13 göçündeki
-                  yabancı anahtar oraya bakıyor), aynı uç ikisini de askıya alır. */}
               {item.tur !== "kullanici" && (
                 <button
                   className="button button--outline"
@@ -219,7 +270,6 @@ export default function AdminComplaintsPage() {
                 </button>
               )}
 
-              {/* Kullanıcı şikayetiyse şikayet edilen kişiyle sohbet */}
               {item.tur === "kullanici" && (
                 <button
                   className="button button--primary"
