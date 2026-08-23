@@ -63,7 +63,7 @@ function getErrorMessage(
   return `İşlem sırasında bir hata oluştu (${status})`;
 }
 
-function notifyUnauthorized(): void {
+export function notifyUnauthorized(): void {
   clearAuthStorage();
 
   window.dispatchEvent(
