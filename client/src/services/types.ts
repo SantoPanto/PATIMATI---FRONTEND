@@ -318,6 +318,7 @@ export type MessageResponse = {
   content: string;
   timestamp: string; // ISO-8601 UTC
   isRead: boolean;
+  isOptimistic?: boolean;
 };
 
 

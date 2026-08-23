@@ -156,25 +156,32 @@ export default function ChatPage() {
 
       // If incoming message belongs to active chat, append to messages state
       if (activeId && (senderId === activeId || recipientId === activeId)) {
-        console.log("[WebSocket Debug] setMessages çağrısı (aktif sohbet mesajı alındı):", incomingMessage);
+        console.log("[CHAT Debug] handleIncomingMessage received message:", incomingMessage, "activeId:", activeId);
         setMessages((prev) => {
+          console.log("[CHAT Debug] setMessages (incoming WS message) - prev count:", prev.length, "incoming id:", incomingMessage.id);
           // If exact ID exists, ignore duplicate
-          if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) return prev;
+          if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) {
+            console.log("[CHAT Debug] Message id already exists in state, ignoring duplicate id:", incomingMessage.id);
+            return prev;
+          }
 
-          // Replace matching optimistic message if present
+          // Replace matching optimistic message if present (ONLY if m.isOptimistic === true)
           const optIndex = prev.findIndex(
             (m) =>
+              m.isOptimistic === true &&
               Number(m.senderId) === senderId &&
               Number(m.recipientId) === recipientId &&
               m.content === incomingMessage.content,
           );
 
           if (optIndex !== -1) {
+            console.log("[CHAT Debug] Replacing optimistic message at index", optIndex, "with real message id:", incomingMessage.id);
             const updated = [...prev];
             updated[optIndex] = incomingMessage;
             return updated;
           }
 
+          console.log("[CHAT Debug] Appending new message id:", incomingMessage.id, "to state");
           return [...prev, incomingMessage];
         });
 
@@ -323,6 +330,7 @@ export default function ChatPage() {
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
         );
 
+        console.log("[CHAT Debug] setMessages (loadChatHistory) called with history count:", sortedHistory.length);
         setMessages(sortedHistory);
 
         // Add or update active partner in contacts list
@@ -428,9 +436,11 @@ export default function ChatPage() {
       content,
       timestamp: new Date().toISOString(),
       isRead: false,
+      isOptimistic: true,
     };
 
     // Instant UI State Update (Reaktivite & F5 Çözümü)
+    console.log("[CHAT Debug] handleSend - setMessages optimistic message id:", optimisticMsg.id, "content:", content);
     setMessages((prev) => [...prev, optimisticMsg]);
     upsertContact(
       targetUserId,
