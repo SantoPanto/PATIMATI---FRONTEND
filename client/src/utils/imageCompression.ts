@@ -12,7 +12,7 @@ const DEFAULT_OPTIONS: CompressImageOptions = {
   maxSizeMB: 1.5,
   maxWidthOrHeight: 1920,
   useWebWorker: true,
-  fileType: "image/webp",
+  fileType: "image/jpeg",
 };
 
 /**
@@ -34,17 +34,18 @@ export async function compressImage(
 
   try {
     const compressedBlob = await imageCompression(file, options);
-    const targetType = compressedBlob.type || file.type;
+    // Guarantee output MIME type matches expected fileType or blob type
+    const targetType = options.fileType || compressedBlob.type || "image/jpeg";
     
-    // Determine appropriate extension based on compressed blob type
+    // Ensure file extension matches target MIME type (.jpg for image/jpeg)
     let newFileName = file.name;
-    if (targetType === "image/webp" && !file.name.toLowerCase().endsWith(".webp")) {
-      newFileName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-    } else if (
+    if (
       (targetType === "image/jpeg" || targetType === "image/jpg") &&
       !/\.(jpg|jpeg)$/i.test(file.name)
     ) {
       newFileName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+    } else if (targetType === "image/webp" && !file.name.toLowerCase().endsWith(".webp")) {
+      newFileName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
     }
 
     return new File([compressedBlob], newFileName, {
