@@ -467,3 +467,21 @@ export type MatchResponseDTO = {
   createdAt?: string;
 };
 
+// ==========================================
+// 8. User Online Status Types (/api/users/{userId}/status)
+// ==========================================
+
+export type UserStatusResponse = {
+  userId: number;
+  online: boolean;
+  status: "ONLINE" | "OFFLINE";
+  lastSeen?: string | null;
+};
+
+export type UserStatusEvent = {
+  userId: number | string;
+  online?: boolean;
+  status?: "ONLINE" | "OFFLINE" | string;
+  lastSeen?: string | null;
+};
+

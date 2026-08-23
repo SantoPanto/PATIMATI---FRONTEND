@@ -1,4 +1,4 @@
-import { Bell, X } from "lucide-react";
+import { Bell, MessageSquare, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import type { MessagePayload } from "firebase/messaging";
@@ -6,6 +6,7 @@ import type { MessagePayload } from "firebase/messaging";
 import { useAuth } from "../contexts/AuthContext";
 import {
   clearInAppNotifications,
+  getNotificationHref,
   loadNotifications,
   markNotificationAsRead,
   recordForegroundNotification,
@@ -93,15 +94,21 @@ function AuthenticatedForegroundNotificationToast() {
     return null;
   }
 
-  const isAiMatch = notification.data.type === "AI_MATCH";
+  const href = getNotificationHref(notification);
+  const type = notification.data.type?.toUpperCase();
+  const isAiMatch = type === "AI_MATCH";
+  const isMessage =
+    type === "MESSAGE" ||
+    type === "CHAT" ||
+    type === "NEW_MESSAGE" ||
+    type === "CHAT_MESSAGE";
 
-  const openAiMatch = () => {
-    if (!isAiMatch) return;
-
+  const handleToastClick = () => {
     markNotificationAsRead(notification.id);
     setNotification(null);
-    // Eşleşmelerim'e: ilan detayında eşleşme bağlamı yok (B4).
-    navigate("/my-matches");
+    if (href) {
+      navigate(href);
+    }
   };
 
   return (
@@ -111,16 +118,30 @@ function AuthenticatedForegroundNotificationToast() {
         role="status"
         aria-live="polite"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-          <Bell size={20} />
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+            isAiMatch
+              ? "bg-amber-50 text-amber-600"
+              : isMessage
+              ? "bg-blue-50 text-blue-600"
+              : "bg-orange-50 text-orange-500"
+          }`}
+        >
+          {isAiMatch ? (
+            <Sparkles size={20} />
+          ) : isMessage ? (
+            <MessageSquare size={20} />
+          ) : (
+            <Bell size={20} />
+          )}
         </span>
 
         <div className="min-w-0 flex-1">
-          {isAiMatch ? (
+          {href ? (
             <button
               type="button"
-              onClick={openAiMatch}
-              className="w-full text-left"
+              onClick={handleToastClick}
+              className="w-full text-left focus:outline-none"
             >
               <strong className="block text-sm font-bold text-slate-900">
                 {notification.title}
@@ -153,3 +174,4 @@ function AuthenticatedForegroundNotificationToast() {
     </div>
   );
 }
+

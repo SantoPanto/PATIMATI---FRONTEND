@@ -21,9 +21,10 @@ import {
   createOrGetChatRoom,
   getChatRooms,
   getMessageHistory,
+  getUserStatus,
   markMessageAsRead,
 } from "../services/messages";
-import type { ChatRoomResponse, MessageResponse } from "../services/types";
+import type { ChatRoomResponse, MessageResponse, UserStatusEvent, UserStatusResponse } from "../services/types";
 
 interface ChatContact {
   userId: number;
@@ -49,8 +50,85 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [userStatus, setUserStatus] = useState<UserStatusResponse | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Helper to format last seen timestamp
+  const formatLastSeen = useCallback((lastSeenStr?: string | null): string => {
+    if (!lastSeenStr) return "Çevrim dışı";
+    try {
+      const date = new Date(lastSeenStr);
+      if (isNaN(date.getTime())) return "Çevrim dışı";
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      const timePart = date.toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return isToday
+        ? `Bugün ${timePart}`
+        : date.toLocaleDateString("tr-TR", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+    } catch {
+      return "Çevrim dışı";
+    }
+  }, []);
+
+  // Real-time STOMP status event handler for /topic/user-status
+  const handleUserStatusUpdate = useCallback(
+    (event: UserStatusEvent) => {
+      if (activeUserId && Number(event.userId) === Number(activeUserId)) {
+        const isOnline =
+          event.online === true ||
+          event.status?.toUpperCase() === "ONLINE";
+        setUserStatus({
+          userId: Number(event.userId),
+          online: isOnline,
+          status: isOnline ? "ONLINE" : "OFFLINE",
+          lastSeen: event.lastSeen ?? null,
+        });
+      }
+    },
+    [activeUserId],
+  );
+
+  // Encapsulated Custom Hook for WebSocket status, messaging, and online status topic subscription
+  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
+    handleIncomingMessage,
+    handleUserStatusUpdate,
+  );
+
+  // Fetch initial online status for active partner via GET /api/users/{userId}/status
+  useEffect(() => {
+    if (!activeUserId || !Number.isFinite(activeUserId)) {
+      setUserStatus(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function fetchUserStatus() {
+      try {
+        const statusData = await getUserStatus(activeUserId);
+        if (isMounted) {
+          setUserStatus(statusData);
+        }
+      } catch (err) {
+        console.error("Kullanıcı durumu alınamadı:", err);
+      }
+    }
+
+    void fetchUserStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeUserId]);
 
   // Auto-scroll helper
   const scrollToBottom = useCallback((smooth = true) => {
@@ -182,11 +260,6 @@ export default function ChatPage() {
       }
     },
     [activeUserId, currentUserId, upsertContact],
-  );
-
-  // Encapsulated Custom Hook for WebSocket status and STOMP message sending
-  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
-    handleIncomingMessage,
   );
 
   // Load active chat room message history
@@ -485,10 +558,19 @@ export default function ChatPage() {
                       <h2 className="text-base font-extrabold text-slate-900">
                         {activePartnerName}
                       </h2>
-                      <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Çevrim içi
-                      </span>
+                      {userStatus?.online ? (
+                        <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Çevrim içi
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          {userStatus?.lastSeen
+                            ? `Son görülme ${formatLastSeen(userStatus.lastSeen)}`
+                            : "Çevrim dışı"}
+                        </span>
+                      )}
                     </div>
                   </div>
 

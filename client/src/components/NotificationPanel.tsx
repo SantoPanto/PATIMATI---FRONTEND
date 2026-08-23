@@ -2,6 +2,7 @@ import {
   Bell,
   CheckCheck,
   ChevronRight,
+  MessageSquare,
   Sparkles,
   X,
 } from "lucide-react";
@@ -11,6 +12,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import type { InAppNotification } from "../services/notifications";
 import {
+  getNotificationHref,
   getNotificationSnapshot,
   loadNotifications,
   markAllNotificationsAsRead,
@@ -37,36 +39,6 @@ function formatNotificationDate(timestamp: number): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(timestamp);
-}
-
-function getNotificationHref(
-  notification: InAppNotification,
-): string | null {
-  // Eşleşme bildirimi Eşleşmelerim'e götürür, ilan detayına DEĞİL: ilan
-  // sayfasında eşleşme bağlamı (skor, iki ilanın yan yana hâli) yok; kullanıcı
-  // "eşleşme nerede?" kalıyordu. Tek hesapla test ederken çiftin iki ilanı da
-  // aynı kişide olduğundan bu, "kendi ilanıma götürdü" diye görünüyordu (B4).
-  if (notification.data.type === "AI_MATCH") {
-    return "/my-matches";
-  }
-
-  // Çevre uyarısı (konum aboneliği): eşleşme bağlamı yok, ilan detayına.
-  if (
-    notification.data.type === "NEARBY_AD" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
-  }
-
-  // Görülme bildirimi: sahibi ilan detayına gider — Görülmeler bölümü orada.
-  if (
-    notification.data.type === "SIGHTING" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
-  }
-
-  return null;
 }
 
 export function NotificationList({
@@ -99,7 +71,13 @@ export function NotificationList({
     <div className="divide-y divide-slate-100">
       {notifications.map((notification) => {
         const href = getNotificationHref(notification);
-        const isAiMatch = notification.data.type === "AI_MATCH";
+        const type = notification.data.type?.toUpperCase();
+        const isAiMatch = type === "AI_MATCH";
+        const isMessage =
+          type === "MESSAGE" ||
+          type === "CHAT" ||
+          type === "NEW_MESSAGE" ||
+          type === "CHAT_MESSAGE";
 
         return (
           <button
@@ -123,15 +101,20 @@ export function NotificationList({
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                 isAiMatch
                   ? "bg-amber-50 text-amber-600"
+                  : isMessage
+                  ? "bg-blue-50 text-blue-600"
                   : "bg-orange-50 text-orange-500"
               }`}
             >
               {isAiMatch ? (
                 <Sparkles size={19} aria-hidden="true" />
+              ) : isMessage ? (
+                <MessageSquare size={19} aria-hidden="true" />
               ) : (
                 <Bell size={19} aria-hidden="true" />
               )}
             </span>
+
 
             <span className="min-w-0 flex-1">
               <span className="flex items-start gap-2">
