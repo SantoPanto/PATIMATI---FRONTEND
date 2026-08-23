@@ -25,6 +25,7 @@ import { request } from "../services/api";
 import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -455,37 +456,23 @@ export default function AddListingPage() {
   /* Geolocation                                                            */
   /* ---------------------------------------------------------------------- */
 
-  const getLocation = () => {
+  const getLocation = async () => {
     setErrorMessage("");
 
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
-      return;
+    /*
+     * Konum alma ortak yardımcıda (utils/konum.ts). Buradaki eski kod hata
+     * KODUNA bakmadan tek metin basıyordu ("konum iznini etkinleştirin"),
+     * oysa `enableHighAccuracy: true` + 10 sn ile telefonda en sık görülen
+     * hata izin reddi değil GPS kilidinin gelmemesiydi (TIMEOUT). Kullanıcı
+     * zaten verdiği izni aramaya gönderiliyordu.
+     */
+    try {
+      const { enlem, boylam } = await konumAl();
+      setLatitude(enlem.toFixed(6));
+      setLongitude(boylam.toFixed(6));
+    } catch (hata) {
+      setErrorMessage(konumHataMesaji(hata));
     }
-
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLatitude(
-          coords.latitude.toFixed(6),
-        );
-
-        setLongitude(
-          coords.longitude.toFixed(6),
-        );
-      },
-      () => {
-        setErrorMessage(
-          "Konum alınamadı. Lütfen tarayıcınızdan konum iznini etkinleştirin.",
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      },
-    );
   };
 
   /* ---------------------------------------------------------------------- */
@@ -521,19 +508,33 @@ export default function AddListingPage() {
     );
   };
 
+  /**
+   * AI cevabını forma uygular ve GERÇEKTEN doldurulan alan sayısını döndürür.
+   *
+   * <p>Sayı neden gerekli: AI servisi öznitelik çıkarımı patladığında sessizce
+   * `{labels: [], species: "unknown", breed: null, pattern: null,
+   * is_pet: true}` dönüyor (PATIMATI-AI/app/main.py:145-152 — "öznitelik
+   * hatası tüm analizi düşürmemeli"). `is_pet` true olduğu için ekran
+   * "AI analizi tamamlandı" yazıyor, oysa hiçbir alan dolmuyor. Sahadan gelen
+   * şikâyet tam olarak buydu. Artık mesajı SONUÇ belirliyor.
+   */
   const applyAiAnalysis = (
     analysis: AiAnalysis,
-  ) => {
+  ): number => {
+    let uygulanan = 0;
+
     if (
       analysis.species === "cat" ||
       analysis.species === "CAT"
     ) {
       setSpecies("CAT");
+      uygulanan += 1;
     } else if (
       analysis.species === "dog" ||
       analysis.species === "DOG"
     ) {
       setSpecies("DOG");
+      uygulanan += 1;
     }
 
     if (
@@ -541,6 +542,7 @@ export default function AddListingPage() {
       analysis.breed.trim()
     ) {
       setBreed(analysis.breed);
+      uygulanan += 1;
     }
 
     if (
@@ -554,6 +556,7 @@ export default function AddListingPage() {
           analysis.pattern.toLowerCase()
         ],
       );
+      uygulanan += 1;
     }
 
     /*
@@ -587,6 +590,7 @@ export default function AddListingPage() {
       setColors([
         ...new Set(detectedColors),
       ]);
+      uygulanan += 1;
     }
 
     // Goz rengi (eye_color)
@@ -602,6 +606,7 @@ export default function AddListingPage() {
       };
       if (eyeMap[eyeColors[0]]) {
         setEyeColor(eyeMap[eyeColors[0]]);
+        uygulanan += 1;
       }
     }
 
@@ -610,8 +615,10 @@ export default function AddListingPage() {
     if (collar.length > 0) {
       if (collar[0] === "collar") {
         setCollarStatus("YES");
+        uygulanan += 1;
       } else if (collar[0] === "no_collar") {
         setCollarStatus("NO");
+        uygulanan += 1;
       }
     }
 
@@ -620,10 +627,14 @@ export default function AddListingPage() {
     if (earTag.length > 0) {
       if (earTag[0] === "ear_tag") {
         setEarTagStatus("YES");
+        uygulanan += 1;
       } else if (earTag[0] === "no_ear_tag") {
         setEarTagStatus("NO");
+        uygulanan += 1;
       }
     }
+
+    return uygulanan;
   };
 
   const runAiAnalysis = async () => {
@@ -648,9 +659,17 @@ export default function AddListingPage() {
           "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
         );
       } else {
-        applyAiAnalysis(analysis);
+        const uygulananAlan = applyAiAnalysis(analysis);
+
+        /*
+         * "Tamamlandı" demek, iş yapıldığını söylemektir. AI hiçbir alan
+         * dolduramadıysa kullanıcıya doğruyu söylüyoruz — yoksa dolmayan
+         * formu kendi hatası sanıyor.
+         */
         setAnalysisMessage(
-          "AI analizi tamamlandı. Olası eşleşmeler aranıyor...",
+          uygulananAlan > 0
+            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
         );
 
         // Fetch matches concurrently
