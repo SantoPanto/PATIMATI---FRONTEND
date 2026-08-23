@@ -1,4 +1,4 @@
-﻿import {
+import {
   useRef,
   useState,
   type DragEvent,
@@ -10,6 +10,7 @@ import {
   Camera,
   CheckCircle2,
   ImagePlus,
+  Loader2,
   PawPrint,
   Search,
   ShieldCheck,
@@ -22,6 +23,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { request } from "../services/api";
+import { compressImages } from "../utils/imageCompression";
 
 type ListingType = "lost" | "found";
 
@@ -47,6 +49,7 @@ export default function AiMatchPage() {
   const [, navigate] = useLocation();
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [listingType, setListingType] =
     useState<ListingType>("lost");
   const [isDragging, setIsDragging] = useState(false);
@@ -87,7 +90,7 @@ export default function AiMatchPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFiles = (files: FileList | File[]) => {
+  const handleFiles = async (files: FileList | File[]) => {
     setErrorMessage("");
 
     const incomingFiles = Array.from(files);
@@ -163,18 +166,33 @@ export default function AiMatchPage() {
       );
     }
 
-    const newImages: SelectedImage[] = filesToAdd.map(
-      (file) => ({
-        id: createImageId(file),
-        file,
-        preview: URL.createObjectURL(file),
-      }),
-    );
+    if (filesToAdd.length === 0) {
+      if (validationErrors.length > 0) {
+        setErrorMessage(validationErrors[0]);
+      }
+      return;
+    }
 
-    setSelectedImages((currentImages) => [
-      ...currentImages,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+      const compressedFiles = await compressImages(filesToAdd);
+      const newImages: SelectedImage[] = compressedFiles.map(
+        (file) => ({
+          id: createImageId(file),
+          file,
+          preview: URL.createObjectURL(file),
+        }),
+      );
+
+      setSelectedImages((currentImages) => [
+        ...currentImages,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
 
     if (validationErrors.length > 0) {
       setErrorMessage(validationErrors[0]);
@@ -453,6 +471,7 @@ export default function AiMatchPage() {
               <button
                 type="button"
                 onClick={openFilePicker}
+                disabled={isCompressing}
                 onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -461,14 +480,20 @@ export default function AiMatchPage() {
                   isDragging
                     ? "border-[#F97316] bg-[#FFF7ED]"
                     : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#FB923C] hover:bg-[#FFF7ED]/50"
-                }`}
+                } ${isCompressing ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
-                  <ImagePlus size={30} />
+                  {isCompressing ? (
+                    <Loader2 size={30} className="animate-spin" />
+                  ) : (
+                    <ImagePlus size={30} />
+                  )}
                 </div>
 
                 <p className="mt-5 text-lg font-bold text-[#1E293B]">
-                  En az 3 fotoğraf yükleyin
+                  {isCompressing
+                    ? "Fotoğraflar sıkıştırılıyor..."
+                    : "En az 3 fotoğraf yükleyin"}
                 </p>
 
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
