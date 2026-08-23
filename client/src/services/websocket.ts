@@ -53,8 +53,10 @@ export function connectWebSocket(
     throw new Error("JWT token bulunamadı.");
   }
 
-  if (stompClient?.connected) {
-    callbacks?.onConnect?.();
+  if (stompClient?.active) {
+    if (stompClient.connected) {
+      callbacks?.onConnect?.();
+    }
     return stompClient;
   }
 
