@@ -23,6 +23,7 @@ import AiAutofillCard from "../components/AiAutofillCard";
 import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
 import type { MatchedAdResponseDTO, PetColor } from "../services/types";
+import { aiCevabiniNormallestir } from "../utils/aiAnaliz";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import { konumAl, konumHataMesaji } from "../utils/konum";
@@ -157,11 +158,13 @@ export default function FoundPetCreatePage() {
       const formData = new FormData();
       formData.append("file", images[0].file);
 
-      const analysis = await request<AiAnalysis>("/api/ai/analyze", {
-        method: "POST",
-        body: formData,
-        requiresAuth: true,
-      });
+      const analysis = aiCevabiniNormallestir(
+        await request<AiAnalysis>("/api/ai/analyze", {
+          method: "POST",
+          body: formData,
+          requiresAuth: true,
+        }),
+      );
 
       if (analysis.is_pet === false) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");

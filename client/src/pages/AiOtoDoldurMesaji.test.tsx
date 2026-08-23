@@ -118,6 +118,34 @@ describe("AI oto-doldurma mesajı sonucu YANSITIR", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it("backend'in YENİ cevap şekliyle de doldurur (#156: coatPattern/colors/isPet)", async () => {
+    // AiAnalyzeMapper'ın cevabı: `labels` HİÇ yok, renkler `colors`ta enum
+    // adı, `is_pet` yerine `isPet`. Normalleştirme olmasa hiçbir alan dolmaz
+    // ve ekran "elle doldurun" derdi.
+    istek.mockResolvedValue({
+      species: "CAT",
+      speciesConfidence: 0.97,
+      breed: "Tekir",
+      breedConfidence: 0.81,
+      coatPattern: "TABBY",
+      colors: ["GRAY", "WHITE"],
+      isPet: true,
+    });
+
+    const { container } = render(<AdoptionCreatePage />);
+    await fotografEkleVeAnalizEt(container);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Bilgiler forma aktarıldı/i),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByText(/çıkaramadı — alanları elle doldurun/i),
+    ).toBeNull();
+  });
 });
 
 /**

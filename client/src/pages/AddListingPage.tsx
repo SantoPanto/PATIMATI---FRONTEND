@@ -23,6 +23,7 @@ import AiAutofillCard from "../components/AiAutofillCard";
 import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
 import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
+import { aiCevabiniNormallestir } from "../utils/aiAnaliz";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 import { konumAl, konumHataMesaji } from "../utils/konum";
@@ -498,13 +499,15 @@ export default function AddListingPage() {
 
     formData.append("file", file);
 
-    return await request<AiAnalysis>(
-      "/api/ai/analyze",
-      {
-        method: "POST",
-        body: formData,
-        requiresAuth: true,
-      },
+    return aiCevabiniNormallestir(
+      await request<AiAnalysis>(
+        "/api/ai/analyze",
+        {
+          method: "POST",
+          body: formData,
+          requiresAuth: true,
+        },
+      ),
     );
   };
 
