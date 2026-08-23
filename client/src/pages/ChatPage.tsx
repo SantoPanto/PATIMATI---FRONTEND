@@ -156,6 +156,7 @@ export default function ChatPage() {
 
       // If incoming message belongs to active chat, append to messages state
       if (activeId && (senderId === activeId || recipientId === activeId)) {
+        console.log("[WebSocket Debug] setMessages çağrısı (aktif sohbet mesajı alındı):", incomingMessage);
         setMessages((prev) => {
           // If exact ID exists, ignore duplicate
           if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) return prev;
