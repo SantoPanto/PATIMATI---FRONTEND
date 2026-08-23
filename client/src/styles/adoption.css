@@ -614,6 +614,18 @@
   color: #cbd5e1;
 }
 
+/* .adoption-safety kendi (yeşil) açık zeminini temadan bağımsız koruyor;
+   içindeki h2/p ise renk tanımlamadığı için gövdenin var(--pm-text)'ine
+   miras kalıyordu — o .dark altında beyaza döndüğünden metin, hâlâ açık
+   yeşil zeminde görünmez oluyordu. */
+.dark .adoption-safety__content h2 {
+  color: #0f172a;
+}
+
+.dark .adoption-safety__content p {
+  color: #64748b;
+}
+
 .dark .adoption-filter__search,
 .dark .adoption-filter__selects select {
   border-color: var(--pm-border);

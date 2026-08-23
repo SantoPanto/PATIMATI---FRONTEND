@@ -22,7 +22,7 @@ export default function AboutPage() {
               PATIMATI hakkında
             </span>
 
-            <h1 className="mt-6 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl dark:text-[#0F172A]">
               Minik dostlarımızı
               <span className="text-[#F97316]">
                 {" "}

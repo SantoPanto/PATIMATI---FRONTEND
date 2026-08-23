@@ -125,6 +125,39 @@
   background: rgba(15, 23, 42, 0.95);
 }
 
+/* Aşağıdaki kartlar kendi (renkli/açık) arka planlarını temadan bağımsız
+   koruyor, ama iç metinleri var(--text-primary/secondary) gibi paylaşılan
+   değişkenleri kullanıyordu — o değişkenler .dark altında beyaza döndüğü
+   için metin, kartın hâlâ açık renkli zemininde görünmez oluyordu. Burada
+   metin renkleri kartın kendi (light) tasarımındaki sabit değere sabitlenir. */
+.dark .quick-action-card h3 {
+  color: #0f172a;
+}
+
+.dark .quick-action-card p {
+  color: #475569;
+}
+
+.dark .safety-card__icon {
+  background: #ffffff;
+}
+
+.dark .safety-card__content > span {
+  color: #3b82f6;
+}
+
+.dark .safety-card__content h2 {
+  color: #0f172a;
+}
+
+.dark .safety-card__content p {
+  color: #64748b;
+}
+
+.dark .favorite-button {
+  color: #64748b;
+}
+
 * {
   box-sizing: border-box;
 }

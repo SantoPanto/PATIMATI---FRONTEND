@@ -22,7 +22,7 @@ export default function SafetyPage() {
               Güvenlik rehberi
             </span>
 
-            <h1 className="mt-6 max-w-4xl text-4xl font-bold sm:text-5xl">
+            <h1 className="mt-6 max-w-4xl text-4xl font-bold sm:text-5xl dark:text-[#0F172A]">
               Güvenli iletişim
               <span className="text-[#2563EB]">
                 {" "}

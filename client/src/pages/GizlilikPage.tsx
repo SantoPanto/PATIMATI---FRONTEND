@@ -40,7 +40,7 @@ export default function GizlilikPage() {
               KVKK aydınlatması
             </span>
 
-            <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl dark:text-[#0F172A]">
               Gizlilik Politikası
             </h1>
 
