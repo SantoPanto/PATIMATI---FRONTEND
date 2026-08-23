@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { NotificationList } from "../components/NotificationPanel";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  getNotificationHref,
   getNotificationSnapshot,
   loadNotifications,
   markAllNotificationsAsRead,
@@ -13,36 +14,6 @@ import {
 } from "../services/notifications";
 import type { InAppNotification } from "../services/notifications";
 import { TeamBack, TeamShell } from "../components/TeamUI";
-
-function getNotificationHref(
-  notification: InAppNotification,
-): string | null {
-  if (
-    notification.data.type === "AI_MATCH" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
-  }
-
-  // Çevre uyarısı (konum aboneliği): hedef ilanın kendisi — eşleşme
-  // bağlamı yok, doğrudan detaya gider.
-  if (
-    notification.data.type === "NEARBY_AD" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
-  }
-
-  // Görülme bildirimi: sahibi ilan detayına gider — Görülmeler bölümü orada.
-  if (
-    notification.data.type === "SIGHTING" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
-  }
-
-  return null;
-}
 
 export default function NotificationsPage() {
   const [, navigate] = useLocation();

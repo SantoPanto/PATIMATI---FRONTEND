@@ -3,9 +3,12 @@ import SockJS from "sockjs-client";
 
 import { API_BASE_URL } from "./api";
 import { getStoredToken } from "./auth";
-import type { MessageResponse } from "./types";
+import type { MessageResponse, UserStatusEvent } from "./types";
 
 let stompClient: Client | null = null;
+
+const messageListeners = new Set<(message: MessageResponse) => void>();
+const userStatusListeners = new Set<(event: UserStatusEvent) => void>();
 
 export interface WebSocketCallbacks {
   onConnect?: () => void;
@@ -13,10 +16,36 @@ export interface WebSocketCallbacks {
   onError?: (err: unknown) => void;
 }
 
+export function subscribeToMessages(
+  listener: (message: MessageResponse) => void,
+): () => void {
+  messageListeners.add(listener);
+  return () => {
+    messageListeners.delete(listener);
+  };
+}
+
+export function subscribeToUserStatus(
+  listener: (event: UserStatusEvent) => void,
+): () => void {
+  userStatusListeners.add(listener);
+  return () => {
+    userStatusListeners.delete(listener);
+  };
+}
+
 export function connectWebSocket(
-  onMessage: (message: MessageResponse) => void,
+  onMessage?: (message: MessageResponse) => void,
   callbacks?: WebSocketCallbacks,
+  onUserStatus?: (statusEvent: UserStatusEvent) => void,
 ) {
+  if (onMessage) {
+    messageListeners.add(onMessage);
+  }
+  if (onUserStatus) {
+    userStatusListeners.add(onUserStatus);
+  }
+
   const token = getStoredToken();
 
   if (!token) {
@@ -52,12 +81,23 @@ export function connectWebSocket(
       console.log("WebSocket connected");
       callbacks?.onConnect?.();
 
+      // Subscribe to private messages
       stompClient?.subscribe("/user/queue/messages", (frame) => {
         try {
           const message: MessageResponse = JSON.parse(frame.body);
-          onMessage(message);
+          messageListeners.forEach((listener) => listener(message));
         } catch (parseErr) {
           console.error("Mesaj ayrıştırma hatası:", parseErr);
+        }
+      });
+
+      // Subscribe to real-time user online/offline status topic
+      stompClient?.subscribe("/topic/user-status", (frame) => {
+        try {
+          const statusEvent: UserStatusEvent = JSON.parse(frame.body);
+          userStatusListeners.forEach((listener) => listener(statusEvent));
+        } catch (parseErr) {
+          console.error("Kullanıcı durum ayrıştırma hatası:", parseErr);
         }
       });
     },
@@ -107,9 +147,10 @@ export function sendMessage(
 }
 
 export function disconnectWebSocket() {
+  messageListeners.clear();
+  userStatusListeners.clear();
   if (stompClient) {
     stompClient.deactivate();
     stompClient = null;
   }
 }
-

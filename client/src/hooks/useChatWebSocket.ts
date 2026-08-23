@@ -4,25 +4,32 @@ import {
   disconnectWebSocket,
   sendMessage as stompSendMessage,
 } from "../services/websocket";
-import type { MessageResponse, WebSocketStatus } from "../services/types";
+import type { MessageResponse, UserStatusEvent, WebSocketStatus } from "../services/types";
 
 /**
- * Custom Hook: WebSocket STOMP Connection and Real-time Messaging
+ * Custom Hook: WebSocket STOMP Connection, Messaging, and Online Status Sync
  * - Manages STOMP WebSocket connection lifecycle
- * - Subscribes to /user/queue/messages destination via connectWebSocket
- * - Triggers onMessageReceived callback upon receiving real-time messages
+ * - Subscribes to /user/queue/messages destination for chat messages
+ * - Subscribes to /topic/user-status topic for real-time user online/offline updates
+ * - Triggers onMessageReceived & onUserStatusReceived callbacks
  * - Exposes connection status flags and sendMessage method
  */
 export function useChatWebSocket(
   onMessageReceived?: (message: MessageResponse) => void,
+  onUserStatusReceived?: (statusEvent: UserStatusEvent) => void,
 ) {
   const [status, setStatus] = useState<WebSocketStatus>("CONNECTING");
   const onMessageRef = useRef(onMessageReceived);
+  const onUserStatusRef = useRef(onUserStatusReceived);
 
-  // Always keep callback ref updated to prevent stale closures without causing re-connections
+  // Always keep callback refs updated to prevent stale closures without re-subscribing
   useEffect(() => {
     onMessageRef.current = onMessageReceived;
   }, [onMessageReceived]);
+
+  useEffect(() => {
+    onUserStatusRef.current = onUserStatusReceived;
+  }, [onUserStatusReceived]);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,6 +51,9 @@ export function useChatWebSocket(
             console.error("WebSocket error state:", err);
             if (isMounted) setStatus("ERROR");
           },
+        },
+        (statusEvent) => {
+          onUserStatusRef.current?.(statusEvent);
         },
       );
     } catch (err) {
