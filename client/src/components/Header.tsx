@@ -111,6 +111,17 @@ export default function Header() {
           >
             Sahiplendirme
           </Link>
+
+          <Link
+            href="/chat"
+            className={
+              isActive("/chat")
+                ? "navigation-link active"
+                : "navigation-link"
+            }
+          >
+            Mesajlar
+          </Link>
         </nav>
 
         <div className="home-header__actions">
