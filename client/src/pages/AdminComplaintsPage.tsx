@@ -16,6 +16,7 @@ import type {
   UserComplaintAdminResponse,
 } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { translateEnum } from "../utils/enumTranslator";
 
 /**
  * Üç ayrı uçtan gelen şikayetler tek listede gösteriliyor ama alanları
@@ -168,7 +169,7 @@ export default function AdminComplaintsPage() {
         {complaints.map((item) => (
           <article key={item.id} className="content-card">
             <div className="content-card__top">
-              <div className="pill pill--warning">{item.status}</div>
+              <div className="pill pill--warning">{translateEnum(item.status, "complaintStatus")}</div>
 
               <span className="muted">
                 {new Date(item.createdAt).toLocaleDateString("tr-TR")}
