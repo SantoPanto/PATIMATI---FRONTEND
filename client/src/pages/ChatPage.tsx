@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 import ReportUserModal from "../components/ReportUserModal";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatWebSocket } from "../hooks/useChatWebSocket";
