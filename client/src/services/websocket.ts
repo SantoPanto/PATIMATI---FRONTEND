@@ -102,6 +102,9 @@ export function connectWebSocket(
     webSocketFactory: () =>
       new SockJS(`${API_BASE_URL}/ws-connect`),
 
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
+
     beforeConnect: () => {
       const freshToken = getStoredToken();
       if (isReconnecting) {
