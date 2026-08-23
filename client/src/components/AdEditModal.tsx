@@ -11,6 +11,7 @@ import type {
   Species,
 } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { translateEnum } from "../utils/enumTranslator";
 import PosterSettingsForm from "./PosterSettingsForm";
 
 interface AdEditModalProps {
@@ -31,18 +32,6 @@ const ALL_COLORS: PetColor[] = [
   "BEIGE",
   "OTHER",
 ];
-
-const COLOR_LABELS: Record<PetColor, string> = {
-  BLACK: "Siyah",
-  WHITE: "Beyaz",
-  GRAY: "Gri",
-  BROWN: "Kahverengi",
-  ORANGE: "Turuncu",
-  CREAM: "Krem",
-  GOLDEN: "Altın",
-  BEIGE: "Bej",
-  OTHER: "Diğer",
-};
 
 export default function AdEditModal({
   isOpen,
@@ -416,7 +405,7 @@ export default function AdEditModal({
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                         }`}
                       >
-                        {COLOR_LABELS[c]}
+                        {translateEnum(c, "color")}
                       </button>
                     );
                   })}

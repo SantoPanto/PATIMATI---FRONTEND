@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { MatchResponseDTO } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
+import { translateEnum } from "../utils/enumTranslator";
 
 interface MatchCardProps {
   match: MatchResponseDTO;
@@ -77,7 +78,7 @@ export default function MatchCard({ match }: MatchCardProps) {
     partnerAd?.title || match.partnerAdTitle || `Eşleşme #${match.id ?? "İlan"}`;
   const breed =
     partnerAd?.breed ||
-    (partnerAd?.species ? String(partnerAd.species) : "Belirtilmedi");
+    (partnerAd?.species ? translateEnum(String(partnerAd.species), "species") : "Belirtilmedi");
   // Backend eslesme kaydinda METINSEL konum yok; gercekten var olan tek
   // konum verisi konum skorudur.
   const locationText = `Konum uyumu %${locationScorePct}`;

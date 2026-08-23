@@ -3,6 +3,8 @@ import { ChevronRight, MapPin, PawPrint, Sparkles } from "lucide-react";
 import type { MatchedAdResponseDTO } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 
+import { translateEnum } from "../utils/enumTranslator";
+
 /**
  * Format score from 0.0 - 1.0 float (or 0-100) to rounded integer percentage.
  * Example: 0.942 -> 94
@@ -43,12 +45,7 @@ export default function MatchedAdCard({
   };
 
   const adTitle = ad?.title || "İlan";
-  const speciesLabel =
-    ad?.species === "CAT"
-      ? "Kedi"
-      : ad?.species === "DOG"
-      ? "Köpek"
-      : "Evcil Hayvan";
+  const speciesLabel = translateEnum(ad?.species, "species", "Evcil Hayvan");
   const breedLabel = ad?.breed || "Bilinmiyor";
   const locationLabel =
     ad?.district && ad?.city

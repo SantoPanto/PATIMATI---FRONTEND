@@ -7,33 +7,9 @@ import type {
 } from "../services/types";
 import { getImageUrl, getMediaUrl } from "./imageUrl";
 
+import { translateEnum } from "./enumTranslator";
+
 export { getImageUrl, getMediaUrl };
-
-const speciesLabels: Record<Species, string> = {
-  CAT: "Kedi",
-  DOG: "Köpek",
-  UNKNOWN: "Belirtilmemiş",
-};
-
-const genderLabels: Record<Gender, string> = {
-  FEMALE: "Dişi",
-  MALE: "Erkek",
-  UNKNOWN: "Belirtilmemiş",
-};
-
-const ageLabels: Record<AgeGroup, string> = {
-  BABY: "Yavru",
-  YOUNG: "Genç",
-  ADULT: "Yetişkin",
-  SENIOR: "Yaşlı",
-  UNKNOWN: "Yaş belirtilmemiş",
-};
-
-const adTypeLabels: Record<AdType, string> = {
-  LOST: "Kayıp",
-  FOUND: "Bulundu",
-  ADOPTION: "Sahiplendirme",
-};
 
 /**
  * Sunucu cins bilinmiyorken `MIXED_OR_UNKNOWN` yazıyor (AdMapper'daki
@@ -48,19 +24,22 @@ export function getBreedLabel(breed?: string | null): string {
 }
 
 export function getSpeciesLabel(species: Species): string {
-  return speciesLabels[species] ?? "Hayvan";
+  if (species === "UNKNOWN") return "Belirtilmemiş";
+  return translateEnum(species, "species", "Hayvan");
 }
 
 export function getGenderLabel(gender: Gender): string {
-  return genderLabels[gender] ?? "Belirtilmemiş";
+  if (gender === "UNKNOWN") return "Belirtilmemiş";
+  return translateEnum(gender, "gender", "Belirtilmemiş");
 }
 
 export function getAgeLabel(ageGroup: AgeGroup): string {
-  return ageLabels[ageGroup] ?? "Yaş belirtilmemiş";
+  if (ageGroup === "UNKNOWN") return "Yaş belirtilmemiş";
+  return translateEnum(ageGroup, "ageGroup", "Yaş belirtilmemiş");
 }
 
 export function getAdTypeLabel(adType: AdType): string {
-  return adTypeLabels[adType] ?? "İlan";
+  return translateEnum(adType, "adType", "İlan");
 }
 
 export function getAdImage(ad: AdResponse): string {

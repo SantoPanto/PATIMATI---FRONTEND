@@ -43,6 +43,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { translateEnum, translateEnumArray } from "../utils/enumTranslator";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
@@ -104,11 +105,9 @@ function formatCollarStatus(
   status: AdResponse["collarStatus"],
   collarColor?: string,
 ): string {
-  // Backend enum'u: entity/enums/PresenceStatus = UNKNOWN | YES | NO.
-  // Buradaki eski PRESENT / ABSENT degerleri backend'de HIC YOKTU: iki kosul da
-  // tutmadigi icin tasmali ilanlar bile "bilinmiyor" gorunuyordu.
   if (status === "YES") {
-    return collarColor ? `Tasmalı (${collarColor})` : "Tasmalı";
+    const translatedColor = collarColor ? translateEnum(collarColor, "color") : undefined;
+    return translatedColor ? `Tasmalı (${translatedColor})` : "Tasmalı";
   }
   if (status === "NO") {
     return "Tasmasız";
@@ -118,24 +117,7 @@ function formatCollarStatus(
 
 function formatPattern(pattern?: AdResponse["coatPattern"]): string {
   if (!pattern) return "";
-  // Backend enum'u: entity/enums/CoatPattern. Eskiden BICOLOR/TRICOLOR/TABBY/
-  // HARLEQUIN yaziyordu - dordu de backend'de yok; buna karsilik gercek
-  // degerlerin besi (UNKNOWN, STRIPED, PATCHED, CALICO, TORTOISESHELL) eksikti,
-  // o ilanlarda kullaniciya ham kod ("TORTOISESHELL") gosteriliyordu.
-  const patterns: Record<AdResponse["coatPattern"], string> = {
-    // Hücrenin başlığı zaten "DESEN"; değerde kelimeyi tekrarlamak hem
-    // gereksiz hem 390px'te hücreye sığmıyordu (ölçüldü: 136px > 111px,
-    // truncate "Desen belirtil…" kesiyordu). CİNSİYET hücresiyle tutarlı.
-    UNKNOWN: "Belirtilmemiş",
-    SOLID: "Tek Renk",
-    STRIPED: "Çizgili / Tekir",
-    SPOTTED: "Benekli",
-    PATCHED: "Parçalı / Alaca",
-    CALICO: "Sarman / Üç Renk",
-    TORTOISESHELL: "Kaplumbağa Kabuğu",
-    OTHER: "Diğer Desen",
-  };
-  return patterns[pattern] || pattern;
+  return translateEnum(pattern, "coatPattern");
 }
 
 export default function PetDetailPage() {
@@ -629,14 +611,14 @@ export default function PetDetailPage() {
                 {ad.colors && ad.colors.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
                     <BadgeCheck size={15} />
-                    Renk: {ad.colors.join(", ")}
+                    Renk: {translateEnumArray(ad.colors, "color")}
                   </span>
                 )}
 
                 {ad.eyeColor && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
                     <Eye size={14} />
-                    Göz Rengi: {ad.eyeColor}
+                    Göz Rengi: {translateEnum(ad.eyeColor, "eyeColor")}
                   </span>
                 )}
               </div>
