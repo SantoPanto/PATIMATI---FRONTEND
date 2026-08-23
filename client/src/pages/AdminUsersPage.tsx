@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { UserRoundCog } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
+import AdminFilterBar from "../components/admin/AdminFilterBar";
 import { getAdminUsers } from "../services/admin";
 import type { UserDetailForAdminDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
@@ -9,14 +10,24 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserDetailForAdminDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("createdAt,desc");
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
-    getAdminUsers({ page: 0, size: 50 })
+    getAdminUsers({
+      page,
+      size: 50,
+      search: searchQuery,
+      sort: sortOrder,
+    })
       .then((response) => {
         if (!cancelled) {
           setUsers(response.content);
+          setError("");
         }
       })
       .catch((err) => {
@@ -35,7 +46,17 @@ export default function AdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [page, searchQuery, sortOrder]);
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setPage(0);
+  };
+
+  const handleSortChange = (sort: string) => {
+    setSortOrder(sort);
+    setPage(0);
+  };
 
   return (
     <TeamShell className="screen">
@@ -45,6 +66,15 @@ export default function AdminUsersPage() {
       </header>
 
       <section className="card-stack">
+        <AdminFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
+          placeholder="Kullanıcı adı veya e-posta ara..."
+          className="mb-4"
+        />
+
         {loading && <p className="muted">Kullanıcılar yükleniyor...</p>}
 
         {error && <p className="muted">{error}</p>}

@@ -367,6 +367,13 @@ export type UserDetailForAdminDTO = UserResponseDTO & {
   createdAt?: string;
 };
 
+export type AdminGetParams = {
+  page?: number;
+  size?: number;
+  search?: string;
+  sort?: string;
+};
+
 /**
  * Üç admin şikayet kaydının ORTAK çekirdeği.
  *
