@@ -79,64 +79,6 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Real-time STOMP status event handler for /topic/user-status
-  const handleUserStatusUpdate = useCallback(
-    (event: UserStatusEvent) => {
-      if (activeUserId && Number(event.userId) === Number(activeUserId)) {
-        const isOnline =
-          event.online === true ||
-          event.status?.toUpperCase() === "ONLINE";
-        setUserStatus({
-          userId: Number(event.userId),
-          online: isOnline,
-          status: isOnline ? "ONLINE" : "OFFLINE",
-          lastSeen: event.lastSeen ?? null,
-        });
-      }
-    },
-    [activeUserId],
-  );
-
-  // Encapsulated Custom Hook for WebSocket status, messaging, and online status topic subscription
-  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
-    handleIncomingMessage,
-    handleUserStatusUpdate,
-  );
-
-  // Fetch initial online status for active partner via GET /api/users/{userId}/status
-  useEffect(() => {
-    if (!activeUserId || !Number.isFinite(activeUserId)) {
-      setUserStatus(null);
-      return;
-    }
-
-    let isMounted = true;
-
-    async function fetchUserStatus() {
-      try {
-        const statusData = await getUserStatus(activeUserId);
-        if (isMounted) {
-          setUserStatus(statusData);
-        }
-      } catch (err) {
-        console.error("Kullanıcı durumu alınamadı:", err);
-      }
-    }
-
-    void fetchUserStatus();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeUserId]);
-
-  // Auto-scroll helper
-  const scrollToBottom = useCallback((smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: smooth ? "smooth" : "auto",
-    });
-  }, []);
-
   // Helper to upsert a contact room in contacts list
   const upsertContact = useCallback(
     (contactUserId: number, contactName: string, lastMsg: string, timestamp: string) => {
@@ -174,42 +116,6 @@ export default function ChatPage() {
     },
     [],
   );
-
-  // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
-  useEffect(() => {
-    if (!currentUserId || !Number.isFinite(currentUserId)) return;
-
-    let isMounted = true;
-
-    async function fetchRooms() {
-      try {
-        setLoadingRooms(true);
-        const roomsData: ChatRoomResponse[] = await getChatRooms();
-
-        if (!isMounted) return;
-
-        const formattedContacts: ChatContact[] = (roomsData || []).map((room) => ({
-          userId: room.partnerId,
-          userName: room.partnerName || `Kullanıcı #${room.partnerId}`,
-          lastMessage: room.lastMessage || "",
-          lastTimestamp: room.lastMessageTimestamp || "",
-          unreadCount: room.unreadCount || 0,
-        }));
-
-        setContacts(formattedContacts);
-      } catch (err) {
-        console.error("Sohbet odaları yüklenemedi:", err);
-      } finally {
-        if (isMounted) setLoadingRooms(false);
-      }
-    }
-
-    void fetchRooms();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUserId]);
 
   // 3. WebSocket incoming message handler
   const handleIncomingMessage = useCallback(
@@ -262,7 +168,102 @@ export default function ChatPage() {
     [activeUserId, currentUserId, upsertContact],
   );
 
-  // Load active chat room message history
+  // Real-time STOMP status event handler for /topic/user-status
+  const handleUserStatusUpdate = useCallback(
+    (event: UserStatusEvent) => {
+      if (activeUserId && Number(event.userId) === Number(activeUserId)) {
+        const isOnline =
+          event.online === true ||
+          event.status?.toUpperCase() === "ONLINE";
+        setUserStatus({
+          userId: Number(event.userId),
+          online: isOnline,
+          status: isOnline ? "ONLINE" : "OFFLINE",
+          lastSeen: event.lastSeen ?? null,
+        });
+      }
+    },
+    [activeUserId],
+  );
+
+  // Encapsulated Custom Hook for WebSocket status, messaging, and online status topic subscription
+  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
+    handleIncomingMessage,
+    handleUserStatusUpdate,
+  );
+
+  // Fetch initial online status for active partner via GET /api/users/{userId}/status
+  useEffect(() => {
+    if (!activeUserId || !Number.isFinite(activeUserId)) {
+      setUserStatus(null);
+      return;
+    }
+
+    const targetUserId = activeUserId;
+    let isMounted = true;
+
+    async function fetchUserStatus() {
+      try {
+        const statusData = await getUserStatus(targetUserId);
+        if (isMounted) {
+          setUserStatus(statusData);
+        }
+      } catch (err) {
+        console.error("Kullanıcı durumu alınamadı:", err);
+      }
+    }
+
+    void fetchUserStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeUserId]);
+
+  // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
+  useEffect(() => {
+    if (!currentUserId || !Number.isFinite(currentUserId)) return;
+
+    let isMounted = true;
+
+    async function fetchRooms() {
+      try {
+        setLoadingRooms(true);
+        const roomsData: ChatRoomResponse[] = await getChatRooms();
+
+        if (!isMounted) return;
+
+        const formattedContacts: ChatContact[] = (roomsData || []).map((room) => ({
+          userId: room.partnerId,
+          userName: room.partnerName || `Kullanıcı #${room.partnerId}`,
+          lastMessage: room.lastMessage || "",
+          lastTimestamp: room.lastMessageTimestamp || "",
+          unreadCount: room.unreadCount || 0,
+        }));
+
+        setContacts(formattedContacts);
+      } catch (err) {
+        console.error("Sohbet odaları yüklenemedi:", err);
+      } finally {
+        if (isMounted) setLoadingRooms(false);
+      }
+    }
+
+    void fetchRooms();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserId]);
+
+  // Auto-scroll helper
+  const scrollToBottom = useCallback((smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }, []);
+
+  // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
   useEffect(() => {
     if (!activeUserId || !Number.isFinite(activeUserId)) {
       setMessages([]);
