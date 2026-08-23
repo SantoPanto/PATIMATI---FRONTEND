@@ -35,6 +35,129 @@
   --error-light: #fef2f2;
 }
 
+/* Karanlık tema: aynı değişken adları, koyu paletle yeniden tanımlanır.
+   .dark sınıfı ThemeContext tarafından <html>'e eklenir/kaldırılır. */
+.dark {
+  color: #f1f5f9;
+  background: #0f172a;
+
+  --primary: #fb923c;
+  --primary-hover: #f97316;
+  --primary-light: rgba(251, 146, 60, 0.12);
+
+  --secondary: #60a5fa;
+  --secondary-hover: #3b82f6;
+  --secondary-light: rgba(96, 165, 250, 0.12);
+
+  --background: #0f172a;
+  --surface: #1e293b;
+  --surface-secondary: #172033;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border: #334155;
+  --border-strong: #475569;
+
+  --success: #4ade80;
+  --success-light: rgba(74, 222, 128, 0.12);
+
+  --error: #f87171;
+  --error-light: rgba(248, 113, 113, 0.12);
+}
+
+/* Aşağıdaki selektörler design-token'lardan (var(--surface) vb.) değil
+   sabit hex/rgba renklerden besleniyor, bu yüzden .dark altında ayrıca
+   geçersiz kılınmaları gerekiyor. Sadece sayfa zemini üzerinde duran
+   yüzeyler (header, hero, çekmece, alt gezinme) kapsanıyor; kendi renkli
+   gradyanıyla gelen tanıtım kartları (ör. .ai-match-card, .safety-card)
+   her iki temada da aynı kaldığı için buraya alınmadı.*/
+.dark .home-header {
+  border-bottom-color: rgba(51, 65, 85, 0.6);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.dark .hero-section {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(251, 146, 60, 0.14), transparent 29%),
+    radial-gradient(circle at 90% 15%, rgba(59, 130, 246, 0.14), transparent 30%),
+    linear-gradient(180deg, #0f172a 0%, #131f2e 100%);
+}
+
+.dark .hero-image-card {
+  border-color: rgba(30, 41, 59, 0.9);
+  background: #1e293b;
+}
+
+.dark .floating-card {
+  border-color: rgba(51, 65, 85, 0.7);
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.dark .guest-access-card {
+  background: rgba(30, 41, 59, 0.75);
+}
+
+.dark .filter-drawer {
+  background: #0f172a;
+}
+
+.dark .filter-drawer__footer {
+  background: rgba(15, 23, 42, 0.96);
+}
+
+.dark .filter-chip-grid button {
+  background: #1e293b;
+}
+
+.dark .header-login-button {
+  color: #cbd5e1;
+}
+
+.dark .pet-listing-card:hover {
+  border-color: #475569;
+}
+
+.dark .mobile-bottom-nav,
+.dark .bottom-nav {
+  border-color: rgba(51, 65, 85, 0.7);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* Aşağıdaki kartlar kendi (renkli/açık) arka planlarını temadan bağımsız
+   koruyor, ama iç metinleri var(--text-primary/secondary) gibi paylaşılan
+   değişkenleri kullanıyordu — o değişkenler .dark altında beyaza döndüğü
+   için metin, kartın hâlâ açık renkli zemininde görünmez oluyordu. Burada
+   metin renkleri kartın kendi (light) tasarımındaki sabit değere sabitlenir. */
+.dark .quick-action-card h3 {
+  color: #0f172a;
+}
+
+.dark .quick-action-card p {
+  color: #475569;
+}
+
+.dark .safety-card__icon {
+  background: #ffffff;
+}
+
+.dark .safety-card__content > span {
+  color: #3b82f6;
+}
+
+.dark .safety-card__content h2 {
+  color: #0f172a;
+}
+
+.dark .safety-card__content p {
+  color: #64748b;
+}
+
+.dark .favorite-button {
+  color: #64748b;
+}
+
 * {
   box-sizing: border-box;
 }

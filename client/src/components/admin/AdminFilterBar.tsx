@@ -66,13 +66,13 @@ export const AdminFilterBar: React.FC<AdminFilterBarProps> = ({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
+          className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
         />
         {inputValue && (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors dark:hover:text-slate-300"
             aria-label="Aramayı temizle"
           >
             <X size={16} />
@@ -88,7 +88,7 @@ export const AdminFilterBar: React.FC<AdminFilterBarProps> = ({
         <select
           value={sortOrder}
           onChange={(e) => onSortChange(e.target.value)}
-          className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs appearance-none cursor-pointer"
+          className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs appearance-none cursor-pointer dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
         >
           {sortOptions.map((option) => (
             <option key={option.value} value={option.value}>

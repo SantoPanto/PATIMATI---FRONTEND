@@ -217,7 +217,7 @@ export default function CreateAdLayout({
   const config = THEME_CONFIGS[activeTabType];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -293,7 +293,7 @@ export default function CreateAdLayout({
 
           {/* Sticky Sidebar Right Column */}
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-2xl ${config.sidebarCardIconBg} ${config.sidebarCardIconText}`}
               >
@@ -304,7 +304,7 @@ export default function CreateAdLayout({
 
               <div className="mt-5 space-y-4">
                 {config.tips.map((tipText, idx) => (
-                  <div key={idx} className="flex items-start gap-3 text-sm text-[#475569]">
+                  <div key={idx} className="flex items-start gap-3 text-sm text-[#475569] dark:text-slate-400">
                     <CheckCircle2
                       size={18}
                       className={`mt-0.5 shrink-0 ${config.tipIconClass}`}

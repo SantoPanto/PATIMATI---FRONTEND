@@ -125,7 +125,7 @@ export default function ListingsPage() {
   };
 
   return (
-    <div className="home-page min-h-screen bg-[#F8FAFC]">
+    <div className="home-page min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
       <Header />
 
       <main>
@@ -181,7 +181,7 @@ export default function ListingsPage() {
               }}
               placeholder="Başlık, ırk veya açıklamada ara"
               aria-label="İlanlarda ara"
-              className="w-full rounded-xl border border-[#E2E8F0] bg-white py-3 pl-11 pr-4 text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316]"
+              className="w-full rounded-xl border border-[#E2E8F0] bg-white py-3 pl-11 pr-4 text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
         </section>
@@ -190,7 +190,7 @@ export default function ListingsPage() {
           <div className="page-container pb-16">
             <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <strong className="text-[#0F172A]">
+                <strong className="text-[#0F172A] dark:text-slate-100">
                   {isLoading
                     ? "İlanlar yükleniyor"
                     : search.length > 0
@@ -199,7 +199,7 @@ export default function ListingsPage() {
                 </strong>
 
                 {!isLoading && totalPages > 0 && (
-                  <p className="mt-1 text-sm text-[#64748B]">
+                  <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
                     Sayfa {page + 1} / {totalPages}
                   </p>
                 )}
@@ -221,13 +221,13 @@ export default function ListingsPage() {
                     className="pet-listing-card overflow-hidden"
                     aria-hidden="true"
                   >
-                    <div className="min-h-[220px] animate-pulse bg-[#E2E8F0]" />
+                    <div className="min-h-[220px] animate-pulse bg-[#E2E8F0] dark:bg-slate-800" />
 
                     <div className="space-y-4 p-5">
-                      <div className="h-5 animate-pulse rounded bg-[#E2E8F0]" />
-                      <div className="h-4 animate-pulse rounded bg-[#E2E8F0]" />
-                      <div className="h-4 w-2/3 animate-pulse rounded bg-[#E2E8F0]" />
-                      <div className="h-10 animate-pulse rounded bg-[#E2E8F0]" />
+                      <div className="h-5 animate-pulse rounded bg-[#E2E8F0] dark:bg-slate-800" />
+                      <div className="h-4 animate-pulse rounded bg-[#E2E8F0] dark:bg-slate-800" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-[#E2E8F0] dark:bg-slate-800" />
+                      <div className="h-10 animate-pulse rounded bg-[#E2E8F0] dark:bg-slate-800" />
                     </div>
                   </div>
                 ))}
@@ -305,13 +305,13 @@ export default function ListingsPage() {
                   type="button"
                   onClick={goToPreviousPage}
                   disabled={page === 0}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   aria-label="Önceki sayfa"
                 >
                   <ChevronLeft size={20} />
                 </button>
 
-                <span className="min-w-24 text-center text-sm font-medium text-[#64748B]">
+                <span className="min-w-24 text-center text-sm font-medium text-[#64748B] dark:text-slate-400">
                   {page + 1} / {totalPages}
                 </span>
 
@@ -319,7 +319,7 @@ export default function ListingsPage() {
                   type="button"
                   onClick={goToNextPage}
                   disabled={page >= totalPages - 1}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] transition hover:border-[#F97316] hover:text-[#F97316] disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   aria-label="Sonraki sayfa"
                 >
                   <ChevronRight size={20} />

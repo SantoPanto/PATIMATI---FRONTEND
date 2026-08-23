@@ -71,8 +71,8 @@ export default function NotificationsPage() {
 
       <section className="card-stack">
         <article className="content-card overflow-hidden p-0">
-          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
-            <p className="text-sm text-slate-500">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-slate-800">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {unreadCount > 0
                 ? `${unreadCount} okunmamış bildirim`
                 : "Tüm bildirimler okundu"}
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
               <button
                 type="button"
                 onClick={markAllNotificationsAsRead}
-                className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-orange-500"
+                className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400"
               >
                 <CheckCheck size={15} aria-hidden="true" />
                 Tümünü okundu işaretle
@@ -91,11 +91,11 @@ export default function NotificationsPage() {
           </div>
 
           {isLoading ? (
-            <div className="px-6 py-16 text-center text-sm text-slate-500">
+            <div className="px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400">
               Bildirimler yükleniyor...
             </div>
           ) : error ? (
-            <div className="px-6 py-16 text-center text-sm text-rose-600" role="alert">
+            <div className="px-6 py-16 text-center text-sm text-rose-600 dark:text-rose-400" role="alert">
               Bildirimler yüklenirken bir hata oluştu.
             </div>
           ) : notifications.length > 0 ? (
@@ -105,13 +105,13 @@ export default function NotificationsPage() {
             />
           ) : (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
                 <BellOff size={25} aria-hidden="true" />
               </span>
-              <h3 className="mt-4 text-base font-bold text-slate-900">
+              <h3 className="mt-4 text-base font-bold text-slate-900 dark:text-slate-50">
                 Henüz bildiriminiz yok
               </h3>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Yeni bildirimleriniz burada görünür ve hesabınızda saklanır.
               </p>
             </div>

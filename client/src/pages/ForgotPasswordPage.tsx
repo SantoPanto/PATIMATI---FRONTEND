@@ -42,15 +42,15 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8">
-      <div className="pointer-events-none absolute left-0 top-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 dark:bg-slate-950">
+      <div className="pointer-events-none absolute left-0 top-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl dark:bg-orange-500/10" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl dark:bg-blue-500/10" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-lg items-center">
-        <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-10">
+        <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-10 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/40">
           <Link
             href="/login"
-            className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500"
+            className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500 dark:text-slate-400"
           >
             <ArrowLeft size={18} />
             Giriş sayfasına dön
@@ -72,15 +72,15 @@ export default function ForgotPasswordPage() {
           {!isSent ? (
             <>
               <div className="mb-8">
-                <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 text-orange-500">
+                <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
                   <ShieldCheck size={28} />
                 </span>
 
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
                   Şifreni mi unuttun
                 </h1>
 
-                <p className="mt-3 text-sm leading-6 text-slate-500">
+                <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
                   Hesabına ait e-posta adresini gir Şifreni yenileyebileceğin
                   güvenli bağlantıyı sana gönderelim
                 </p>
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleSubmit}>
                 <label
                   htmlFor="forgot-email"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
+                  className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
                 >
                   E-posta
                 </label>
@@ -107,14 +107,14 @@ export default function ForgotPasswordPage() {
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="ornek@mail.com"
                     autoComplete="email"
-                    className="h-12 w-full rounded-xl border border-slate-300 pl-12 pr-4 outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                    className="h-12 w-full rounded-xl border border-slate-300 pl-12 pr-4 outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
 
                 {errorMessage && (
                   <div
                     role="alert"
-                    className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                    className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
                   >
                     {errorMessage}
                   </div>
@@ -137,13 +137,13 @@ export default function ForgotPasswordPage() {
                 <CheckCircle2 size={40} />
               </span>
 
-              <h1 className="mt-6 text-3xl font-bold text-slate-900">
+              <h1 className="mt-6 text-3xl font-bold text-slate-900 dark:text-slate-50">
                 E-postanı kontrol et
               </h1>
 
-              <p className="mt-4 text-sm leading-6 text-slate-500">
+              <p className="mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Hesap bulunması hâlinde şifre sıfırlama bağlantısı{" "}
-                <strong className="text-slate-700">{email}</strong> adresine
+                <strong className="text-slate-700 dark:text-slate-200">{email}</strong> adresine
                 gönderildi
               </p>
 
@@ -157,7 +157,7 @@ export default function ForgotPasswordPage() {
           )}
 
           {!isSent && (
-            <p className="mt-7 text-center text-sm text-slate-600">
+            <p className="mt-7 text-center text-sm text-slate-600 dark:text-slate-400">
               Şifreni hatırladın mı{" "}
               <Link
                 href="/login"

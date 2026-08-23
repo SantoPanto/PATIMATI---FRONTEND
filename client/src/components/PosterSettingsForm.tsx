@@ -70,24 +70,24 @@ export default function PosterSettingsForm({
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
       {showTitle && (
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-          <p className="text-sm text-slate-600">
-            <span className="font-semibold text-slate-900">İlan: </span>
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            <span className="font-semibold text-slate-900 dark:text-slate-100">İlan: </span>
             {ad.title}
           </p>
         </div>
       )}
 
       {/* Ana Toggle (Switch) */}
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 shadow-sm transition hover:border-slate-300">
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 shadow-sm transition hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600">
         <div className="space-y-0.5">
           <label
             htmlFor={`poster-allowed-toggle-${ad.id}`}
-            className="text-base font-bold text-slate-900 cursor-pointer"
+            className="text-base font-bold text-slate-900 cursor-pointer dark:text-slate-50"
           >
             Afiş İndirmeyi Dışa Aç
           </label>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Diğer kullanıcıların bu ilan için PDF afişi indirmesine izin verin.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default function PosterSettingsForm({
           aria-checked={isPosterAllowed}
           onClick={() => setIsPosterAllowed((prev) => !prev)}
           className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-orange-200 ${
-            isPosterAllowed ? "bg-orange-500" : "bg-slate-300"
+            isPosterAllowed ? "bg-orange-500" : "bg-slate-300 dark:bg-slate-700"
           }`}
         >
           <span
@@ -125,7 +125,7 @@ export default function PosterSettingsForm({
               onChange={(e) => setShowEmailOnPoster(e.target.checked)}
               className="h-5 w-5 rounded-md border-slate-300 text-orange-500 focus:ring-orange-200"
             />
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
               İletişim için mail adresimi afişe ekle
             </span>
           </label>
@@ -138,7 +138,7 @@ export default function PosterSettingsForm({
               onChange={(e) => setShowPhoneOnPoster(e.target.checked)}
               className="h-5 w-5 rounded-md border-slate-300 text-orange-500 focus:ring-orange-200"
             />
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
               İletişim için telefon numaramı afişe ekle
             </span>
           </label>
@@ -147,13 +147,13 @@ export default function PosterSettingsForm({
 
       {/* Error & Success Messages */}
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" role="alert">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
           {error}
         </div>
       )}
 
       {successMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700" role="status">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400" role="status">
           <CheckCircle2 size={18} />
           {successMsg}
         </div>
@@ -166,7 +166,7 @@ export default function PosterSettingsForm({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Vazgeç
           </button>

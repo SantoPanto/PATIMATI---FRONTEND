@@ -963,13 +963,13 @@ export default function AddListingPage() {
   /* ---------------------------------------------------------------------- */
 
   const inputClass =
-    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10";
+    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   const labelClass =
-    "mb-2 block text-sm font-semibold text-gray-700";
+    "mb-2 block text-sm font-semibold text-gray-700 dark:text-slate-300";
 
   const cardClass =
-    "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6";
+    "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900";
 
   const disabled =
     isSubmitting || isAnalyzing;
@@ -1076,7 +1076,7 @@ export default function AddListingPage() {
                     openFilePicker
                   }
                   disabled={disabled || isCompressing}
-                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 text-gray-500 transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/5 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 text-gray-500 transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/5 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400"
                 >
                   {isCompressing ? (
                     <>
@@ -1448,7 +1448,7 @@ export default function AddListingPage() {
                       className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
                         selected
                           ? "border-[#7c5cff] bg-[#7c5cff] text-white"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-[#7c5cff]/50"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-[#7c5cff]/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       } disabled:cursor-not-allowed disabled:opacity-50`}
                     >
                       {COLOR_LABELS[color]}
@@ -1769,7 +1769,7 @@ export default function AddListingPage() {
               type="button"
               onClick={getLocation}
               disabled={disabled}
-              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:border-[#7c5cff]/50 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:border-[#7c5cff]/50 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
             >
               <MapPin size={18} />
               Konumumu Al
@@ -1839,7 +1839,7 @@ export default function AddListingPage() {
           {errorMessage && (
             <div
               role="alert"
-              className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+              className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
             >
               <Info
                 size={19}
@@ -1859,7 +1859,7 @@ export default function AddListingPage() {
           {/* Pasif düğmenin SEBEBİ yazılmalı: sebepsiz pasif düğme, kullanıcıyı
               formu baştan sona kontrol etmeye zorlar. */}
           {fotografEksik && (
-            <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
               <Camera size={17} />
               İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
             </p>

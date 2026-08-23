@@ -36,10 +36,10 @@ export default function AiAutofillCard({
 
   const cardBgClass =
     variant === "found"
-      ? "bg-[#EFF6FF]"
+      ? "bg-[#EFF6FF] dark:bg-blue-500/10"
       : variant === "adoption"
-      ? "bg-[#FFF7ED]"
-      : "bg-[#7c5cff]/5";
+      ? "bg-[#FFF7ED] dark:bg-orange-500/10"
+      : "bg-[#7c5cff]/5 dark:bg-[#7c5cff]/10";
 
   return (
     <div className="space-y-4">
@@ -48,11 +48,11 @@ export default function AiAutofillCard({
           <Sparkles size={20} className={`mt-0.5 shrink-0 ${iconColorClass}`} />
 
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-gray-800">
+            <p className="text-sm font-bold text-gray-800 dark:text-slate-100">
               AI ile otomatik doldur
             </p>
 
-            <p className="mt-1 text-xs leading-5 text-gray-500">
+            <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-slate-400">
               İlk fotoğrafınız analiz edilir ve tür, cins, renk gibi bilgiler forma otomatik aktarılır.
             </p>
 
@@ -79,7 +79,7 @@ export default function AiAutofillCard({
       </div>
 
       {analysisMessage && (
-        <div className="flex items-start gap-3 rounded-2xl bg-green-50 p-4 text-sm text-green-800">
+        <div className="flex items-start gap-3 rounded-2xl bg-green-50 p-4 text-sm text-green-800 dark:bg-emerald-500/10 dark:text-emerald-400">
           <CheckCircle2 size={19} className="mt-0.5 shrink-0" />
           <span>{analysisMessage}</span>
         </div>

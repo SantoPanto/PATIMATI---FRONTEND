@@ -232,13 +232,13 @@ export default function RegisterPage() {
     password !== passwordRepeat;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 dark:bg-slate-950">
       <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-orange-200/40 blur-3xl" />
 
       <div className="pointer-events-none absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-blue-200/40 blur-3xl" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-6xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_500px]">
+        <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_500px] dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/40">
           <section className="relative hidden min-h-[860px] overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.34),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.23),transparent_38%)]" />
 
@@ -293,7 +293,7 @@ export default function RegisterPage() {
           <section className="p-6 sm:p-10 lg:p-12">
             <Link
               href="/"
-              className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500"
+              className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500 dark:text-slate-400"
             >
               <ArrowLeft size={18} />
               Ana sayfaya dön
@@ -304,11 +304,11 @@ export default function RegisterPage() {
                 Ücretsiz kayıt
               </span>
 
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
                 Yeni hesap oluştur
               </h2>
 
-              <p className="mt-3 text-sm leading-6 text-slate-500">
+              <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Birkaç bilgiyle PATIMATI topluluğuna katıl
               </p>
             </div>
@@ -317,7 +317,7 @@ export default function RegisterPage() {
               type="button"
               onClick={handleGoogleRegister}
               disabled={isLoading}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             >
               <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-500 text-sm font-extrabold text-white">
                 G
@@ -327,13 +327,13 @@ export default function RegisterPage() {
             </button>
 
             <div className="my-6 flex items-center gap-4">
-              <span className="h-px flex-1 bg-slate-200" />
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
 
-              <span className="text-xs font-medium text-slate-400">
+              <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
                 veya bilgilerini gir
               </span>
 
-              <span className="h-px flex-1 bg-slate-200" />
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -341,7 +341,7 @@ export default function RegisterPage() {
                 <div>
                   <label
                     htmlFor="register-first-name"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
+                    className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
                   >
                     Ad
                   </label>
@@ -364,7 +364,7 @@ export default function RegisterPage() {
                       minLength={2}
                       maxLength={40}
                       disabled={isLoading}
-                      className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                     />
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export default function RegisterPage() {
                 <div>
                   <label
                     htmlFor="register-last-name"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
+                    className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
                   >
                     Soyad
                   </label>
@@ -395,7 +395,7 @@ export default function RegisterPage() {
                       minLength={2}
                       maxLength={40}
                       disabled={isLoading}
-                      className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                     />
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export default function RegisterPage() {
 
               <label
                 htmlFor="register-phone"
-                className="mb-2 mt-4 block text-sm font-semibold text-slate-700"
+                className="mb-2 mt-4 block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
                 Telefon
               </label>
@@ -426,13 +426,13 @@ export default function RegisterPage() {
                   minLength={9}
                   maxLength={15}
                   disabled={isLoading}
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                 />
               </div>
 
               <label
                 htmlFor="register-email"
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
                 E-posta
               </label>
@@ -455,13 +455,13 @@ export default function RegisterPage() {
                   minLength={5}
                   maxLength={50}
                   disabled={isLoading}
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                 />
               </div>
 
               <label
                 htmlFor="register-password"
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
                 Şifre
               </label>
@@ -484,7 +484,7 @@ export default function RegisterPage() {
                   minLength={PASSWORD_MIN_LENGTH}
                   maxLength={PASSWORD_MAX_LENGTH}
                   disabled={isLoading}
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                 />
 
                 <button
@@ -493,7 +493,7 @@ export default function RegisterPage() {
                     setShowPassword((current) => !current)
                   }
                   disabled={isLoading}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 disabled:cursor-not-allowed"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 disabled:cursor-not-allowed dark:hover:text-slate-200"
                   aria-label={
                     showPassword
                       ? "Şifreyi gizle"
@@ -508,8 +508,8 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-700">
+              <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Şifre gereksinimleri
                 </p>
 
@@ -519,15 +519,15 @@ export default function RegisterPage() {
                       key={rule.label}
                       className={`flex items-center gap-2 text-sm ${
                         rule.valid
-                          ? "text-green-700"
-                          : "text-slate-500"
+                          ? "text-green-700 dark:text-emerald-400"
+                          : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                           rule.valid
-                            ? "bg-green-100 text-green-700"
-                            : "bg-slate-200 text-slate-400"
+                            ? "bg-green-100 text-green-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                            : "bg-slate-200 text-slate-400 dark:bg-slate-700 dark:text-slate-500"
                         }`}
                       >
                         <Check size={13} />
@@ -541,7 +541,7 @@ export default function RegisterPage() {
 
               <label
                 htmlFor="register-password-repeat"
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
                 Şifre tekrar
               </label>
@@ -564,7 +564,7 @@ export default function RegisterPage() {
                   minLength={PASSWORD_MIN_LENGTH}
                   maxLength={PASSWORD_MAX_LENGTH}
                   disabled={isLoading}
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                 />
               </div> */}
 
@@ -587,13 +587,13 @@ export default function RegisterPage() {
                     minLength={PASSWORD_MIN_LENGTH}
                     maxLength={PASSWORD_MAX_LENGTH}
                     disabled={isLoading}
-                    className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20 dark:disabled:bg-slate-800"
                   />
                 </div>
 
                 {passwordsDoNotMatch && (
                   <p
-                    className="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+                    className="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-500/20 dark:bg-red-500/10 font-medium text-red-600 dark:text-red-400"
                     role="alert"
                   >
                     Şifreler birbiriyle eşleşmiyor.
@@ -610,7 +610,7 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              <label className="mb-5 flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-600">
+              <label className="mb-5 flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-600 dark:text-slate-400">
                 <input
                   type="checkbox"
                   checked={acceptedTerms}
@@ -638,7 +638,7 @@ export default function RegisterPage() {
               {errorMessage && (
                 <div
                   role="alert"
-                  className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                  className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-500/20 dark:bg-red-500/10 text-red-600 dark:text-red-400"
                 >
                   {errorMessage}
                 </div>
@@ -655,7 +655,7 @@ export default function RegisterPage() {
               </button>
             </form>
 
-            <p className="mt-7 text-center text-sm text-slate-600">
+            <p className="mt-7 text-center text-sm text-slate-600 dark:text-slate-400">
               Zaten hesabın var mı{" "}
               <Link
                 href="/login"

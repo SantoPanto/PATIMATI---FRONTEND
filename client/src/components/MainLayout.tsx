@@ -18,7 +18,7 @@ export default function MainLayout({
   className = "",
 }: MainLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
       <main className={`flex-1 ${className}`}>{children}</main>
       {showFooter && <Footer />}
