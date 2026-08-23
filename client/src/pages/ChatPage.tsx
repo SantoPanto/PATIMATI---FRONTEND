@@ -394,10 +394,26 @@ export default function ChatPage() {
         : messages[0].senderName
       : activeContact?.userName || `Kullanıcı #${activeUserId}`;
 
+  // Always sync refs during render for immediate availability
+  activeUserIdRef.current = activeUserId;
+  currentUserIdRef.current = currentUserId;
+
   // Send message via WebSocket with Optimistic UI update (Instant state update)
   const handleSend = () => {
     const content = text.trim();
-    if (!content || !activeUserId) return;
+    const targetUserId = activeUserId ?? activeUserIdRef.current;
+
+    if (!content) {
+      console.warn("Gönderim iptal edildi: Mesaj içeriği boş.");
+      return;
+    }
+    if (!targetUserId || !Number.isFinite(targetUserId)) {
+      console.warn("Gönderim iptal edildi: Alıcı kullanıcı ID tanımlı değil.", {
+        activeUserId,
+        refUserId: activeUserIdRef.current,
+      });
+      return;
+    }
 
     // Optimistic message object for instant UI reactivity
     const optimisticMsg: MessageResponse = {
@@ -406,7 +422,7 @@ export default function ChatPage() {
       senderName: user?.firstName
         ? `${user.firstName} ${user.lastName || ""}`.trim()
         : "Ben",
-      recipientId: activeUserId,
+      recipientId: targetUserId,
       recipientName: activePartnerName,
       content,
       timestamp: new Date().toISOString(),
@@ -416,7 +432,7 @@ export default function ChatPage() {
     // Instant UI State Update (Reaktivite & F5 Çözümü)
     setMessages((prev) => [...prev, optimisticMsg]);
     upsertContact(
-      activeUserId,
+      targetUserId,
       activePartnerName,
       content,
       optimisticMsg.timestamp,
@@ -424,15 +440,20 @@ export default function ChatPage() {
     setText("");
 
     try {
-      sendStompMessage(activeUserId, content);
+      sendStompMessage(targetUserId, content);
     } catch (err) {
-      console.error("Mesaj gönderilirken hata oluştu:", err);
+      console.error("Mesaj gönderilirken WebSocket hatası oluştu:", err);
       setError("Mesaj gönderilirken bağlantı hatası oluştu.");
     }
   };
 
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleSend();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -688,7 +709,10 @@ export default function ChatPage() {
                 </div>
 
                 {/* Chat Input Bar */}
-                <div className="p-4 border-t border-slate-100 bg-white shrink-0">
+                <form
+                  onSubmit={handleFormSubmit}
+                  className="p-4 border-t border-slate-100 bg-white shrink-0"
+                >
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -701,15 +725,14 @@ export default function ChatPage() {
                     />
 
                     <button
-                      type="button"
-                      onClick={handleSend}
+                      type="submit"
                       disabled={!text.trim()}
                       className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 transition-all shrink-0 shadow-md shadow-blue-600/20"
                     >
                       <Send size={18} />
                     </button>
                   </div>
-                </div>
+                </form>
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
