@@ -81,15 +81,18 @@ export function connectWebSocket(
       console.log("WebSocket connected");
       callbacks?.onConnect?.();
 
-      // Subscribe to private messages
-      stompClient?.subscribe("/user/queue/messages", (frame) => {
+      // Subscribe to private messages (/user/queue/messages and fallback /queue/messages)
+      const handleMessageFrame = (frame: { body: string }) => {
         try {
           const message: MessageResponse = JSON.parse(frame.body);
           messageListeners.forEach((listener) => listener(message));
         } catch (parseErr) {
           console.error("Mesaj ayrıştırma hatası:", parseErr);
         }
-      });
+      };
+
+      stompClient?.subscribe("/user/queue/messages", handleMessageFrame);
+      stompClient?.subscribe("/queue/messages", handleMessageFrame);
 
       // Subscribe to real-time user online/offline status topic
       stompClient?.subscribe("/topic/user-status", (frame) => {

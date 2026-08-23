@@ -53,6 +53,22 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const activeUserIdRef = useRef<number | null>(activeUserId);
+  const currentUserIdRef = useRef<number>(currentUserId);
+  const initialScrollDoneRef = useRef(false);
+
+  useEffect(() => {
+    activeUserIdRef.current = activeUserId;
+  }, [activeUserId]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
+
+  useEffect(() => {
+    initialScrollDoneRef.current = false;
+  }, [activeUserId]);
+
   // Helper to format last seen timestamp
   const formatLastSeen = useCallback((lastSeenStr?: string | null): string => {
     if (!lastSeenStr) return "Çevrim dışı";
@@ -121,8 +137,8 @@ export default function ChatPage() {
     (incomingMessage: MessageResponse) => {
       const senderId = Number(incomingMessage.senderId);
       const recipientId = Number(incomingMessage.recipientId);
-      const currentId = Number(currentUserId);
-      const activeId = activeUserId ? Number(activeUserId) : null;
+      const currentId = currentUserIdRef.current;
+      const activeId = activeUserIdRef.current;
 
       const otherId = senderId === currentId ? recipientId : senderId;
       const otherName =
@@ -171,13 +187,14 @@ export default function ChatPage() {
         setTimeout(() => setToastMessage(null), 4000);
       }
     },
-    [activeUserId, currentUserId, upsertContact],
+    [upsertContact],
   );
 
   // Real-time STOMP status event handler for /topic/user-status
   const handleUserStatusUpdate = useCallback(
     (event: UserStatusEvent) => {
-      if (activeUserId && Number(event.userId) === Number(activeUserId)) {
+      const activeId = activeUserIdRef.current;
+      if (activeId && Number(event.userId) === Number(activeId)) {
         const isOnline =
           event.online === true ||
           event.status?.toUpperCase() === "ONLINE";
@@ -189,7 +206,7 @@ export default function ChatPage() {
         });
       }
     },
-    [activeUserId],
+    [],
   );
 
   // Encapsulated Custom Hook for WebSocket status, messaging, and online status topic subscription
@@ -261,14 +278,6 @@ export default function ChatPage() {
       isMounted = false;
     };
   }, [currentUserId]);
-
-  // Auto-scroll helper
-  const scrollToBottom = useCallback((smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: smooth ? "smooth" : "auto",
-      block: "nearest",
-    });
-  }, []);
 
   // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
   useEffect(() => {
@@ -356,10 +365,23 @@ export default function ChatPage() {
     };
   }, [activeUserId, currentUserId, upsertContact]);
 
-  // 2. Auto-Scroll: Yeni mesaj geldiğinde veya sohbet açıldığında en alta kaydırma
+  // Initial & updates auto-scroll logic
   useEffect(() => {
-    scrollToBottom(true);
-  }, [messages, scrollToBottom]);
+    if (messages.length > 0) {
+      const isInitial = !initialScrollDoneRef.current;
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: isInitial ? "auto" : "smooth",
+          block: "end",
+        });
+        if (isInitial) {
+          initialScrollDoneRef.current = true;
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [messages, activeUserId]);
 
   // Determine active contact partner name dynamically
   const activeContact = contacts.find((c) => c.userId === activeUserId);
