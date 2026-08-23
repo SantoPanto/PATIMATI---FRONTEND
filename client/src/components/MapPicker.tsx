@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconShadowUrl from "leaflet/dist/images/marker-shadow.png";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 
 const DefaultIcon = L.icon({
   iconUrl,
@@ -69,51 +70,35 @@ export default function MapPicker({
 
   const [isLocating, setIsLocating] = useState(false);
 
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Tarayıcınız konum özelliğini desteklemiyor.");
+  const handleGetCurrentLocation = async () => {
+    setIsLocating(true);
+
+    /*
+     * Ortak yardımcı (utils/konum.ts): buradaki eski kod hata kodlarını
+     * ayırıyordu ama zaman aşımında sadece "tekrar deneyin" diyordu.
+     * Yardımcı, kapalı alanda çalışan ağ tabanlı konumla ikinci bir
+     * deneme yapıyor.
+     */
+    let konum;
+    try {
+      konum = await konumAl();
+    } catch (hata) {
+      console.error("Konum alınamadı:", hata);
+      setIsLocating(false);
+      alert(konumHataMesaji(hata));
       return;
     }
 
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setIsLocating(false);
-        const { latitude: nextLat, longitude: nextLng } = position.coords;
+    setIsLocating(false);
 
-        if (!isValidCoordinates(nextLat, nextLng)) {
-          alert("Tarayıcı geçerli bir konum koordinatı döndürmedi.");
-          return;
-        }
+    if (!isValidCoordinates(konum.enlem, konum.boylam)) {
+      alert("Tarayıcı geçerli bir konum koordinatı döndürmedi.");
+      return;
+    }
 
-        if (onChange) {
-          onChange(nextLat, nextLng);
-        }
-      },
-      (error) => {
-        console.error("Konum alınamadı:", error);
-        setIsLocating(false);
-
-        if (error.code === error.PERMISSION_DENIED) {
-          alert(
-            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açıp tekrar deneyin.",
-          );
-          return;
-        }
-
-        if (error.code === error.POSITION_UNAVAILABLE) {
-          alert("Konum bilgisi şu anda alınamıyor.");
-          return;
-        }
-
-        alert("Konum isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    if (onChange) {
+      onChange(konum.enlem, konum.boylam);
+    }
   };
 
   return (

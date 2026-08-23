@@ -25,6 +25,7 @@ import { request } from "../services/api";
 import type { MatchedAdResponseDTO, PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
@@ -165,14 +166,25 @@ export default function FoundPetCreatePage() {
       if (analysis.is_pet === false) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
       } else {
+        /*
+         * AI servisi öznitelik çıkarımı patladığında sessizce boş sonuç
+         * dönüyor (PATIMATI-AI/app/main.py:145-152) ama `is_pet: true`
+         * olduğu için burası "tamamlandı" yazıyordu. Mesajı artık GERÇEKTEN
+         * doldurulan alan sayısı belirliyor.
+         */
+        let uygulanan = 0;
+
         if (analysis.species === "cat" || analysis.species === "CAT") {
           updateForm("species", "CAT");
+          uygulanan += 1;
         } else if (analysis.species === "dog" || analysis.species === "DOG") {
           updateForm("species", "DOG");
+          uygulanan += 1;
         }
 
         if (analysis.breed && analysis.breed.trim()) {
           updateForm("breed", analysis.breed.trim());
+          uygulanan += 1;
         }
 
         const etiketten = (onek: string) =>
@@ -188,18 +200,25 @@ export default function FoundPetCreatePage() {
           const uniqueColors = [...new Set(detectedColors)];
           const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
           updateForm("color", colorNames);
+          uygulanan += 1;
         }
 
         const collar = etiketten("bonus:collar_");
         if (collar.length > 0) {
           if (collar[0] === "collar") {
             updateForm("collarStatus", "YES");
+            uygulanan += 1;
           } else if (collar[0] === "no_collar") {
             updateForm("collarStatus", "NO");
+            uygulanan += 1;
           }
         }
 
-        setAnalysisMessage("AI analizi tamamlandı. Olası eşleşmeler aranıyor...");
+        setAnalysisMessage(
+          uygulanan > 0
+            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
+        );
 
         try {
           const matchFormData = new FormData();
@@ -401,19 +420,22 @@ export default function FoundPetCreatePage() {
     setErrorMessage("");
   };
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
-      return;
-    }
-
+  const handleUseCurrentLocation = async () => {
     setErrorMessage("");
     setIsLocationLoading(true);
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
+    // Hata kodu ayrımı + zaman aşımında ikinci deneme: utils/konum.ts
+    let koordinat;
+    try {
+      koordinat = await konumAl();
+    } catch (hata) {
+      setIsLocationLoading(false);
+      setErrorMessage(konumHataMesaji(hata));
+      return;
+    }
+
+    {
+      const coords = { latitude: koordinat.enlem, longitude: koordinat.boylam };
         /*
          * Koordinati ONCE sakla: ilan icin zorunlu olan bu, adres
          * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
@@ -467,20 +489,7 @@ export default function FoundPetCreatePage() {
         } finally {
           setIsLocationLoading(false);
         }
-      },
-      () => {
-        setIsLocationLoading(false);
-
-        setErrorMessage(
-          "Konum alınamadı. Tarayıcıdan konum izni verdiğinizden emin olun.",
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    }
   };
 
   /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
