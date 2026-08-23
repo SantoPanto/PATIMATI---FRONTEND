@@ -24,6 +24,7 @@ import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
 import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { compressImages } from "../utils/imageCompression";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -202,6 +203,7 @@ export default function AddListingPage() {
   /* ------------------------------ Images -------------------------------- */
 
   const [images, setImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   /* ------------------------------ Listing ------------------------------- */
 
@@ -309,7 +311,7 @@ export default function AddListingPage() {
     fileInputRef.current?.click();
   };
 
-  const handleImages = (
+  const handleImages = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(
@@ -375,16 +377,26 @@ export default function AddListingPage() {
       );
     }
 
-    const newImages = filesToAdd.map((file) => ({
-      id: createImageId(file),
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    if (filesToAdd.length === 0) return;
 
-    setImages((current) => [
-      ...current,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+      const compressedFiles = await compressImages(filesToAdd);
+      const newImages = compressedFiles.map((file) => ({
+        id: createImageId(file),
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+
+      setImages((current) => [
+        ...current,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const removeImage = (imageId: string) => {
@@ -1046,14 +1058,20 @@ export default function AddListingPage() {
                   onClick={
                     openFilePicker
                   }
-                  disabled={disabled}
+                  disabled={disabled || isCompressing}
                   className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 text-gray-500 transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/5 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Upload size={24} />
-
-                  <span className="text-xs font-semibold">
-                    Fotoğraf Ekle
-                  </span>
+                  {isCompressing ? (
+                    <>
+                      <Loader2 size={24} className="animate-spin text-[#7c5cff]" />
+                      <span className="text-xs font-semibold">Sıkıştırılıyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={24} />
+                      <span className="text-xs font-semibold">Fotoğraf Ekle</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>

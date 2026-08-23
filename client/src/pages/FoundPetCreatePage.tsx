@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Camera,
   ImagePlus,
+  Loader2,
   MapPin,
   PawPrint,
   Search,
@@ -24,6 +25,7 @@ import { request } from "../services/api";
 import type { MatchedAdResponseDTO, PetColor } from "../services/types";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
+import { compressImages } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   siyah: "BLACK",
@@ -129,6 +131,7 @@ export default function FoundPetCreatePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [dateError, setDateError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -290,7 +293,7 @@ export default function FoundPetCreatePage() {
     fileInputRef.current?.click();
   };
 
-  const handleImages = (
+  const handleImages = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(event.target.files ?? []);
@@ -344,17 +347,27 @@ export default function FoundPetCreatePage() {
       availableSlots,
     );
 
-    const newImages: SelectedImage[] =
-      filesToAdd.map((file) => ({
-        id: createImageId(file),
-        file,
-        preview: URL.createObjectURL(file),
-      }));
+    if (filesToAdd.length === 0) return;
 
-    setImages((current) => [
-      ...current,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+      const compressedFiles = await compressImages(filesToAdd);
+      const newImages: SelectedImage[] =
+        compressedFiles.map((file) => ({
+          id: createImageId(file),
+          file,
+          preview: URL.createObjectURL(file),
+        }));
+
+      setImages((current) => [
+        ...current,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const removeImage = (imageId: string) => {
@@ -699,14 +712,19 @@ export default function FoundPetCreatePage() {
           <button
             type="button"
             onClick={openFilePicker}
-            className="flex min-h-[230px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#60A5FA] hover:bg-[#EFF6FF]"
+            disabled={isCompressing}
+            className="flex min-h-[230px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] disabled:opacity-50"
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DBEAFE] text-[#2563EB]">
-              <ImagePlus size={30} />
+              {isCompressing ? (
+                <Loader2 size={30} className="animate-spin" />
+              ) : (
+                <ImagePlus size={30} />
+              )}
             </div>
 
             <strong className="mt-4 text-lg">
-              Fotoğraf yükle
+              {isCompressing ? "Sıkıştırılıyor..." : "Fotoğraf yükle"}
             </strong>
 
             <span className="mt-2 max-w-md text-sm leading-6 text-[#64748B]">
@@ -758,13 +776,20 @@ export default function FoundPetCreatePage() {
                 <button
                   type="button"
                   onClick={openFilePicker}
-                  className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] hover:text-[#2563EB]"
+                  disabled={isCompressing}
+                  className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] hover:text-[#2563EB] disabled:opacity-50"
                 >
-                  <Upload size={25} />
-
-                  <span className="mt-2 text-sm font-semibold">
-                    Fotoğraf ekle
-                  </span>
+                  {isCompressing ? (
+                    <>
+                      <Loader2 size={25} className="animate-spin text-[#2563EB]" />
+                      <span className="mt-2 text-sm font-semibold">Sıkıştırılıyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={25} />
+                      <span className="mt-2 text-sm font-semibold">Fotoğraf ekle</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>

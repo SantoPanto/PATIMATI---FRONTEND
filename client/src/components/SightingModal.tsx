@@ -3,6 +3,7 @@ import { CheckCircle2, Eye, Loader2, MapPin, X } from "lucide-react";
 import { createSighting } from "../services/sightings";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { compressImage } from "../utils/imageCompression";
 
 /**
  * "Bu hayvanı gördüm" formu — üçüncü kişi, ilan açmadan kayıp ilanına
@@ -137,6 +138,11 @@ export default function SightingModal({
       setGonderiliyor(true);
       setHata(null);
 
+      let finalFoto = foto;
+      if (foto) {
+        finalFoto = await compressImage(foto);
+      }
+
       await createSighting(
         adId,
         {
@@ -145,7 +151,7 @@ export default function SightingModal({
           note: not.trim() || undefined,
           reporterContact: iletisim.trim(),
         },
-        foto,
+        finalFoto,
       );
 
       setBasarili(true);
