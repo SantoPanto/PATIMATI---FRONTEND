@@ -437,13 +437,15 @@ export default function AddListingPage() {
 
     formData.append("file", file);
 
-    return await request<AiAnalysis>(
-      "/api/ai/analyze",
-      {
-        method: "POST",
-        body: formData,
-        requiresAuth: true,
-      },
+    return aiCevabiniNormallestir(
+      await request<AiAnalysis>(
+        "/api/ai/analyze",
+        {
+          method: "POST",
+          body: formData,
+          requiresAuth: true,
+        },
+      ),
     );
   };
 

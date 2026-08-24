@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   connectWebSocket,
+  removeConnectionCallbacks,
   subscribeToMessages,
   subscribeToUserStatus,
   sendMessage as stompSendMessage,
@@ -45,22 +46,25 @@ export function useChatWebSocket(
       onUserStatusRef.current?.(statusEvent);
     });
 
+    /*
+     * Geri çağrılar bir DEĞİŞKENDE tutuluyor ki unmount'ta kümeden
+     * çıkarılabilsinler; yoksa her mount kümede bir kalıntı bırakır.
+     */
+    const baglantiGeriCagrilari = {
+      onConnect: () => {
+        if (isMounted) setStatus("CONNECTED");
+      },
+      onDisconnect: () => {
+        if (isMounted) setStatus("DISCONNECTED");
+      },
+      onError: (err: unknown) => {
+        console.error("WebSocket error state:", err);
+        if (isMounted) setStatus("ERROR");
+      },
+    };
+
     try {
-      connectWebSocket(
-        undefined,
-        {
-          onConnect: () => {
-            if (isMounted) setStatus("CONNECTED");
-          },
-          onDisconnect: () => {
-            if (isMounted) setStatus("DISCONNECTED");
-          },
-          onError: (err) => {
-            console.error("WebSocket error state:", err);
-            if (isMounted) setStatus("ERROR");
-          },
-        },
-      );
+      connectWebSocket(undefined, baglantiGeriCagrilari);
     } catch (err) {
       console.error("WebSocket connection failure:", err);
       if (isMounted) setStatus("ERROR");
@@ -70,6 +74,7 @@ export function useChatWebSocket(
       isMounted = false;
       unsubscribeMessages();
       unsubscribeStatus();
+      removeConnectionCallbacks(baglantiGeriCagrilari);
     };
   }, []);
 

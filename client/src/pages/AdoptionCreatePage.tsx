@@ -19,6 +19,7 @@ import {
 import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
+import { aiCevabiniNormallestir } from "../utils/aiAnaliz";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import { konumAl, konumHataMesaji } from "../utils/konum";
 import type { AiAnalysis, PetColor } from "../services/types";
@@ -144,11 +145,13 @@ export default function AdoptionCreatePage() {
       const formData = new FormData();
       formData.append("file", images[0].file);
 
-      const analysis = await request<AiAnalysis>("/api/ai/analyze", {
-        method: "POST",
-        body: formData,
-        requiresAuth: true,
-      });
+      const analysis = aiCevabiniNormallestir(
+        await request<AiAnalysis>("/api/ai/analyze", {
+          method: "POST",
+          body: formData,
+          requiresAuth: true,
+        }),
+      );
 
       const parsed = parseAiAnalysis(analysis);
 

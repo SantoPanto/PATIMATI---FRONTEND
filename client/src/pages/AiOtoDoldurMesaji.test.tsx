@@ -142,6 +142,10 @@ describe("AI oto-doldurma mesajı sonucu YANSITIR", () => {
         screen.getByText(/Bilgiler forma aktarıldı/i),
       ).toBeInTheDocument();
     });
+
+    expect(
+      screen.queryByText(/çıkaramadı — alanları elle doldurun/i),
+    ).toBeNull();
   });
 });
 
