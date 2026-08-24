@@ -266,6 +266,52 @@ export type AiAnalysis = {
 };
 
 /**
+ * "Ben Neyim?" pet raporu yanıt DTO'su (POST /api/public/pet-analiz).
+ * Alan adları AI servisindeki `PetReportResult`in (pet_raporu_prompt.py'nin
+ * ÇIKTI FORMATI'yla) birebir aynı -- backend cevabı olduğu gibi aktarıyor.
+ */
+export type PetDegerGuven = {
+  deger: string;
+  guven: number; // 0-100 -- EKRANDA HAM GÖSTERİLMEZ, bkz. guvenEtiketi()
+};
+
+export type PetYasTahmini = {
+  aralik: string;
+  yasam_evresi: "Yavru" | "Genç" | "Yetişkin" | "Yaşlı" | string;
+  guven: number;
+};
+
+export type PetCinsiyetTahmini = {
+  tahmin: string;
+  guven: number;
+};
+
+export type PetBakimIpuclari = {
+  beslenme?: string | null;
+  tuy_bakimi?: string | null;
+  aktivite?: string | null;
+};
+
+export type PetReportResult = {
+  gecerli: boolean;
+  hata_nedeni?: string | null;
+  irka_ozel_icerik?: boolean | null;
+  renk_tarifi?: PetDegerGuven | null;
+  goz_rengi?: PetDegerGuven | null;
+  tahmini_yas?: PetYasTahmini | null;
+  cinsiyet?: PetCinsiyetTahmini | null;
+  tahmini_boyut?: PetDegerGuven | null;
+  ayirt_edici_isaretler?: string[];
+  genel_durum_gozlemi?: string | null;
+  karakter_profili?: string | null;
+  sasirtici_bilgiler?: string[];
+  dikkat_edilmesi_gerekenler?: string[];
+  bakim_ipuclari?: PetBakimIpuclari | null;
+  ek_hayvanlar?: string | null;
+  goruntu_kalite_notu?: string | null;
+};
+
+/**
  * Yapay Zekâ İlan Eşleştirme Yanıt DTO'su (POST /api/ai-match)
  */
 export type MatchedAdResponseDTO = {
