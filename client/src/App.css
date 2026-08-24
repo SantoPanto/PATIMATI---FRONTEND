@@ -2121,6 +2121,7 @@ img {
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   transition: color 180ms ease, background 180ms ease;
 }
 
