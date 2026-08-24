@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "wouter";
 import {
   AlertTriangle,
   AtSign,
@@ -17,6 +18,7 @@ import {
   Trash2,
   UserCheck,
   Users,
+  X,
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -74,6 +76,9 @@ export default function AdminDashboardPage() {
   const [externalPostsPage, setExternalPostsPage] =
     useState<Page<ExternalPostAdminResponse> | null>(null);
   const [externalPostsPageIndex, setExternalPostsPageIndex] = useState(0);
+  const [lightboxPhotoUrl, setLightboxPhotoUrl] = useState<string | null>(
+    null,
+  );
 
   // General state
   const [loading, setLoading] = useState(false);
@@ -1155,12 +1160,18 @@ export default function AdminDashboardPage() {
                         >
                           <td className="px-6 py-4">
                             {p.photoUrl ? (
-                              <img
-                                src={p.photoUrl}
-                                alt=""
-                                className="w-14 h-14 rounded-xl object-cover border border-slate-200"
-                                loading="lazy"
-                              />
+                              <button
+                                type="button"
+                                onClick={() => setLightboxPhotoUrl(p.photoUrl)}
+                                className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                <img
+                                  src={p.photoUrl}
+                                  alt=""
+                                  className="w-14 h-14 rounded-xl object-cover border border-slate-200 cursor-pointer transition hover:opacity-80"
+                                  loading="lazy"
+                                />
+                              </button>
                             ) : (
                               <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200" />
                             )}
@@ -1204,11 +1215,14 @@ export default function AdminDashboardPage() {
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            {p.hasMatch ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            {p.hasMatch && p.matchedAdId ? (
+                              <Link
+                                href={`/ads/${p.matchedAdId}`}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 transition hover:bg-emerald-200"
+                              >
                                 <CheckCircle size={13} />
                                 <span>Eşleşti</span>
-                              </span>
+                              </Link>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
                                 <span>Yok</span>
@@ -1276,6 +1290,28 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </main>
+
+      {lightboxPhotoUrl && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setLightboxPhotoUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxPhotoUrl(null)}
+            className="absolute top-6 right-6 text-white/80 hover:text-white transition"
+            aria-label="Kapat"
+          >
+            <X size={28} />
+          </button>
+          <img
+            src={lightboxPhotoUrl}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+          />
+        </div>
+      )}
 
       <Footer />
     </div>

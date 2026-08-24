@@ -20,15 +20,46 @@ type MapFilter = "ALL" | "LOST" | "FOUND";
 const BURSA_CENTER: [number, number] = [40.195, 29.06];
 
 function MapController({
-  center,
+  ads,
+  selectedAd,
 }: {
-  center: [number, number];
+  ads: AdResponse[];
+  selectedAd: AdResponse | null;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    map.setView(center, 12);
-  }, [center, map]);
+    if (
+      selectedAd &&
+      selectedAd.latitude != null &&
+      selectedAd.longitude != null
+    ) {
+      map.setView([selectedAd.latitude, selectedAd.longitude], 14);
+      return;
+    }
+
+    const points = ads
+      .filter(
+        (ad) =>
+          Number.isFinite(ad.latitude) && Number.isFinite(ad.longitude),
+      )
+      .map((ad) => [ad.latitude as number, ad.longitude as number] as [
+        number,
+        number,
+      ]);
+
+    if (points.length === 0) {
+      map.setView(BURSA_CENTER, 12);
+    } else if (points.length === 1) {
+      map.setView(points[0], 12);
+    } else {
+      // Tek bir aykiri/hatali koordinatli ilanin tum haritayi kendine
+      // kilitlemesini onlemek icin (bkz. 2026-08-21 canli test: yanlislikla
+      // (2, 2) girilmis bir ilan haritayi okyanus ortasina goturuyordu),
+      // ilk ilana degil, tum ilanlari kapsayan sinira gore konumlaniyoruz.
+      map.fitBounds(points, { padding: [40, 40], maxZoom: 13 });
+    }
+  }, [ads, selectedAd, map]);
 
   return null;
 }
@@ -148,24 +179,6 @@ export default function MapPage() {
     [mappedAds],
   );
 
-  const center = useMemo<[number, number]>(() => {
-    if (selectedAd && selectedAd.latitude != null && selectedAd.longitude != null) {
-      return [
-        selectedAd.latitude,
-        selectedAd.longitude,
-      ];
-    }
-
-    if (adsWithCoordinates.length > 0 && adsWithCoordinates[0].latitude != null && adsWithCoordinates[0].longitude != null) {
-      return [
-        adsWithCoordinates[0].latitude,
-        adsWithCoordinates[0].longitude,
-      ];
-    }
-
-    return BURSA_CENTER;
-  }, [selectedAd, adsWithCoordinates]);
-
   return (
     <TeamShell className="map-page">
       <header className="center-header">
@@ -277,12 +290,12 @@ export default function MapPage() {
       ) : (
         <section className="map-art">
           <MapContainer
-            center={center}
+            center={BURSA_CENTER}
             zoom={12}
             scrollWheelZoom
             className="real-map"
           >
-            <MapController center={center} />
+            <MapController ads={adsWithCoordinates} selectedAd={selectedAd} />
 
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

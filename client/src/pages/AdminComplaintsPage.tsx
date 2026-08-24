@@ -39,7 +39,6 @@ export default function AdminComplaintsPage() {
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   const fetchComplaints = () => {
-    setLoading(true);
     Promise.all([
       getAdminAdComplaints({ page: 0, size: 50 }),
       getAdminUserComplaints({ page: 0, size: 50 }),

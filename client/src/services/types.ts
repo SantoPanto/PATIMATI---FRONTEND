@@ -486,6 +486,7 @@ export type ExternalPostAdminResponse = {
   breed: string | null;
   needsReview: boolean | null;
   hasMatch: boolean;
+  matchedAdId: number | null;
 };
 
 // ==========================================

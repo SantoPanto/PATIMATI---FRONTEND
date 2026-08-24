@@ -26,7 +26,6 @@ export function useChatWebSocket(
 
   useEffect(() => {
     let isMounted = true;
-    setStatus("CONNECTING");
 
     try {
       connectWebSocket(
@@ -48,6 +47,10 @@ export function useChatWebSocket(
       );
     } catch (err) {
       console.error("WebSocket connection failure:", err);
+      // connectWebSocket() kurulum sirasinda senkron throw ediyorsa (ag/URL
+      // hatasi gibi) durumu yansitmanin tek yolu bu; onError callback'i hic
+      // tetiklenmeyecek cunku baglanti hic kurulamadi.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (isMounted) setStatus("ERROR");
     }
 
