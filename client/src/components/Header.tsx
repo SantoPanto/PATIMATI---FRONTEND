@@ -160,6 +160,17 @@ export default function Header() {
           >
             Mesajlar
           </Link>
+
+          <Link
+            href="/ben-neyim"
+            className={
+              isActive("/ben-neyim")
+                ? "navigation-link active"
+                : "navigation-link"
+            }
+          >
+            Ben Neyim?
+          </Link>
         </nav>
 
         <div className="home-header__actions">

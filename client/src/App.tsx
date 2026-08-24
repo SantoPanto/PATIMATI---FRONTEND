@@ -16,6 +16,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import AiMatchPage from "./pages/AiMatchPage";
 import AiMatchResultsPage from "./pages/AiMatchResultsPage";
+import BenNeyimPage from "./pages/BenNeyimPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
@@ -191,6 +192,9 @@ function App() {
         {/* AI Eşleşme */}
         <Route path="/ai-match" component={AiMatchPage} />
         <Route path="/ai-match-results" component={AiMatchResultsPage} />
+
+        {/* Ben Neyim? -- /ai-match ile AYNI desen: sarmalayıcısız, girişsiz erişilebilir */}
+        <Route path="/ben-neyim" component={BenNeyimPage} />
 
         {/* Buldum İlanı */}
         <Route
