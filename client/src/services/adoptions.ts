@@ -21,7 +21,10 @@ export async function createAdoptionAd(
     );
   }
 
-  const cleanedAd: Record<string, unknown> = { ...ad };
+  const cleanedAd: Record<string, unknown> = {
+    ...ad,
+    isMatchRequired: false,
+  };
   if (!cleanedAd.date || cleanedAd.date === "") {
     delete cleanedAd.date;
   }

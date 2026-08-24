@@ -11,6 +11,7 @@ import PetDetailPage from "./pages/PetDetailPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import AiMatchPage from "./pages/AiMatchPage";
@@ -18,7 +19,6 @@ import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
-import AdoptionDetailPage from "./pages/AdoptionDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
 import MyMatchesPage from "./pages/MyMatchesPage";
@@ -27,6 +27,7 @@ import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
+import GizlilikPage from "./pages/GizlilikPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RequireAuth from "./components/RequireAuth";
 import RequireGuest from "./components/RequireGuest";
@@ -40,25 +41,15 @@ import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
 import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
+import BottomNav from "./components/BottomNav";
+import ScrollToTop from "./components/ScrollToTop";
 
 function ProtectedAddListingPage() {
-  return (
-    <RequireAuth
-      component={AddListingPage}
-      fallbackPath="/listings"
-      mode="modal"
-    />
-  );
+  return <RequireAuth component={AddListingPage} mode="redirect" />;
 }
 
 function ProtectedFoundPetCreatePage() {
-  return (
-    <RequireAuth
-      component={FoundPetCreatePage}
-      fallbackPath="/listings"
-      mode="modal"
-    />
-  );
+  return <RequireAuth component={FoundPetCreatePage} mode="redirect" />;
 }
 
 function ProtectedChatPage() {
@@ -76,13 +67,7 @@ function ProtectedChatDetailPage() {
 }
 
 function ProtectedAdoptionCreatePage() {
-  return (
-    <RequireAuth
-      component={AdoptionCreatePage}
-      fallbackPath="/adoption"
-      mode="modal"
-    />
-  );
+  return <RequireAuth component={AdoptionCreatePage} mode="redirect" />;
 }
 
 function ProtectedProfilePage() {
@@ -157,9 +142,14 @@ function GuestForgotPasswordPage() {
   return <RequireGuest component={ForgotPasswordPage} />;
 }
 
+function GuestResetPasswordPage() {
+  return <RequireGuest component={ResetPasswordPage} />;
+}
+
 function App() {
   return (
     <ErrorBoundary title="Uygulama yüklenirken bir sorun oluştu.">
+      <ScrollToTop />
       <ForegroundNotificationToast />
       <Switch>
         {/* Ana Sayfa */}
@@ -176,6 +166,11 @@ function App() {
         />
 
         <Route
+          path="/reset-password"
+          component={GuestResetPasswordPage}
+        />
+
+        <Route
           path="/change-password"
           component={ProtectedChangePasswordPage}
         />
@@ -184,6 +179,10 @@ function App() {
         <Route path="/listings" component={ListingsPage} />
         <Route
           path="/add-listing"
+          component={ProtectedAddListingPage}
+        />
+        <Route
+          path="/lost/create"
           component={ProtectedAddListingPage}
         />
         <Route path="/pet/:id" component={PetDetailPage} />
@@ -200,6 +199,7 @@ function App() {
         />
         <Route path="/about" component={AboutPage} />
         <Route path="/safety" component={SafetyPage} />
+        <Route path="/privacy" component={GizlilikPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
@@ -223,13 +223,17 @@ function App() {
         <Route path="/complaints" component={ProtectedComplaintPage} />
         {/* Sahiplendirme */}
         <Route
+          path="/adopt/create"
+          component={ProtectedAdoptionCreatePage}
+        />
+        <Route
           path="/adoption/create"
           component={ProtectedAdoptionCreatePage}
         />
 
         <Route
           path="/adoption/:id"
-          component={AdoptionDetailPage}
+          component={PetDetailPage}
         />
 
         <Route path="/adoption" component={Adoption} />
@@ -254,6 +258,7 @@ function App() {
         {/* 404 */}
         <Route component={NotFound} />
       </Switch>
+      <BottomNav />
     </ErrorBoundary>
   );
 }

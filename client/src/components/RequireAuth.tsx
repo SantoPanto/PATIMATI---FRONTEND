@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
+import { Loader2 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
 import { sanitizeRedirectPath } from "../services/auth";
@@ -77,10 +78,15 @@ export default function RequireAuth({
   if (isAuthLoading) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 dark:bg-slate-950"
         role="status"
       >
-        Oturum kontrol ediliyor...
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
+          <Loader2 size={32} className="animate-spin" />
+        </div>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Oturum kontrol ediliyor...
+        </p>
       </div>
     );
   }
@@ -89,10 +95,15 @@ export default function RequireAuth({
     if (!rolUyuyor) {
       return (
         <div
-          className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+          className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 dark:bg-slate-950"
           role="status"
         >
-          Yetki kontrol ediliyor...
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
+            <Loader2 size={32} className="animate-spin" />
+          </div>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            Yetki kontrol ediliyor...
+          </p>
         </div>
       );
     }
@@ -102,17 +113,22 @@ export default function RequireAuth({
   if (mode === "redirect") {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500"
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 dark:bg-slate-950"
         role="status"
       >
-        Giriş sayfasına yönlendiriliyor...
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
+          <Loader2 size={32} className="animate-spin" />
+        </div>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Giriş sayfasına yönlendiriliyor...
+        </p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50" aria-hidden="true" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950" aria-hidden="true" />
       <AuthRequiredModal
         isOpen
         onClose={closeModal}

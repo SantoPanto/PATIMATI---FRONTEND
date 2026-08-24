@@ -23,6 +23,31 @@ for (const key of required) {
   }
 }
 
+/*
+ * Yönlendirme mantığı TEK KAYNAKTAN geliyor: src/services/swBildirimHedefi.ts.
+ * Burada ikinci bir kopya TUTULMUYOR — 23.08'de uygulama içi çözücü
+ * düzeltilip service worker'daki kopya unutulduğu için mesaj/görülme/çevre
+ * bildirimleri ana sayfaya gidiyordu.
+ */
+function bildirimHedefiKaynaginiOku() {
+  const kaynakYolu = path.join(root, "src", "services", "swBildirimHedefi.ts");
+  const metin = fs.readFileSync(kaynakYolu, "utf8");
+  const eslesme = metin.match(
+    /export const SW_BILDIRIM_HEDEFI_KAYNAK = `([\s\S]*?)`;/,
+  );
+
+  if (!eslesme) {
+    throw new Error(
+      "SW_BILDIRIM_HEDEFI_KAYNAK bulunamadı (src/services/swBildirimHedefi.ts). " +
+        "Service worker yönlendirmesi bu değişkenden üretiliyor.",
+    );
+  }
+
+  return eslesme[1];
+}
+
+const bildirimHedefiKaynagi = bildirimHedefiKaynaginiOku();
+
 const serviceWorker = `importScripts(
   "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"
 );
@@ -55,16 +80,28 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, options);
 });
 
+/*
+ * ⚠ BU BLOK, services/notifications.ts'teki getNotificationHref ile AYNI
+ * SONUCU VERMEK ZORUNDA. Service worker ayrı bir bağlamda çalıştığı için
+ * uygulama kodunu import EDEMEZ; mantık bilerek kopyalanmıştır.
+ *
+ * Neden ayrıca yazıldı: uygulama içi bildirim listesi 23.08'de ortak bir
+ * çözücüye taşındı, ama BURASI atlandı ve yalnız AI_MATCH'i yönlendirmeye
+ * devam etti. Sonuç: telefon kilitliyken gelen mesaj/görülme/çevre
+ * bildirimine dokununca ana sayfa açılıyordu.
+ *
+ * İki kopyanın ayrışmasını sw-bildirim-hedefi.test.ts engelliyor: testi
+ * aşağıdaki işaretçilerden okuyup getNotificationHref ile aynı girdilerde
+ * karşılaştırıyor. Bu işaretçileri SİLME.
+ */
+${bildirimHedefiKaynagi}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const data = event.notification.data || {};
 
-  let targetUrl = "/";
-
-  if (data.type === "AI_MATCH" && data.adId) {
-    targetUrl = \`/pet/\${data.adId}\`;
-  }
+  const targetUrl = bildirimHedefi(data);
 
   event.waitUntil(
     clients.matchAll({

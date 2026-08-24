@@ -1,20 +1,36 @@
 import {
   Bell,
   LogOut,
+  Moon,
   PawPrint,
   ShieldAlert,
+  Sun,
   UserRound,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { getMyPotentialMatches } from "../services/potentialMatches";
+import {
+  getNotificationSnapshot,
+  subscribeToNotifications,
+} from "../services/notifications";
 
 const PENDING_MATCH_STATUSES = new Set(["PENDING", "NOTIFIED", "VIEWED"]);
 
 export default function Header() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const notifications = useSyncExternalStore(
+    subscribeToNotifications,
+    getNotificationSnapshot,
+  );
+  const hasUnreadNotifications = notifications.some(
+    (notification) => !notification.read,
+  );
+
   const [hasPendingMatch, setHasPendingMatch] = useState(false);
 
   useEffect(() => {
@@ -27,7 +43,11 @@ export default function Header() {
     let cancelled = false;
 
     // Tek seferlik, header mount olduğunda — global bir polling/state
-    // yönetimi bu kapsam için gereksiz; STOMP/FCM entegrasyonu henüz yok.
+    // yönetimi bu kapsam için gereksiz. Bu, canlı bildirim mağazasının
+    // (yukarıdaki useSyncExternalStore) KAPSAMADIĞI durumu kapatır:
+    // oturum başlamadan ÖNCE zaten var olan, ön planda hiç görülmemiş
+    // olası eşleşmeler -- mağaza yalnızca uygulama açıkken gelen canlı
+    // FCM push'larını biriktirir, geçmişi geriye dönük çekmez.
     getMyPotentialMatches()
       .then((matches) => {
         if (!cancelled) {
@@ -62,15 +82,15 @@ export default function Header() {
   };
 
   return (
-    <header className="home-header">
+    <header className="home-header sticky top-0 z-[1050] w-full">
       <div className="page-container home-header__content">
         {isAdmin && (
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
             aria-label="Yönetim Paneli"
           >
-            <ShieldAlert size={18} className="text-blue-600" />
+            <ShieldAlert size={18} className="text-blue-600 dark:text-blue-400" />
             <span>Admin Panel</span>
           </Link>
         )}
@@ -129,9 +149,33 @@ export default function Header() {
           >
             Sahiplendirme
           </Link>
+
+          <Link
+            href="/chat"
+            className={
+              isActive("/chat")
+                ? "navigation-link active"
+                : "navigation-link"
+            }
+          >
+            Mesajlar
+          </Link>
         </nav>
 
         <div className="home-header__actions">
+          <button
+            className="header-notification-button"
+            type="button"
+            aria-label={
+              theme === "dark"
+                ? "Aydınlık temaya geç"
+                : "Karanlık temaya geç"
+            }
+            onClick={toggleTheme}
+          >
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
           {isAuthenticated ? (
             <>
               <button
@@ -141,7 +185,9 @@ export default function Header() {
                 onClick={() => navigate("/notifications")}
               >
                 <Bell size={20} />
-                {hasPendingMatch && <span className="notification-dot" />}
+                {(hasUnreadNotifications || hasPendingMatch) && (
+                  <span className="notification-dot" />
+                )}
               </button>
 
               <Link

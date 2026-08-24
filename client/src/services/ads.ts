@@ -18,6 +18,7 @@ export async function createAd(
   images?: File[],
 ): Promise<AdResponse> {
   const cleanedAd: Record<string, unknown> = {
+    isMatchRequired: ad.isMatchRequired ?? true,
     ...ad,
     colors: Array.isArray(ad.colors) ? ad.colors : [],
   };
@@ -206,6 +207,7 @@ export function getNearbyAds(
 
 export function getPublicAds(params?: {
   adType?: AdType;
+  search?: string;
   page?: number;
   size?: number;
 }): Promise<Page<AdResponse>> {
@@ -213,6 +215,12 @@ export function getPublicAds(params?: {
 
   if (params?.adType) {
     searchParams.set("adType", params.adType);
+  }
+
+  // Boş/boşluk terim gönderilmez: sunucu tarafında da yok sayılıyor ama
+  // istek adresini temiz tutmak önizleme/günlük okumayı kolaylaştırıyor.
+  if (params?.search && params.search.trim().length > 0) {
+    searchParams.set("search", params.search.trim());
   }
 
   if (params?.page !== undefined) {

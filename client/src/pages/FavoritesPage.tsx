@@ -2,25 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   ArrowRight,
-  CalendarDays,
   Heart,
-  MapPin,
-  PawPrint,
   Search,
   SlidersHorizontal,
-  Trash2,
 } from "lucide-react";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { getImageUrl } from "../utils/imageUrl";
+import PetListingCard from "../components/PetListingCard";
 import { request } from "../services/api";
 import type { AdResponse, AdType, Page } from "../services/types";
-import {
-  getAdImage,
-  getAdLocation,
-  getRelativeDate,
-} from "../utils/adPresentation";
+import { getAdLocation, getSpeciesLabel } from "../utils/adPresentation";
+import "../App.css";
 
 type FavoriteCategory =
   | "Tümü"
@@ -28,40 +21,11 @@ type FavoriteCategory =
   | "Bulundu"
   | "Sahiplendirme";
 
-type FavoriteListing = {
-  id: number;
-  title: string;
-  animalName: string;
-  category: Exclude<FavoriteCategory, "Tümü">;
-  breed: string;
-  location: string;
-  date: string;
-  image: string;
-  description: string;
+const categoryToAdType: Record<Exclude<FavoriteCategory, "Tümü">, AdType> = {
+  Kayıp: "LOST",
+  Bulundu: "FOUND",
+  Sahiplendirme: "ADOPTION",
 };
-
-const categoryByAdType: Record<
-  AdType,
-  FavoriteListing["category"]
-> = {
-  LOST: "Kayıp",
-  FOUND: "Bulundu",
-  ADOPTION: "Sahiplendirme",
-};
-
-function toFavoriteListing(ad: AdResponse): FavoriteListing {
-  return {
-    id: ad.id,
-    title: ad.title,
-    animalName: ad.title,
-    category: categoryByAdType[ad.adType],
-    breed: ad.breed || "Cins belirtilmemiş",
-    location: getAdLocation(ad),
-    date: getRelativeDate(ad.createdAt),
-    image: getAdImage(ad),
-    description: ad.description,
-  };
-}
 
 const categories: FavoriteCategory[] = [
   "Tümü",
@@ -73,13 +37,9 @@ const categories: FavoriteCategory[] = [
 export default function FavoritesPage() {
   const [, navigate] = useLocation();
 
-  const [favorites, setFavorites] =
-    useState<FavoriteListing[]>([]);
+  const [favorites, setFavorites] = useState<AdResponse[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [selectedCategory, setSelectedCategory] =
-    useState<FavoriteCategory>("Tümü");
-
+  const [selectedCategory, setSelectedCategory] = useState<FavoriteCategory>("Tümü");
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -87,15 +47,25 @@ export default function FavoritesPage() {
 
     const loadFavorites = async () => {
       try {
-        const data = await request<Page<AdResponse>>(
+        setLoading(true);
+        const data = await request<Page<any>>(
           "/api/favorites/me?size=50",
           { requiresAuth: true },
         );
 
+        const rawList = data.content || [];
+        const normalizedAds: AdResponse[] = rawList
+          .map((item: any) => {
+            const adObj: AdResponse | null = item?.ad || item?.pet || item?.listing || (item?.id && item?.adType ? item : null);
+            return adObj;
+          })
+          .filter((ad): ad is AdResponse => ad !== null);
+
         if (isActive) {
-          setFavorites(data.content.map(toFavoriteListing));
+          setFavorites(normalizedAds);
         }
-      } catch {
+      } catch (err) {
+        console.error("Favoriler yüklenirken hata oluştu:", err);
         if (isActive) setFavorites([]);
       } finally {
         if (isActive) setLoading(false);
@@ -110,43 +80,44 @@ export default function FavoritesPage() {
   }, []);
 
   const filteredFavorites = useMemo(() => {
-    const normalizedSearch = searchTerm
-      .trim()
-      .toLocaleLowerCase("tr-TR");
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("tr-TR");
 
-    return favorites.filter((listing) => {
+    return favorites.filter((ad) => {
       const matchesCategory =
         selectedCategory === "Tümü" ||
-        listing.category === selectedCategory;
+        ad.adType === categoryToAdType[selectedCategory as Exclude<FavoriteCategory, "Tümü">];
 
       const searchableText = [
-        listing.title,
-        listing.animalName,
-        listing.breed,
-        listing.location,
+        ad.title,
+        ad.breed,
+        getSpeciesLabel(ad.species),
+        ad.description,
+        getAdLocation(ad),
       ]
+        .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase("tr-TR");
 
       const matchesSearch =
-        !normalizedSearch ||
-        searchableText.includes(normalizedSearch);
+        !normalizedSearch || searchableText.includes(normalizedSearch);
 
       return matchesCategory && matchesSearch;
     });
   }, [favorites, searchTerm, selectedCategory]);
 
-  const removeFromFavorites = async (listingId: number) => {
-    await request(`/api/favorites/${listingId}`, {
-      method: "DELETE",
-      requiresAuth: true,
-    });
+  const removeFromFavorites = async (adId: number) => {
+    try {
+      await request(`/api/favorites/${adId}`, {
+        method: "DELETE",
+        requiresAuth: true,
+      });
 
-    setFavorites((currentFavorites) =>
-      currentFavorites.filter(
-        (listing) => listing.id !== listingId,
-      ),
-    );
+      setFavorites((currentFavorites) =>
+        currentFavorites.filter((ad) => ad.id !== adId),
+      );
+    } catch (err) {
+      console.error("Favori silinemedi:", err);
+    }
   };
 
   const clearFilters = () => {
@@ -155,18 +126,17 @@ export default function FavoritesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="home-page min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
-      <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFF7ED] via-white to-[#EFF6FF] p-5 sm:p-7">
+      <main className="mx-auto flex-1 w-full max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFF7ED] via-white to-[#EFF6FF] p-5 sm:p-7 dark:from-orange-500/10 dark:via-slate-900 dark:to-blue-500/10">
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#FED7AA]/40" />
-
           <div className="absolute -bottom-12 right-28 h-32 w-32 rounded-full bg-[#BFDBFE]/30" />
 
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#F97316] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#F97316] shadow-sm dark:bg-slate-800">
                 <Heart size={16} fill="currentColor" />
                 Kaydettiğin ilanlar
               </div>
@@ -175,20 +145,18 @@ export default function FavoritesPage() {
                 Favorilerim
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] sm:text-base">
-                Takip etmek istediğin kayıp bulunan ve
-                sahiplendirme ilanlarına buradan hızlıca
-                ulaşabilirsin
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] sm:text-base dark:text-slate-400">
+                Takip etmek istediğin kayıp, bulundu ve sahiplendirme ilanlarına buradan hızlıca ulaşabilirsin.
               </p>
             </div>
 
-            <div className="flex min-w-[180px] items-center gap-3 rounded-2xl border border-white bg-white/80 p-4 shadow-sm backdrop-blur">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+            <div className="flex min-w-[180px] items-center gap-3 rounded-2xl border border-white bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
                 <Heart size={23} fill="currentColor" />
               </span>
 
               <div>
-                <span className="block text-xs font-medium text-[#64748B]">
+                <span className="block text-xs font-medium text-[#64748B] dark:text-slate-400">
                   Toplam favori
                 </span>
 
@@ -200,7 +168,8 @@ export default function FavoritesPage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
+        {/* Filter Section */}
+        <section className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-md">
               <Search
@@ -211,35 +180,30 @@ export default function FavoritesPage() {
               <input
                 type="search"
                 value={searchTerm}
-                onChange={(event) =>
-                  setSearchTerm(event.target.value)
-                }
-                placeholder="İsim cins veya konum ara"
-                className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-4 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]"
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="İlan başlığı, ırk veya konum ara..."
+                className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-4 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-              <span className="mr-1 hidden shrink-0 items-center gap-2 text-sm font-medium text-[#64748B] sm:inline-flex">
+            <div className="flex flex-wrap items-center gap-2 pb-1 lg:pb-0">
+              <span className="mr-1 hidden shrink-0 items-center gap-2 text-sm font-medium text-[#64748B] sm:inline-flex dark:text-slate-400">
                 <SlidersHorizontal size={17} />
                 Filtrele
               </span>
 
               {categories.map((category) => {
-                const isSelected =
-                  selectedCategory === category;
+                const isSelected = selectedCategory === category;
 
                 return (
                   <button
                     key={category}
                     type="button"
-                    onClick={() =>
-                      setSelectedCategory(category)
-                    }
+                    onClick={() => setSelectedCategory(category)}
                     className={`h-10 shrink-0 rounded-xl px-4 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-[#FED7AA] ${
                       isSelected
-                        ? "bg-[#F97316] text-white shadow-sm"
-                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#FDBA74] hover:bg-[#FFF7ED] hover:text-[#EA580C]"
+                        ? "bg-[#F97316] text-[#ffffff] shadow-sm"
+                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#FDBA74] hover:bg-[#FFF7ED] hover:text-[#EA580C] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-orange-500/10"
                     }`}
                   >
                     {category}
@@ -252,11 +216,8 @@ export default function FavoritesPage() {
 
         <div className="mt-6 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold">
-              Favori ilanların
-            </h2>
-
-            <p className="mt-1 text-sm text-[#64748B]">
+            <h2 className="text-xl font-semibold">Favori ilanların</h2>
+            <p className="mt-1 text-sm text-[#64748B] dark:text-slate-400">
               {filteredFavorites.length} ilan gösteriliyor
             </p>
           </div>
@@ -272,25 +233,26 @@ export default function FavoritesPage() {
           )}
         </div>
 
+        {/* Content Section */}
         {loading ? (
-          <div className="mt-5 text-sm text-[#64748B]" role="status">
-            Yükleniyor
-          </div>
-        ) : filteredFavorites.length > 0 ? (
-          <section className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredFavorites.map((listing) => (
-              <FavoriteCard
-                key={listing.id}
-                listing={listing}
-                onRemove={() =>
-                  removeFromFavorites(listing.id)
-                }
-                onDetail={() =>
-                  navigate(`/pet/${listing.id}`)
-                }
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="h-80 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800"
               />
             ))}
-          </section>
+          </div>
+        ) : filteredFavorites.length > 0 ? (
+          <div className="pet-listings-grid mt-5">
+            {filteredFavorites.map((ad) => (
+              <PetListingCard
+                key={ad.id}
+                ad={ad}
+                onRemoveFavorite={removeFromFavorites}
+              />
+            ))}
+          </div>
         ) : (
           <EmptyFavorites
             hasFavorites={favorites.length > 0}
@@ -302,120 +264,6 @@ export default function FavoritesPage() {
 
       <Footer />
     </div>
-  );
-}
-
-type FavoriteCardProps = {
-  listing: FavoriteListing;
-  onRemove: () => void;
-  onDetail: () => void;
-};
-
-function FavoriteCard({
-  listing,
-  onRemove,
-  onDetail,
-}: FavoriteCardProps) {
-  const categoryStyle = getCategoryStyle(listing.category);
-
-  return (
-    <article className="group overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
-      <div className="relative h-52 overflow-hidden bg-[#F1F5F9]">
-        <img
-          src={getImageUrl(listing.image)}
-          alt={listing.title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
-          <span
-            className={`rounded-full px-3 py-1.5 text-xs font-bold shadow-sm ${categoryStyle}`}
-          >
-            {listing.category}
-          </span>
-
-          <button
-            type="button"
-            onClick={onRemove}
-            aria-label="Favorilerden kaldır"
-            title="Favorilerden kaldır"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#EF4444] shadow-md transition hover:scale-105 hover:bg-[#FEF2F2] focus:outline-none focus:ring-4 focus:ring-[#FECACA]"
-          >
-            <Heart size={20} fill="currentColor" />
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#F97316]">
-              {listing.breed}
-            </p>
-
-            <h3 className="mt-1 truncate text-lg font-bold text-[#0F172A]">
-              {listing.animalName}
-            </h3>
-          </div>
-
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
-            <PawPrint size={20} />
-          </span>
-        </div>
-
-        <p className="mt-2 line-clamp-1 text-sm font-medium text-[#334155]">
-          {listing.title}
-        </p>
-
-        <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#64748B]">
-          {listing.description}
-        </p>
-
-        <div className="mt-4 space-y-2 border-t border-[#E2E8F0] pt-4">
-          <div className="flex items-center gap-2 text-sm text-[#64748B]">
-            <MapPin
-              size={17}
-              className="shrink-0 text-[#3B82F6]"
-            />
-
-            <span className="truncate">
-              {listing.location}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-[#64748B]">
-            <CalendarDays
-              size={17}
-              className="shrink-0 text-[#F97316]"
-            />
-
-            <span>{listing.date}</span>
-          </div>
-        </div>
-
-        <div className="mt-5 flex gap-3">
-          <button
-            type="button"
-            onClick={onRemove}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#FECACA] bg-[#FEF2F2] text-[#DC2626] transition hover:bg-[#FEE2E2] focus:outline-none focus:ring-4 focus:ring-[#FECACA]"
-            aria-label="Favorilerden kaldır"
-            title="Favorilerden kaldır"
-          >
-            <Trash2 size={18} />
-          </button>
-
-          <button
-            type="button"
-            onClick={onDetail}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-4 text-sm font-semibold text-white transition hover:bg-[#EA580C] focus:outline-none focus:ring-4 focus:ring-[#FED7AA]"
-          >
-            İlanı görüntüle
-            <ArrowRight size={17} />
-          </button>
-        </div>
-      </div>
-    </article>
   );
 }
 
@@ -431,32 +279,26 @@ function EmptyFavorites({
   onExplore,
 }: EmptyFavoritesProps) {
   return (
-    <section className="mt-6 rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-5 py-14 text-center shadow-sm">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FFF7ED] text-[#F97316]">
-        {hasFavorites ? (
-          <Search size={34} />
-        ) : (
-          <Heart size={34} />
-        )}
+    <section className="mt-6 rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-5 py-14 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
+        {hasFavorites ? <Search size={34} /> : <Heart size={34} />}
       </div>
 
-      <h2 className="mt-5 text-xl font-bold text-[#0F172A]">
+      <h2 className="mt-5 text-xl font-bold text-[#0F172A] dark:text-slate-50">
         {hasFavorites
           ? "Aramana uygun ilan bulunamadı"
           : "Henüz favori ilanın yok"}
       </h2>
 
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#64748B]">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#64748B] dark:text-slate-400">
         {hasFavorites
-          ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin"
-          : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin"}
+          ? "Arama kelimelerini veya seçtiğin filtreyi değiştirerek tekrar deneyebilirsin."
+          : "Beğendiğin ilanların kalp simgesine dokunarak onları buraya kaydedebilirsin."}
       </p>
 
       <button
         type="button"
-        onClick={
-          hasFavorites ? onClearFilters : onExplore
-        }
+        onClick={hasFavorites ? onClearFilters : onExplore}
         className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 font-semibold text-white transition hover:bg-[#EA580C] focus:outline-none focus:ring-4 focus:ring-[#FED7AA]"
       >
         {hasFavorites ? (
@@ -473,22 +315,4 @@ function EmptyFavorites({
       </button>
     </section>
   );
-}
-
-function getCategoryStyle(
-  category: FavoriteListing["category"],
-): string {
-  switch (category) {
-    case "Kayıp":
-      return "bg-[#FEF2F2] text-[#DC2626]";
-
-    case "Bulundu":
-      return "bg-[#EFF6FF] text-[#2563EB]";
-
-    case "Sahiplendirme":
-      return "bg-[#F0FDF4] text-[#15803D]";
-
-    default:
-      return "bg-white text-[#0F172A]";
-  }
 }

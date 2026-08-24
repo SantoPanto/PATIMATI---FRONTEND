@@ -28,7 +28,7 @@ export default function AiMatchResultsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -82,11 +82,11 @@ export default function AiMatchResultsPage() {
         <section className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A]">
+              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-slate-50">
                 Eşleşme sonuçları
               </h2>
 
-              <p className="mt-2 text-sm text-[#64748B]">
+              <p className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
                 Yüksek benzerlik oranına sahip ilanları öncelikli
                 incelemeni öneririz.
               </p>
@@ -95,7 +95,7 @@ export default function AiMatchResultsPage() {
             <button
               type="button"
               onClick={() => navigate("/ai-match")}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#334155] transition hover:border-[#FDBA74] hover:text-[#F97316]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-5 py-3 text-sm font-semibold text-[#334155] transition hover:border-[#FDBA74] hover:text-[#F97316] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
             >
               <Search size={18} />
               Yeniden ara
@@ -112,8 +112,8 @@ export default function AiMatchResultsPage() {
             ))}
           </div>
 
-          <div className="mt-10 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-5 text-sm leading-6 text-[#475569]">
-            <strong className="text-[#1E3A8A]">
+          <div className="mt-10 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-5 text-sm leading-6 text-[#475569] dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-slate-300">
+            <strong className="text-[#1E3A8A] dark:text-blue-300">
               Eşleşme yüzdesi ne anlama geliyor?
             </strong>
 

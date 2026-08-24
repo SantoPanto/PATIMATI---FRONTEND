@@ -13,7 +13,34 @@ const API_BASE_URL = String(rawApiUrl).replace(/\/+$/, "");
 
 type RequestOptions = RequestInit & {
   requiresAuth?: boolean;
+  /**
+   * İstek bu süre içinde sonuçlanmazsa iptal edilir (ms). Verilmezse
+   * aşağıdaki varsayılanlar uygulanır.
+   */
+  timeoutMs?: number;
 };
+
+/*
+ * ZAMAN AŞIMI — neden var:
+ * `fetch`in kendiliğinden bir zaman aşımı YOKTUR. Mobil ağda yarıda kalan bir
+ * yükleme ne çözülür ne reddedilir; çağıran `finally` bloğuna hiç ulaşmaz ve
+ * ekran "İlan oluşturuluyor..." yazısında SONSUZA KADAR asılı kalır — hata
+ * bile görünmez. Sahadan bildirilen donma tam olarak buydu.
+ *
+ * İki ayrı süre: fotoğraf yükleyen istekler (FormData) yavaş bağlantıda
+ * dakikalarca sürebilir, metin istekleri süremez.
+ */
+const VARSAYILAN_ZAMAN_ASIMI_MS = 30_000;
+const YUKLEME_ZAMAN_ASIMI_MS = 180_000;
+
+/** Zaman aşımında fırlatılan ApiError'ın durum kodu (RFC 9110 §15.5.9). */
+export const ZAMAN_ASIMI_DURUMU = 408;
+
+export const YUK_COK_BUYUK_MESAJI =
+  "Fotoğraflar sunucunun kabul ettiğinden büyük. Daha az veya daha küçük fotoğrafla tekrar deneyin.";
+
+export const ZAMAN_ASIMI_MESAJI =
+  "İstek zaman aşımına uğradı. Bağlantınız yavaş olabilir; tekrar deneyin.";
 
 export const AUTH_UNAUTHORIZED_EVENT =
   "patimati:auth-unauthorized";
@@ -38,6 +65,19 @@ function getErrorMessage(
   data: unknown,
   status: number,
 ): string {
+  /*
+   * 413 gövdesi GÜVENİLMEZ: sınırı aşan istek uygulamaya hiç ulaşmadan
+   * ters vekil (nginx) tarafından kesilebilir; o zaman gövde JSON değil HTML
+   * olur ve aşağıdaki alan taraması boşa düşerek kullanıcıya
+   * "İşlem sırasında bir hata oluştu (413)" gösterilir — sahada görülen
+   * mesaj buydu. Uygulama kendisi cevap verse bile metin İngilizcedir
+   * ("Maximum upload size exceeded"). İki durumda da kullanıcıya ne
+   * yapacağını söyleyen kendi metnimizi veriyoruz.
+   */
+  if (status === 413) {
+    return YUK_COK_BUYUK_MESAJI;
+  }
+
   if (data && typeof data === "object") {
     const errorData =
       data as Record<string, unknown>;
@@ -63,7 +103,7 @@ function getErrorMessage(
   return `İşlem sırasında bir hata oluştu (${status})`;
 }
 
-function notifyUnauthorized(): void {
+export function notifyUnauthorized(): void {
   clearAuthStorage();
 
   window.dispatchEvent(
@@ -78,6 +118,7 @@ export async function request<T>(
   const {
     requiresAuth = false,
     headers: customHeaders,
+    timeoutMs,
     ...restOptions
   } = options;
 
@@ -109,21 +150,64 @@ export async function request<T>(
     );
   }
 
+  /*
+   * Süreyi gövde türüne göre seçiyoruz: fotoğraflı (FormData) istekler yavaş
+   * mobil bağlantıda dakikalar sürebilir, metin istekleri süremez.
+   */
+  const sure =
+    timeoutMs ??
+    (restOptions.body instanceof FormData
+      ? YUKLEME_ZAMAN_ASIMI_MS
+      : VARSAYILAN_ZAMAN_ASIMI_MS);
+
+  const zamanAsimiKontrolu = new AbortController();
+  let zamanAsimiOldu = false;
+
+  const zamanlayici = window.setTimeout(() => {
+    zamanAsimiOldu = true;
+    zamanAsimiKontrolu.abort();
+  }, sure);
+
+  /*
+   * Çağıranın kendi signal'i varsa onu EZMİYORUZ: ikisinden biri iptal
+   * ederse istek iptal olur (ör. geokod.ts kendi denetleyicisini geçiriyor).
+   */
+  const cagiranSignali = restOptions.signal;
+  const cagiranIptaliniAktar = () => zamanAsimiKontrolu.abort();
+
+  if (cagiranSignali) {
+    if (cagiranSignali.aborted) {
+      zamanAsimiKontrolu.abort();
+    } else {
+      cagiranSignali.addEventListener("abort", cagiranIptaliniAktar);
+    }
+  }
+
   let response: Response;
+
   try {
     response = await fetch(
       `${API_BASE_URL}${endpoint}`,
       {
         ...restOptions,
         headers,
+        signal: zamanAsimiKontrolu.signal,
       },
     );
   } catch (err) {
+    /*
+     * Zaman aşımı ile kullanıcının/çağıranın iptali AYNI hatayı (AbortError)
+     * üretir; ayırt eden tek şey bayrağımız. Zaman aşımını ApiError'a
+     * çeviriyoruz ki ekranlar diğer hatalarla aynı yoldan mesaj üretsin.
+     */
+    if (zamanAsimiOldu) {
+      throw new ApiError(ZAMAN_ASIMI_MESAJI, ZAMAN_ASIMI_DURUMU, null);
+    }
     if (err instanceof DOMException && err.name === "AbortError") {
-      // Kasıtlı iptal (AbortController.abort()) -- gerçek bir ağ hatası
-      // değil, ApiError'a çevrilmeden olduğu gibi fırlatılmalı ki çağıran
-      // taraf (ör. bir useEffect cleanup'ı) bunu kullanıcıya hata olarak
-      // göstermesin.
+      // Kasıtlı iptal (çağıranın kendi AbortController.abort()'u) -- gerçek
+      // bir ağ hatası değil, ApiError'a çevrilmeden olduğu gibi fırlatılmalı
+      // ki çağıran taraf (ör. bir useEffect cleanup'ı) bunu kullanıcıya hata
+      // olarak göstermesin.
       throw err;
     }
     // fetch() burada çıplak bir TypeError fırlatır (bağlantı koptu, DNS
@@ -134,6 +218,9 @@ export async function request<T>(
       0,
       null,
     );
+  } finally {
+    window.clearTimeout(zamanlayici);
+    cagiranSignali?.removeEventListener("abort", cagiranIptaliniAktar);
   }
 
   if (response.status === 204) {

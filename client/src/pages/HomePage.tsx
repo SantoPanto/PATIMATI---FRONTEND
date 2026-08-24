@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import { startGoogleOAuth } from "../services/auth";
@@ -12,7 +12,10 @@ import {
   getSpeciesLabel,
 } from "../utils/adPresentation";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { mesafeKm } from "../utils/mesafe";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 import "../App.css";
 import {
   Camera,
@@ -37,22 +40,46 @@ interface PetListing {
   animal: string;
   breed: string;
   location: string;
+  /** Ekranda gösterilen hâli ("3,2 km" ya da konum yokken "—"). */
   distance: string;
+  /** Süzgecin kullandığı sayı; kullanıcı konumu ya da ilan koordinatı yoksa null. */
+  distanceKm: number | null;
   date: string;
   type: ListingType;
   image: string;
   detailPath: string;
-  featured?: boolean;
 }
 
-function toPetListing(ad: AdResponse): PetListing {
+interface KullaniciKonumu {
+  latitude: number;
+  longitude: number;
+}
+
+function toPetListing(
+  ad: AdResponse,
+  kullaniciKonumu: KullaniciKonumu | null,
+): PetListing {
+  const distanceKm =
+    kullaniciKonumu && ad.latitude != null && ad.longitude != null
+      ? mesafeKm(
+          kullaniciKonumu.latitude,
+          kullaniciKonumu.longitude,
+          ad.latitude,
+          ad.longitude,
+        )
+      : null;
+
   return {
     id: ad.id,
     name: ad.title,
     animal: getSpeciesLabel(ad.species),
     breed: ad.breed || "Cins belirtilmemiş",
     location: getAdLocation(ad),
-    distance: "—",
+    distance:
+      distanceKm == null
+        ? "—"
+        : `${distanceKm.toFixed(1).replace(".", ",")} km`,
+    distanceKm,
     date: getRelativeDate(ad.createdAt),
     type: ad.adType.toLocaleLowerCase("tr-TR") as ListingType,
     image: getAdImage(ad),
@@ -64,7 +91,12 @@ export default function HomePage() {
   const [, navigate] = useLocation();
 
   const [searchValue, setSearchValue] = useState("");
-  const [listings, setListings] = useState<PetListing[]>([]);
+  // Arama/filtre sonuçlarının yaşadığı bölüm — Enter ve "N sonucu göster"
+  // buraya kaydırır ki süzmenin bir karşılığı ekranda görünsün.
+  const resultsSectionRef = useRef<HTMLElement | null>(null);
+  // Ham ilanlar ayrı tutulur: kullanıcı konum izni verdiğinde mesafeler
+  // yeniden hesaplanabilsin (listings aşağıda türetiliyor).
+  const [rawAds, setRawAds] = useState<AdResponse[]>([]);
   const [isListingsLoading, setIsListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -75,10 +107,15 @@ export default function HomePage() {
     ListingType[]
   >([]);
   const [maxDistance, setMaxDistance] = useState(25);
-  const [onlyFeatured, setOnlyFeatured] = useState(false);
   const [counters, setCounters] = useState({ activeAds: 0, happyEndings: 0 });
   const [currentLocation, setCurrentLocation] = useState("Bursa");
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [userCoords, setUserCoords] = useState<KullaniciKonumu | null>(null);
+
+  const listings = useMemo(
+    () => rawAds.map((ad) => toPetListing(ad, userCoords)),
+    [rawAds, userCoords],
+  );
 
   const { isAuthenticated, isAuthLoading } = useAuth();
 
@@ -92,11 +129,7 @@ export default function HomePage() {
         const page = await getPublicAds({ page: 0, size: 12 });
 
         if (isActive) {
-          setListings(
-            page.content
-              .filter((ad) => ad.active)
-              .map(toPetListing),
-          );
+          setRawAds(page.content.filter((ad) => ad.active));
         }
       } catch (error) {
         if (isActive) {
@@ -163,14 +196,10 @@ export default function HomePage() {
               .toLocaleLowerCase("tr-TR")
               .includes(listing.animal.toLocaleLowerCase("tr-TR"))
         );
-      const numericDistance = Number(
-        listing.distance.replace(",", ".").replace(" km", ""),
-      );
-
-      const matchesDistance = Number.isFinite(numericDistance)
-        ? numericDistance <= maxDistance
-        : true;
-      const matchesFeatured = !onlyFeatured || listing.featured === true;
+      // distanceKm null ise (kullanıcı konumu ya da ilan koordinatı yok)
+      // ilan elenmez: süzgeç ancak mesafe BİLİNİYORKEN daraltır.
+      const matchesDistance =
+        listing.distanceKm == null || listing.distanceKm <= maxDistance;
 
       const normalizedSearch = searchValue
         .trim()
@@ -196,7 +225,6 @@ export default function HomePage() {
         matchesListingType &&
         matchesAnimal &&
         matchesDistance &&
-        matchesFeatured &&
         matchesSearch
       );
     });
@@ -206,12 +234,18 @@ export default function HomePage() {
     selectedAnimals,
     selectedListingTypes,
     maxDistance,
-    onlyFeatured,
     listings,
   ]);
 
   const requireAuth = (targetPath: string) => {
     navigate(targetPath);
+  };
+
+  const scrollToResults = () => {
+    // behavior bilerek verilmedi: html'de scroll-behavior:smooth zaten
+    // tanımlı, oradan gelir. Kodda sabitlenseydi kullanıcının hareket
+    // azaltma tercihi (prefers-reduced-motion) CSS'ten kapatılamazdı.
+    resultsSectionRef.current?.scrollIntoView({ block: "start" });
   };
 
   const toggleFavorite = (listingId: number) => {
@@ -262,22 +296,36 @@ export default function HomePage() {
     setSelectedAnimals([]);
     setSelectedListingTypes([]);
     setMaxDistance(25);
-    setOnlyFeatured(false);
     setActiveFilter("all");
     setSearchValue("");
   };
 
-  const handleChangeLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Tarayıcınız konum özelliğini desteklemiyor");
+  const handleChangeLocation = async () => {
+    setIsLocationLoading(true);
+
+    /*
+     * Konum alma ortak yardımcıda (utils/konum.ts): zaman aşımında yüksek
+     * doğruluk kapalı ikinci deneme yapılıyor. Buradaki eski kod hata
+     * kodlarını AYIRIYORDU ama kapalı alanda GPS kilidi gelmeyince tek
+     * yaptığı "zaman aşımı oluştu" deyip pes etmekti.
+     */
+    let konum;
+    try {
+      konum = await konumAl();
+    } catch (hata) {
+      console.error("Konum alınamadı", hata);
+      setIsLocationLoading(false);
+      alert(konumHataMesaji(hata));
       return;
     }
 
-    setIsLocationLoading(true);
+    {
+      const latitude = konum.enlem;
+      const longitude = konum.boylam;
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+        // Koordinat yalnız şehir adına çevrilip atılmıyor: mesafe süzgeci ve
+        // kartlardaki "x km" bu değerden hesaplanıyor.
+        setUserCoords({ latitude, longitude });
 
         try {
           const response = await fetch(
@@ -308,37 +356,7 @@ export default function HomePage() {
         } finally {
           setIsLocationLoading(false);
         }
-      },
-      (error) => {
-        console.error("Konum alınamadı", error);
-
-        setIsLocationLoading(false);
-
-        if (error.code === error.PERMISSION_DENIED) {
-          alert(
-            "Konum izni verilmedi Tarayıcı ayarlarından konum iznini açabilirsiniz",
-          );
-          return;
-        }
-
-        if (error.code === error.POSITION_UNAVAILABLE) {
-          alert("Konum bilgisi şu anda alınamıyor");
-          return;
-        }
-
-        if (error.code === error.TIMEOUT) {
-          alert("Konum alınırken zaman aşımı oluştu");
-          return;
-        }
-
-        alert("Konumunuz alınamadı Lütfen tekrar deneyin");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    }
   };
 
   if (isAuthLoading) {
@@ -378,18 +396,30 @@ export default function HomePage() {
               </h1>
 
               <p>
-                Kayıp bulunan ve sahiplendirilecek hayvan ilanlarını incele
-                Yakınındaki dostlara ulaş ve güvenli iletişim kur
+                Kayıp bulunan ve sahiplendirilecek hayvan ilanlarını incele.
+                Yakınındaki dostlara ulaş ve güvenli iletişim kur.
               </p>
 
-              <div className="hero-search">
+              {/* form + onSubmit: Enter'ın bir karşılığı olsun diye. Kutu
+                  yazarken aşağıdaki "Yakındaki ilanlar" listesini süzüyordu
+                  ama liste ekranın dışında kaldığı için kullanıcı hiçbir
+                  tepki görmüyor ve aramayı bozuk sanıyordu (canlıda ekipten
+                  gelen gerçek şikayet, 21.08). */}
+              <form
+                className="hero-search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  scrollToResults();
+                }}
+              >
                 <Search size={21} aria-hidden="true" />
 
                 <input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="İsim tür konum veya ırk ara"
+                  placeholder="İsim, tür veya ırk ara"
                   aria-label="İlanlarda arama yap"
+                  enterKeyHint="search"
                 />
 
                 <button
@@ -401,13 +431,25 @@ export default function HomePage() {
                   <SlidersHorizontal size={19} />
                   <span>Filtrele</span>
                 </button>
-              </div>
+              </form>
+
+              {searchValue.trim().length > 0 && (
+                <button
+                  type="button"
+                  className="hero-search-feedback"
+                  onClick={scrollToResults}
+                >
+                  {filteredListings.length === 0
+                    ? "Aramana uyan ilan yok — filtreleri genişletmeyi dene"
+                    : `${filteredListings.length} ilan bulundu — sonuçlara in`}
+                </button>
+              )}
 
               <div className="hero-actions">
                 <button
                   type="button"
                   className="hero-primary-action"
-                  onClick={() => requireAuth("/add-listing")}
+                  onClick={() => requireAuth("/lost/create")}
                 >
                   <CirclePlus size={20} />
                   İlan oluştur
@@ -492,7 +534,7 @@ export default function HomePage() {
           <div className="section-heading section-heading--center">
             <span className="section-eyebrow">Hızlı başlangıç</span>
 
-            <h2>Nasıl yardımcı olabiliriz</h2>
+            <h2>Nasıl yardımcı olabiliriz?</h2>
 
             <p>
               Durumuna uygun ilan türünü seçerek birkaç adımda paylaşım
@@ -504,7 +546,7 @@ export default function HomePage() {
             <button
               type="button"
               className="quick-action-card quick-action-card--lost"
-              onClick={() => requireAuth("/add-listing?type=lost")}
+              onClick={() => requireAuth("/lost/create")}
             >
               <div className="quick-action-card__icon">
                 <Search size={28} />
@@ -519,7 +561,7 @@ export default function HomePage() {
 
                 <p>
                   Fotoğrafını ve son görüldüğü konumu paylaşarak aramayı
-                  başlat
+                  başlat.
                 </p>
 
                 <span className="quick-action-card__link">
@@ -552,7 +594,7 @@ export default function HomePage() {
 
                 <p>
                   Bulduğun hayvanın bilgilerini paylaşarak ailesine
-                  ulaşmasına yardımcı ol
+                  ulaşmasına yardımcı ol.
                 </p>
 
                 <span className="quick-action-card__link">
@@ -571,7 +613,7 @@ export default function HomePage() {
               type="button"
               className="quick-action-card quick-action-card--adoption"
               onClick={() =>
-                requireAuth("/add-listing?type=adoption")
+                requireAuth("/adopt/create")
               }
             >
               <div className="quick-action-card__icon">
@@ -586,7 +628,7 @@ export default function HomePage() {
                 <h3>Yeni yuva arıyorum</h3>
 
                 <p>
-                  Sahiplendirilecek dostun için güvenilir bir yuva bul
+                  Sahiplendirilecek dostun için güvenilir bir yuva bul.
                 </p>
 
                 <span className="quick-action-card__link">
@@ -603,7 +645,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="listings-section">
+        <section className="listings-section" ref={resultsSectionRef}>
           <div className="page-container">
             <div className="section-heading-row">
               <div className="section-heading">
@@ -710,13 +752,6 @@ export default function HomePage() {
                         >
                           {getListingStatus(listing.type)}
                         </span>
-
-                        {listing.featured && (
-                          <span className="listing-featured">
-                            <Sparkles size={14} />
-                            Öne çıkan
-                          </span>
-                        )}
                       </Link>
 
                       <button
@@ -934,96 +969,7 @@ export default function HomePage() {
         )}
       </main>
 
-      <footer className="border-t border-[#E2E8F0] bg-white">
-        <div className="page-container py-10 sm:py-12">
-          <div className="grid gap-8 md:grid-cols-[1.3fr_1fr_1fr]">
-            <div>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2"
-                aria-label="PATIMATI ana sayfa"
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
-                  <PawPrint size={24} strokeWidth={2.4} />
-                </span>
-
-                <span className="text-xl font-bold text-[#0F172A]">
-                  PATI
-                  <span className="text-[#F97316]">MATI</span>
-                </span>
-              </Link>
-
-              <p className="mt-4 max-w-sm text-sm leading-6 text-[#64748B]">
-                Kayıp bulunan ve sahiplendirilecek hayvanları
-                güvenli iletişim ile doğru kişilere ulaştıran
-                topluluk platformu
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#0F172A]">
-                Keşfet
-              </h3>
-
-              <nav
-                className="mt-4 flex flex-col gap-3"
-                aria-label="Footer keşfet"
-              >
-                <Link
-                  href="/listings"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  İlanlar
-                </Link>
-
-                <Link
-                  href="/map"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Harita
-                </Link>
-
-                <Link
-                  href="/adoption"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Sahiplendirme
-                </Link>
-              </nav>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#0F172A]">
-                PATIMATI
-              </h3>
-
-              <nav
-                className="mt-4 flex flex-col gap-3"
-                aria-label="Footer kurumsal"
-              >
-                <Link
-                  href="/safety"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Güvenlik
-                </Link>
-
-                <Link
-                  href="/about"
-                  className="text-sm text-[#64748B] transition hover:text-[#F97316]"
-                >
-                  Hakkımızda
-                </Link>
-              </nav>
-            </div>
-          </div>
-
-          <div className="mt-10 flex flex-col gap-3 border-t border-[#E2E8F0] pt-6 text-sm text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 PATIMATI Tüm hakları saklıdır</p>
-            <p>Minik dostlarımız için birlikte</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       <div
         className={`filter-drawer-overlay ${
@@ -1080,13 +1026,32 @@ export default function HomePage() {
                 <span>1 km</span>
                 <span>25 km</span>
               </div>
+
+              {/* Konum bilinmeden mesafe hesaplanamaz; kaydırıcının sessizce
+                  hiçbir şey yapmaması yerine sebebi ve çözümü söylenir. */}
+              {!userCoords && (
+                <p className="filter-range__hint">
+                  Mesafe süzgeci konumunla çalışır.{" "}
+                  <button
+                    type="button"
+                    onClick={handleChangeLocation}
+                    disabled={isLocationLoading}
+                  >
+                    {isLocationLoading
+                      ? "Konum alınıyor..."
+                      : "Konumumu kullan"}
+                  </button>
+                </p>
+              )}
             </section>
 
             <section className="filter-group">
               <h3>Hayvan türü</h3>
 
               <div className="filter-chip-grid">
-                {["Kedi", "Köpek", "Kuş", "Diğer"].map(
+                {/* Proje kapsamı kedi + köpek (AI de yalnız bu ikisini
+                    tanıyor); Kuş/Diğer seçenekleri boş küme filtreliyordu. */}
+                {["Kedi", "Köpek"].map(
                   (animal) => (
                     <button
                       key={animal}
@@ -1133,22 +1098,12 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="filter-group">
-              <label className="filter-switch-row">
-                <div>
-                  <strong>Sadece öne çıkanlar</strong>
-                  <span>Öne çıkarılmış ilanları göster</span>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={onlyFeatured}
-                  onChange={(event) =>
-                    setOnlyFeatured(event.target.checked)
-                  }
-                />
-              </label>
-            </section>
+            {/* "Sadece öne çıkanlar" süzgeci bilinçli olarak KALDIRILDI
+                (Esma'nın isteği): backend'de "öne çıkarma" kavramı yok,
+                alan hiç dolmuyordu ve kutu işaretlenince liste her zaman
+                boşalıyordu. Ürüne öne çıkarma eklenirse bu commit'in git
+                geçmişinden üç parça geri gelir: featured alanı, süzgeç
+                koşulu ve karttaki rozet. */}
           </div>
 
           <div className="filter-drawer__footer">
@@ -1163,7 +1118,13 @@ export default function HomePage() {
             <button
               type="button"
               className="filter-apply-button"
-              onClick={() => setIsFilterOpen(false)}
+              onClick={() => {
+                setIsFilterOpen(false);
+                // "N sonucu göster" sonuçları GÖSTERMELİ: panel kapanınca
+                // sayfa sonuç listesine iner (eskiden yalnız kapanıyordu ve
+                // sonuçlar ekran dışında kalıyordu).
+                scrollToResults();
+              }}
             >
               {filteredListings.length} sonucu göster
             </button>

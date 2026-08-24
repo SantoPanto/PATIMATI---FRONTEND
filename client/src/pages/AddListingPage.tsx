@@ -6,29 +6,27 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   CalendarDays,
   Camera,
-  CheckCircle2,
   ChevronRight,
   Info,
   Loader2,
   MapPin,
   PawPrint,
-  Search,
   Send,
-  ShieldCheck,
-  Sparkles,
   Upload,
   X,
 } from "lucide-react";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import MatchedAdCard from "../components/MatchedAdCard";
+import CreateAdLayout from "../components/CreateAdLayout";
+import AiAutofillCard from "../components/AiAutofillCard";
+import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
-import type { MatchedAdResponseDTO } from "../services/types";
+import type { AdResponse, AiAnalysis, MatchedAdResponseDTO } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { getUserErrorMessage } from "../utils/errorMessage";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -85,38 +83,6 @@ type SelectedImage = {
   preview: string;
 };
 
-type AiAnalysis = {
-  embedding?: number[];
-  labels?: string[];
-  species?: string;
-  species_confidence?: number;
-  is_pet?: boolean;
-  breed?: string | null;
-  breed_confidence?: number;
-  pattern?: string | null;
-
-  /*
-   * DIKKAT: AI burada renk ADI degil, baskin renklerin RGB degerlerini
-   * donduruyor (orn. { r: 130, g: 130, b: 130, score: 0.8 }). Renklerin
-   * okunabilir adlari `labels` icinde "soft:color_gray" bicimindedir.
-   * Tip eskiden string[] yaziyordu; String(nesne) "[object Object]" verdigi
-   * icin hicbir renk eslesmiyordu.
-   */
-  colors?: Array<{
-    r: number;
-    g: number;
-    b: number;
-    score: number;
-  }>;
-
-  model_version?: string;
-};
-
-type AdResponse = {
-  id: number;
-  title?: string;
-};
-
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -165,41 +131,6 @@ const SPECIES_LABELS: Record<Species, string> = {
   DOG: "Köpek",
 };
 
-const AI_COLOR_MAP: Record<string, PetColor> = {
-  black: "BLACK",
-  white: "WHITE",
-  gray: "GRAY",
-  grey: "GRAY",
-  brown: "BROWN",
-  orange: "ORANGE",
-  cream: "CREAM",
-  golden: "GOLDEN",
-  beige: "BEIGE",
-};
-
-const AI_PATTERN_MAP: Record<string, CoatPattern> = {
-  solid: "SOLID",
-  striped: "STRIPED",
-  spotted: "SPOTTED",
-  patched: "PATCHED",
-  calico: "CALICO",
-  tortoiseshell: "TORTOISESHELL",
-
-  /*
-   * AI "tabby" diyor ve bu kedilerde en sik gorulen desen; listede karsiligi
-   * yoktu, o yuzden tekir kedilerde desen hic dolmuyordu.
-   *
-   * STRIPED'a baglamak bir yaklastirma (tabby tam olarak "cizgili" demek
-   * degil, benekli/alacali alt turleri de var). SORULDU VE KARARA BAGLANDI
-   * (SenaF116, 11.08): "tabby cizgili bir desen oldugu icin mevcut enum
-   * icinde en dogru karsiligi o. Ileride filtreleme veya veri modeli
-   * acisindan ihtiyac olursa ayri bir TABBY secenegi dusunulur."
-   * ⇒ Bu satir acik bir soru DEGIL; yeniden tartismaya acmadan once
-   *   yukaridaki gerekcenin gecerliligini yitirip yitirmedigine bak.
-   */
-  tabby: "STRIPED",
-};
-
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -212,6 +143,7 @@ export default function AddListingPage() {
   /* ------------------------------ Images -------------------------------- */
 
   const [images, setImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   /* ------------------------------ Listing ------------------------------- */
 
@@ -319,7 +251,7 @@ export default function AddListingPage() {
     fileInputRef.current?.click();
   };
 
-  const handleImages = (
+  const handleImages = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(
@@ -385,16 +317,43 @@ export default function AddListingPage() {
       );
     }
 
-    const newImages = filesToAdd.map((file) => ({
-      id: createImageId(file),
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    if (filesToAdd.length === 0) return;
 
-    setImages((current) => [
-      ...current,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+
+      /*
+       * Sıkıştırma SONRASI yeniden ölçülüyor: sıkıştırma başarısız olursa
+       * yardımcı orijinal dosyayı geri veriyor ve yukarıdaki boyut kontrolü
+       * (sıkıştırmadan önce) o dosyayı zaten geçirmiş oluyordu. Sonuç:
+       * sunucudan 413.
+       */
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages = accepted.map((file) => ({
+        id: createImageId(file),
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+
+      setImages((current) => [
+        ...current,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const removeImage = (imageId: string) => {
@@ -436,37 +395,23 @@ export default function AddListingPage() {
   /* Geolocation                                                            */
   /* ---------------------------------------------------------------------- */
 
-  const getLocation = () => {
+  const getLocation = async () => {
     setErrorMessage("");
 
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
-      return;
+    /*
+     * Konum alma ortak yardımcıda (utils/konum.ts). Buradaki eski kod hata
+     * KODUNA bakmadan tek metin basıyordu ("konum iznini etkinleştirin"),
+     * oysa `enableHighAccuracy: true` + 10 sn ile telefonda en sık görülen
+     * hata izin reddi değil GPS kilidinin gelmemesiydi (TIMEOUT). Kullanıcı
+     * zaten verdiği izni aramaya gönderiliyordu.
+     */
+    try {
+      const { enlem, boylam } = await konumAl();
+      setLatitude(enlem.toFixed(6));
+      setLongitude(boylam.toFixed(6));
+    } catch (hata) {
+      setErrorMessage(konumHataMesaji(hata));
     }
-
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLatitude(
-          coords.latitude.toFixed(6),
-        );
-
-        setLongitude(
-          coords.longitude.toFixed(6),
-        );
-      },
-      () => {
-        setErrorMessage(
-          "Konum alınamadı. Lütfen tarayıcınızdan konum iznini etkinleştirin.",
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      },
-    );
   };
 
   /* ---------------------------------------------------------------------- */
@@ -502,109 +447,41 @@ export default function AddListingPage() {
     );
   };
 
+  /**
+   * AI cevabını forma uygular ve parse sonucunu döndürür.
+   */
   const applyAiAnalysis = (
     analysis: AiAnalysis,
   ) => {
-    if (
-      analysis.species === "cat" ||
-      analysis.species === "CAT"
-    ) {
-      setSpecies("CAT");
-    } else if (
-      analysis.species === "dog" ||
-      analysis.species === "DOG"
-    ) {
-      setSpecies("DOG");
+    const parsed = parseAiAnalysis(analysis);
+
+    if (parsed.species === "CAT" || parsed.species === "DOG") {
+      setSpecies(parsed.species);
     }
 
-    if (
-      analysis.breed &&
-      analysis.breed.trim()
-    ) {
-      setBreed(analysis.breed);
+    if (parsed.breed) {
+      setBreed(parsed.breed);
     }
 
-    if (
-      analysis.pattern &&
-      AI_PATTERN_MAP[
-        analysis.pattern.toLowerCase()
-      ]
-    ) {
-      setCoatPattern(
-        AI_PATTERN_MAP[
-          analysis.pattern.toLowerCase()
-        ],
-      );
+    setCoatPattern(parsed.coatPattern);
+
+    if (parsed.colors.length > 0) {
+      setColors(parsed.colors);
     }
 
-    /*
-     * Renkler `colors` alanindan DEGIL `labels`tan okunuyor.
-     * `colors` baskin renklerin RGB degerlerini tasiyor; okunabilir adlar
-     * etiketlerde "soft:color_gray" bicimindedir. Eskiden RGB nesnesi
-     * String()'e verildigi icin "[object Object]" cikiyor ve hicbir renk
-     * eslesmiyordu.
-     */
-    const etiketten = (onek: string) =>
-      (analysis.labels ?? [])
-        .filter((etiket) =>
-          etiket.startsWith(onek),
-        )
-        .map((etiket) =>
-          etiket
-            .slice(onek.length)
-            .toLowerCase(),
-        );
-
-    const detectedColors = etiketten(
-      "soft:color_",
-    )
-      .map((ad) => AI_COLOR_MAP[ad])
-      .filter(
-        (color): color is PetColor =>
-          Boolean(color),
-      );
-
-    if (detectedColors.length > 0) {
-      setColors([
-        ...new Set(detectedColors),
-      ]);
+    if (parsed.eyeColor !== "UNKNOWN") {
+      setEyeColor(parsed.eyeColor);
     }
 
-    // Goz rengi (eye_color)
-    const eyeColors = etiketten("hard:eye_color_");
-    if (eyeColors.length > 0 && eyeColors[0] !== "unknown") {
-      const eyeMap: Record<string, EyeColor> = {
-        brown: "BROWN",
-        blue: "BLUE",
-        green: "GREEN",
-        amber: "AMBER",
-        hazel: "HAZEL",
-        heterochromia: "HETEROCHROMIA",
-      };
-      if (eyeMap[eyeColors[0]]) {
-        setEyeColor(eyeMap[eyeColors[0]]);
-      }
+    if (parsed.collarStatus !== "UNKNOWN") {
+      setCollarStatus(parsed.collarStatus);
     }
 
-    // Tasma (collar)
-    const collar = etiketten("bonus:collar_");
-    if (collar.length > 0) {
-      if (collar[0] === "collar") {
-        setCollarStatus("YES");
-      } else if (collar[0] === "no_collar") {
-        setCollarStatus("NO");
-      }
+    if (parsed.earTagStatus !== "UNKNOWN") {
+      setEarTagStatus(parsed.earTagStatus);
     }
 
-    // Kulak Kupesi (ear_tag)
-    const earTag = etiketten("bonus:ear_tag_");
-    if (earTag.length > 0) {
-      if (earTag[0] === "ear_tag") {
-        setEarTagStatus("YES");
-      } else if (earTag[0] === "no_ear_tag") {
-        setEarTagStatus("NO");
-      }
-    }
+    return parsed;
   };
 
   const runAiAnalysis = async () => {
@@ -623,15 +500,22 @@ export default function AddListingPage() {
 
     try {
       const analysis = await analyzeImage(images[0].file);
+      const parsed = applyAiAnalysis(analysis);
 
-      if (analysis.is_pet === false) {
+      if (!parsed.isPet) {
         setAnalysisMessage(
           "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
         );
       } else {
-        applyAiAnalysis(analysis);
+        /*
+         * "Tamamlandı" demek, iş yapıldığını söylemektir. AI hiçbir alan
+         * dolduramadıysa kullanıcıya doğruyu söylüyoruz — yoksa dolmayan
+         * formu kendi hatası sanıyor.
+         */
         setAnalysisMessage(
-          "AI analizi tamamlandı. Olası eşleşmeler aranıyor...",
+          parsed.appliedCount > 0
+            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
         );
 
         // Fetch matches concurrently
@@ -639,6 +523,15 @@ export default function AddListingPage() {
           const formData = new FormData();
           formData.append("listingType", adType);
           images.forEach((img) => formData.append("images", img.file));
+
+          // Konum girildiyse gönder: pop-up adayları asenkron eşleştirmeyle
+          // aynı 25 km süzgecinden geçer ve konum cezası uygulanır (B8).
+          // Boşsa göndermiyoruz — backend konumsuz yolu koruyor (analiz
+          // düğmesine konum girilmeden basılabiliyor).
+          if (latitude.trim() && longitude.trim()) {
+            formData.append("latitude", latitude.trim());
+            formData.append("longitude", longitude.trim());
+          }
 
           const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
             method: "POST",
@@ -654,7 +547,20 @@ export default function AddListingPage() {
           console.error("Eşleştirme hatası:", matchError);
         } finally {
           setIsAnalyzing(false);
-          setAnalysisMessage("");
+
+          /*
+           * Mesaj SADECE iş gerçekten yapıldıysa siliniyor.
+           *
+           * Tarayıcıda ölçüldü (24.08, yerel): AI boş cevap döndüğünde doğru
+           * metin ekrana geliyor ama eşleştirme isteği bitince bu blok onu
+           * hemen siliyordu — kullanıcı "alanları elle doldurun" uyarısını
+           * hiç okuyamıyordu. Alanlar dolduysa metnin kalmasına gerek yok
+           * (sonuç zaten formda görünüyor); dolmadıysa kullanıcıya ne
+           * yapacağını söyleyen TEK yer bu satır.
+           */
+          if (parsed.appliedCount > 0) {
+            setAnalysisMessage("");
+          }
         }
       }
     } catch (error) {
@@ -792,6 +698,8 @@ export default function AddListingPage() {
         latitude: Number(latitude),
 
         longitude: Number(longitude),
+
+        isMatchRequired: true,
       };
 
       /*
@@ -928,13 +836,13 @@ export default function AddListingPage() {
   /* ---------------------------------------------------------------------- */
 
   const inputClass =
-    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10";
+    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   const labelClass =
-    "mb-2 block text-sm font-semibold text-gray-700";
+    "mb-2 block text-sm font-semibold text-gray-700 dark:text-slate-300";
 
   const cardClass =
-    "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6";
+    "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900";
 
   const disabled =
     isSubmitting || isAnalyzing;
@@ -952,44 +860,11 @@ export default function AddListingPage() {
   /* ---------------------------------------------------------------------- */
 
   return (
-    <div className="min-h-screen bg-[#faf9ff] text-gray-900">
-      <Header />
-
-      <main className="mx-auto w-full max-w-4xl px-4 pb-24 pt-6 sm:px-6">
-        {/* Back button */}
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-gray-900"
-        >
-          <ArrowLeft size={18} />
-          Geri
-        </button>
-
-        {/* Page heading */}
-        <div className="mb-7">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7c5cff]/10 text-[#7c5cff]">
-              <PawPrint size={25} />
-            </div>
-
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Yeni İlan Ekle
-              </h1>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Fotoğraf yükleyin, AI hayvan bilgilerini
-                otomatik doldursun.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <form
-          onSubmit={submitListing}
-          className="space-y-5"
-        >
+    <CreateAdLayout activeType="lost">
+      <form
+        onSubmit={submitListing}
+        className="space-y-5"
+      >
           {/* ---------------------------------------------------------------- */}
           {/* PHOTOS                                                           */}
           {/* ---------------------------------------------------------------- */}
@@ -1074,194 +949,36 @@ export default function AddListingPage() {
                   onClick={
                     openFilePicker
                   }
-                  disabled={disabled}
-                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 text-gray-500 transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/5 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={disabled || isCompressing}
+                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 text-gray-500 transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/5 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400"
                 >
-                  <Upload size={24} />
-
-                  <span className="text-xs font-semibold">
-                    Fotoğraf Ekle
-                  </span>
+                  {isCompressing ? (
+                    <>
+                      <Loader2 size={24} className="animate-spin text-[#7c5cff]" />
+                      <span className="text-xs font-semibold">Sıkıştırılıyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={24} />
+                      <span className="text-xs font-semibold">Fotoğraf Ekle</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
 
-            {images.length > 0 && (
-              <div className="mt-5 rounded-2xl bg-[#7c5cff]/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Sparkles
-                    size={20}
-                    className="mt-0.5 shrink-0 text-[#7c5cff]"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-800">
-                      AI ile otomatik doldur
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      İlk fotoğrafınız analiz edilir ve
-                      tür, cins, renk ve desen gibi bilgiler
-                      forma otomatik aktarılır.
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={
-                        runAiAnalysis
-                      }
-                      disabled={
-                        disabled
-                      }
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#6d4ff0] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2
-                            size={17}
-                            className="animate-spin"
-                          />
-                          AI analiz ediyor...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles
-                            size={17}
-                          />
-                          Fotoğrafı Analiz Et
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {analysisMessage && (
-              <div className="mt-4 flex items-start gap-3 rounded-2xl bg-green-50 p-4 text-sm text-green-800">
-                <CheckCircle2
-                  size={19}
-                  className="mt-0.5 shrink-0"
-                />
-
-                <span>
-                  {analysisMessage}
-                </span>
-              </div>
-            )}
+            <AiAutofillCard
+              onAnalyze={runAiAnalysis}
+              isAnalyzing={isAnalyzing}
+              disabled={disabled}
+              analysisMessage={analysisMessage}
+              hasImages={images.length > 0}
+              variant="lost"
+            />
           </section>
 
           {/* ---------------------------------------------------------------- */}
-          {/* LISTING TYPE                                                     */}
-          {/* ---------------------------------------------------------------- */}
 
-          <section className={cardClass}>
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
-              <ShieldCheck
-                size={20}
-                className="text-[#7c5cff]"
-              />
-              İlan Türü
-            </h2>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setAdType(
-                    "LOST",
-                  )
-                }
-                disabled={disabled}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  adType === "LOST"
-                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <Search
-                  size={21}
-                  className={
-                    adType === "LOST"
-                      ? "text-[#7c5cff]"
-                      : "text-gray-500"
-                  }
-                />
-
-                <p className="mt-2 font-bold">
-                  Kayıp
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Kaybolan hayvanı bildir
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setAdType(
-                    "FOUND",
-                  )
-                }
-                disabled={disabled}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  adType === "FOUND"
-                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <MapPin
-                  size={21}
-                  className={
-                    adType === "FOUND"
-                      ? "text-[#7c5cff]"
-                      : "text-gray-500"
-                  }
-                />
-
-                <p className="mt-2 font-bold">
-                  Bulundu
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Bulduğunuz hayvanı bildir
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setAdType(
-                    "ADOPTION",
-                  )
-                }
-                disabled={disabled}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  adType === "ADOPTION"
-                    ? "border-[#7c5cff] bg-[#7c5cff]/5"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <PawPrint
-                  size={21}
-                  className={
-                    adType === "ADOPTION"
-                      ? "text-[#7c5cff]"
-                      : "text-gray-500"
-                  }
-                />
-
-                <p className="mt-2 font-bold">
-                  Sahiplendirme
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Yeni bir yuva bul
-                </p>
-              </button>
-            </div>
-          </section>
 
           {/* ---------------------------------------------------------------- */}
           {/* BASIC INFORMATION                                                */}
@@ -1605,7 +1322,7 @@ export default function AddListingPage() {
                       className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
                         selected
                           ? "border-[#7c5cff] bg-[#7c5cff] text-white"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-[#7c5cff]/50"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-[#7c5cff]/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       } disabled:cursor-not-allowed disabled:opacity-50`}
                     >
                       {COLOR_LABELS[color]}
@@ -1926,7 +1643,7 @@ export default function AddListingPage() {
               type="button"
               onClick={getLocation}
               disabled={disabled}
-              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:border-[#7c5cff]/50 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:border-[#7c5cff]/50 hover:text-[#7c5cff] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
             >
               <MapPin size={18} />
               Konumumu Al
@@ -1996,7 +1713,7 @@ export default function AddListingPage() {
           {errorMessage && (
             <div
               role="alert"
-              className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+              className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
             >
               <Info
                 size={19}
@@ -2016,7 +1733,7 @@ export default function AddListingPage() {
           {/* Pasif düğmenin SEBEBİ yazılmalı: sebepsiz pasif düğme, kullanıcıyı
               formu baştan sona kontrol etmeye zorlar. */}
           {fotografEksik && (
-            <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
               <Camera size={17} />
               İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
             </p>
@@ -2046,54 +1763,12 @@ export default function AddListingPage() {
             )}
           </button>
         </form>
-      </main>
 
-      {/* AI Match Modal */}
-      {showMatchModal && matches.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-6">
-              <h2 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
-                <Sparkles className="text-[#F97316]" size={24} />
-                Olası Eşleşmeler Bulundu!
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowMatchModal(false)}
-                className="rounded-full p-2 text-[#64748B] hover:bg-[#F1F5F9] transition"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <p className="text-[#64748B] mb-6">
-              İlanını oluşturmadan önce, sistemimizde fotoğrafı yüklediğin hayvana benzeyen bazı ilanlar bulduk. Lütfen bunları incele:
-            </p>
-
-            <div className="grid gap-4">
-              {matches.map((match, idx) => (
-                <MatchedAdCard
-                  key={match.ad?.id || idx}
-                  match={match}
-                  variant="modal"
-                />
-              ))}
-            </div>
-            
-            <div className="mt-8 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowMatchModal(false)}
-                className="rounded-xl bg-[#0F172A] px-6 py-3 font-bold text-white transition hover:bg-[#334155]"
-              >
-                İlan Oluşturmaya Devam Et
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Footer />
-    </div>
+        <AiMatchModal
+          isOpen={showMatchModal}
+          matches={matches}
+          onClose={() => setShowMatchModal(false)}
+        />
+    </CreateAdLayout>
   );
 }

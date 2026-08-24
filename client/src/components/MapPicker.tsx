@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconShadowUrl from "leaflet/dist/images/marker-shadow.png";
+import { konumAl, konumHataMesaji } from "../utils/konum";
 
 const DefaultIcon = L.icon({
   iconUrl,
@@ -69,57 +70,41 @@ export default function MapPicker({
 
   const [isLocating, setIsLocating] = useState(false);
 
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Tarayıcınız konum özelliğini desteklemiyor.");
+  const handleGetCurrentLocation = async () => {
+    setIsLocating(true);
+
+    /*
+     * Ortak yardımcı (utils/konum.ts): buradaki eski kod hata kodlarını
+     * ayırıyordu ama zaman aşımında sadece "tekrar deneyin" diyordu.
+     * Yardımcı, kapalı alanda çalışan ağ tabanlı konumla ikinci bir
+     * deneme yapıyor.
+     */
+    let konum;
+    try {
+      konum = await konumAl();
+    } catch (hata) {
+      console.error("Konum alınamadı:", hata);
+      setIsLocating(false);
+      alert(konumHataMesaji(hata));
       return;
     }
 
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setIsLocating(false);
-        const { latitude: nextLat, longitude: nextLng } = position.coords;
+    setIsLocating(false);
 
-        if (!isValidCoordinates(nextLat, nextLng)) {
-          alert("Tarayıcı geçerli bir konum koordinatı döndürmedi.");
-          return;
-        }
+    if (!isValidCoordinates(konum.enlem, konum.boylam)) {
+      alert("Tarayıcı geçerli bir konum koordinatı döndürmedi.");
+      return;
+    }
 
-        if (onChange) {
-          onChange(nextLat, nextLng);
-        }
-      },
-      (error) => {
-        console.error("Konum alınamadı:", error);
-        setIsLocating(false);
-
-        if (error.code === error.PERMISSION_DENIED) {
-          alert(
-            "Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açıp tekrar deneyin.",
-          );
-          return;
-        }
-
-        if (error.code === error.POSITION_UNAVAILABLE) {
-          alert("Konum bilgisi şu anda alınamıyor.");
-          return;
-        }
-
-        alert("Konum isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    if (onChange) {
+      onChange(konum.enlem, konum.boylam);
+    }
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-2 text-sm font-medium text-[#0F172A]">
+        <span className="flex items-center gap-2 text-sm font-medium text-[#0F172A] dark:text-slate-100">
           <MapPin size={16} className="text-[#F97316]" />
           {readOnly ? "Profil Konumu" : "Konum Seç (Haritaya Tıklayın)"}
         </span>
@@ -129,7 +114,7 @@ export default function MapPicker({
             type="button"
             onClick={handleGetCurrentLocation}
             disabled={isLocating}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
           >
             <Locate size={14} />
             {isLocating ? "Konum alınıyor..." : "Mevcut Konumumu Al"}
@@ -140,9 +125,9 @@ export default function MapPicker({
       <ErrorBoundary
         title="Harita yüklenemedi."
         fallback={
-          <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+          <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center dark:border-slate-700 dark:bg-slate-800">
             <MapPin size={32} className="text-slate-400" />
-            <p className="mt-2 text-sm font-medium text-slate-600">
+            <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-400">
               {hasCoordinates
                 ? `Konum: ${validLat?.toFixed(4)}, ${validLng?.toFixed(4)}`
                 : "Konum seçilmedi."}
@@ -150,7 +135,7 @@ export default function MapPicker({
           </div>
         }
       >
-        <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[#CBD5E1] shadow-inner">
+        <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[#CBD5E1] shadow-inner dark:border-slate-700">
           <MapContainer
             center={center}
             zoom={hasCoordinates ? 14 : 10}
@@ -186,15 +171,15 @@ export default function MapPicker({
       </ErrorBoundary>
 
       {hasCoordinates ? (
-        <p className="text-xs text-[#64748B]">
+        <p className="text-xs text-[#64748B] dark:text-slate-400">
           Seçilen Koordinat:{" "}
-          <span className="font-medium text-[#0F172A]">
+          <span className="font-medium text-[#0F172A] dark:text-slate-100">
             {validLat?.toFixed(6)}, {validLng?.toFixed(6)}
           </span>
         </p>
       ) : (
         !readOnly && (
-          <p className="text-xs text-[#94A3B8]">
+          <p className="text-xs text-[#94A3B8] dark:text-slate-500">
             Haritada bir noktaya tıklayarak enlem ve boylam bilginizi belirleyin.
           </p>
         )

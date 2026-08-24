@@ -68,7 +68,7 @@ function Nav() {
     <nav className="mobile-bottom-nav" aria-label="Ana navigasyon">
       {item("/", "Ana Sayfa", <House size={25} />)}
       {item("/map", "Harita", <MapPinned size={25} />)}
-      {item("/add-listing", "Ekle", <CirclePlus size={30} />, true)}
+      {item("/lost/create", "Ekle", <CirclePlus size={30} />, true)}
       {item("/chat", "Sohbet", <MessageCircle size={25} />)}
       {item("/profile", "Profil", <UserRound size={25} />)}
     </nav>

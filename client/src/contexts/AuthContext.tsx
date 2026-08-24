@@ -17,6 +17,7 @@ import {
   normalizeUser,
   saveStoredUser,
 } from "../services/auth";
+import { disconnectWebSocket } from "../services/websocket";
 import type { AuthUser } from "../services/auth";
 import { ApiError, AUTH_UNAUTHORIZED_EVENT } from "../services/api";
 
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleUnauthorized = () => {
+      disconnectWebSocket();
       setUser(null);
       setIsAuthLoading(false);
     };
@@ -122,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Çıkış isteği başarısız oldu:", error);
     } finally {
+      disconnectWebSocket();
       clearAuthStorage();
       setUser(null);
     }

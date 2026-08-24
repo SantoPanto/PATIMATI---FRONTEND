@@ -1,4 +1,4 @@
-﻿import {
+import {
   useRef,
   useState,
   type DragEvent,
@@ -10,6 +10,7 @@ import {
   Camera,
   CheckCircle2,
   ImagePlus,
+  Loader2,
   PawPrint,
   Search,
   ShieldCheck,
@@ -23,6 +24,7 @@ import Footer from "../components/Footer";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { request } from "../services/api";
 import type { MatchedAdResponseDTO } from "../services/types";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 type ListingType = "lost" | "found";
 
@@ -32,9 +34,22 @@ type SelectedImage = {
   preview: string;
 };
 
+// FOTOĞRAF SINIRLARI — sunucudan ÖLÇÜLEREK alındı (23.08.2026 canlı ölçümü).
+// 19.08'de üç ilan formu sunucuyla hizalanmıştı ama BU SAYFA ATLANMIŞ; burada
+// hâlâ 10 MB yazıyordu, oysa sunucu 5 MB'ın üstünü kabul etmiyor:
+//   dosya başı 5 MB -> application.yml spring.servlet.multipart.max-file-size
+//      (canlı ölçüm: 4 MB -> 400, 6 MB -> 413 "Maximum upload size exceeded")
+//   toplam ~20 MB   -> ters vekil (nginx) client_max_body_size
+//      (canlı ölçüm: 16 MB geçti, 20 MB -> nginx'in HTML 413 sayfası)
+// Adet sınırı YOK: /api/ai-match fotoğrafları saklamıyor, yalnız analiz
+// ediyor (AiMatchController + AiMatchService.matchImages, adet kontrolü yok).
+// Bu yüzden 5 adet KORUNUYOR — çok fotoğraf eşleşme başarımını artırıyor.
 const MIN_IMAGES = 3;
 const MAX_IMAGES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
+/** Ters vekilin gövde sınırı 20 MB; altında güvenli bir tavanda duruyoruz. */
+const MAX_TOPLAM_BOYUT = 15 * 1024 * 1024;
 
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -48,6 +63,7 @@ export default function AiMatchPage() {
   const [, navigate] = useLocation();
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [listingType, setListingType] =
     useState<ListingType>("lost");
   const [isDragging, setIsDragging] = useState(false);
@@ -88,7 +104,7 @@ export default function AiMatchPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFiles = (files: FileList | File[]) => {
+  const handleFiles = async (files: FileList | File[]) => {
     setErrorMessage("");
 
     const incomingFiles = Array.from(files);
@@ -120,7 +136,7 @@ export default function AiMatchPage() {
 
       if (file.size > MAX_FILE_SIZE) {
         validationErrors.push(
-          `${file.name}: Fotoğraf boyutu 10 MB'dan büyük olamaz.`,
+          `${file.name}: Fotoğraf boyutu ${MAX_FILE_SIZE_MB} MB'dan büyük olamaz.`,
         );
         return;
       }
@@ -164,18 +180,46 @@ export default function AiMatchPage() {
       );
     }
 
-    const newImages: SelectedImage[] = filesToAdd.map(
-      (file) => ({
-        id: createImageId(file),
-        file,
-        preview: URL.createObjectURL(file),
-      }),
-    );
+    if (filesToAdd.length === 0) {
+      if (validationErrors.length > 0) {
+        setErrorMessage(validationErrors[0]);
+      }
+      return;
+    }
 
-    setSelectedImages((currentImages) => [
-      ...currentImages,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+
+      // Sıkıştırma SONRASI yeniden ölç (bkz. imageCompression.ts): sıkıştırma
+      // başarısız olursa orijinal dosya geri geliyor ve sunucudan 413 alınıyor.
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages: SelectedImage[] = accepted.map(
+        (file) => ({
+          id: createImageId(file),
+          file,
+          preview: URL.createObjectURL(file),
+        }),
+      );
+
+      setSelectedImages((currentImages) => [
+        ...currentImages,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
 
     if (validationErrors.length > 0) {
       setErrorMessage(validationErrors[0]);
@@ -275,6 +319,27 @@ export default function AiMatchPage() {
       return;
     }
 
+    /*
+     * TOPLAM boyut kontrolü YALNIZ bu sayfada gerekli: ilan formları en fazla
+     * 3 × 5 MB = 15 MB gönderebiliyor, burada ise 5 × 5 MB = 25 MB mümkün ve
+     * bu, ters vekilin ~20 MB gövde sınırını aşıyor. Aşınca gelen cevap
+     * uygulamanın değil nginx'in HTML sayfası oluyor; kullanıcı sebebi
+     * anlamayan bir "(413)" görüyordu.
+     */
+    const toplamBoyut = selectedImages.reduce(
+      (toplam, image) => toplam + image.file.size,
+      0,
+    );
+
+    if (toplamBoyut > MAX_TOPLAM_BOYUT) {
+      setErrorMessage(
+        `Seçilen fotoğrafların toplamı ${(toplamBoyut / (1024 * 1024)).toFixed(1)} MB; ` +
+          `sunucu tek seferde en fazla ${MAX_TOPLAM_BOYUT / (1024 * 1024)} MB kabul ediyor. ` +
+          "Bir fotoğrafı çıkarıp tekrar deneyin.",
+      );
+      return;
+    }
+
     setIsMatching(true);
 
     const formData = new FormData();
@@ -310,7 +375,7 @@ export default function AiMatchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
       <main>
@@ -373,7 +438,7 @@ export default function AiMatchPage() {
                     size={17}
                     className="text-[#22C55E]"
                   />
-                  En fazla 5 fotoğraf
+                  En fazla {MAX_IMAGES} fotoğraf
                 </span>
 
                 <span className="flex items-center gap-2">
@@ -454,6 +519,7 @@ export default function AiMatchPage() {
               <button
                 type="button"
                 onClick={openFilePicker}
+                disabled={isCompressing}
                 onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -462,14 +528,20 @@ export default function AiMatchPage() {
                   isDragging
                     ? "border-[#F97316] bg-[#FFF7ED]"
                     : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#FB923C] hover:bg-[#FFF7ED]/50"
-                }`}
+                } ${isCompressing ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
-                  <ImagePlus size={30} />
+                  {isCompressing ? (
+                    <Loader2 size={30} className="animate-spin" />
+                  ) : (
+                    <ImagePlus size={30} />
+                  )}
                 </div>
 
                 <p className="mt-5 text-lg font-bold text-[#1E293B]">
-                  En az 3 fotoğraf yükleyin
+                  {isCompressing
+                    ? "Fotoğraflar sıkıştırılıyor..."
+                    : "En az 3 fotoğraf yükleyin"}
                 </p>
 
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
@@ -622,11 +694,11 @@ export default function AiMatchPage() {
               Nasıl çalışır?
             </span>
 
-            <h2 className="mt-3 text-3xl font-bold text-[#0F172A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-bold text-[#0F172A] sm:text-4xl dark:text-slate-50">
               Üç adımda benzer ilanları bul
             </h2>
 
-            <p className="mt-4 leading-7 text-[#64748B]">
+            <p className="mt-4 leading-7 text-[#64748B] dark:text-slate-400">
               Farklı açılardan yüklenen fotoğraflar birlikte
               incelenerek daha güçlü eşleştirme sonuçları
               oluşturulur.
@@ -657,7 +729,7 @@ export default function AiMatchPage() {
           </div>
         </section>
 
-        <section className="border-y border-[#E2E8F0] bg-white">
+        <section className="border-y border-[#E2E8F0] bg-white dark:border-slate-800 dark:bg-slate-900">
           <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 sm:px-6 md:grid-cols-3 md:py-16 lg:px-8">
             <Feature
               title="Çoklu fotoğraf analizi"
@@ -696,20 +768,20 @@ function InfoCard({
   description,
 }: InfoCardProps) {
   return (
-    <article className="relative rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg">
-      <span className="absolute right-6 top-5 text-4xl font-black text-[#F1F5F9]">
+    <article className="relative rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#FED7AA] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-orange-500/40">
+      <span className="absolute right-6 top-5 text-4xl font-black text-[#F1F5F9] dark:text-slate-800">
         {number}
       </span>
 
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/10">
         {icon}
       </div>
 
-      <h3 className="mt-6 text-xl font-bold text-[#0F172A]">
+      <h3 className="mt-6 text-xl font-bold text-[#0F172A] dark:text-slate-50">
         {title}
       </h3>
 
-      <p className="mt-3 leading-7 text-[#64748B]">
+      <p className="mt-3 leading-7 text-[#64748B] dark:text-slate-400">
         {description}
       </p>
     </article>
@@ -727,16 +799,16 @@ function Feature({
 }: FeatureProps) {
   return (
     <div className="flex gap-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#F97316]">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/10">
         <CheckCircle2 size={22} />
       </div>
 
       <div>
-        <h3 className="font-bold text-[#0F172A]">
+        <h3 className="font-bold text-[#0F172A] dark:text-slate-50">
           {title}
         </h3>
 
-        <p className="mt-2 text-sm leading-6 text-[#64748B]">
+        <p className="mt-2 text-sm leading-6 text-[#64748B] dark:text-slate-400">
           {description}
         </p>
       </div>

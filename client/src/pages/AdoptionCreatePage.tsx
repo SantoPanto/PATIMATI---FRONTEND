@@ -5,12 +5,10 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   Camera,
-  CheckCircle2,
   Heart,
   ImagePlus,
-  Info,
+  Loader2,
   MapPin,
   PawPrint,
   ShieldCheck,
@@ -18,11 +16,15 @@ import {
   X,
 } from "lucide-react";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import CreateAdLayout from "../components/CreateAdLayout";
+import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
-import type { PetColor } from "../services/types";
+import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
+import type { AiAnalysis, PetColor } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   siyah: "BLACK",
@@ -47,6 +49,18 @@ const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   diğer: "OTHER",
   diger: "OTHER",
   other: "OTHER",
+};
+
+const COLOR_LABELS: Record<PetColor, string> = {
+  BLACK: "Siyah",
+  WHITE: "Beyaz",
+  GRAY: "Gri",
+  BROWN: "Kahverengi",
+  ORANGE: "Turuncu",
+  CREAM: "Krem",
+  GOLDEN: "Altın",
+  BEIGE: "Bej",
+  OTHER: "Diğer",
 };
 
 function parseColorsFromText(text: string): PetColor[] {
@@ -109,9 +123,65 @@ export default function AdoptionCreatePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [dateError, setDateError] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState("");
+
+  const runAiAnalysis = async () => {
+    if (images.length === 0) {
+      setErrorMessage("AI analizi için önce en az bir fotoğraf yükleyin.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setAnalysisMessage("Fotoğraf AI tarafından analiz ediliyor...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", images[0].file);
+
+      const analysis = await request<AiAnalysis>("/api/ai/analyze", {
+        method: "POST",
+        body: formData,
+        requiresAuth: true,
+      });
+
+      const parsed = parseAiAnalysis(analysis);
+
+      if (!parsed.isPet) {
+        setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
+      } else {
+        if (parsed.species) {
+          updateForm("species", parsed.species);
+        }
+
+        if (parsed.breed) {
+          updateForm("breed", parsed.breed);
+        }
+
+        if (parsed.colors.length > 0) {
+          const colorNames = parsed.colors.map((c) => COLOR_LABELS[c] || c).join(", ");
+          updateForm("color", colorNames);
+        }
+
+        setAnalysisMessage(
+          parsed.appliedCount > 0
+            ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
+        );
+      }
+    } catch (err) {
+      console.error("AI analiz hatası:", err);
+      setAnalysisMessage("");
+      setErrorMessage(getUserErrorMessage(err, "AI analizi sırasında hata oluştu."));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -180,7 +250,7 @@ export default function AdoptionCreatePage() {
     fileInputRef.current?.click();
   };
 
-  const handleImages = (
+  const handleImages = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(
@@ -238,16 +308,39 @@ export default function AdoptionCreatePage() {
       availableSlots,
     );
 
-    const newImages = filesToAdd.map((file) => ({
-      id: createImageId(file),
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    if (filesToAdd.length === 0) return;
 
-    setImages((current) => [
-      ...current,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+
+      // Sıkıştırma SONRASI yeniden ölç (bkz. imageCompression.ts): sıkıştırma
+      // başarısız olursa orijinal dosya geri geliyor ve sunucudan 413 alınıyor.
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages = accepted.map((file) => ({
+        id: createImageId(file),
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+
+      setImages((current) => [
+        ...current,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const removeImage = (imageId: string) => {
@@ -266,22 +359,30 @@ export default function AdoptionCreatePage() {
     });
   };
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
+  const handleUseLocation = async () => {
+    setErrorMessage("");
+
+    /*
+     * Konum alma ortak yardımcıya taşındı (utils/konum.ts): hata KODU
+     * ayrıştırılıyor ve zaman aşımında yüksek doğruluk kapalı ikinci
+     * deneme yapılıyor. Eskiden üç ayrı arıza için tek metin basılıyordu:
+     * "konum iznini etkinleştirin" — telefonda en sık görülen hata ise
+     * izin reddi değil, GPS kilidinin gelmemesiydi.
+     */
+    let koordinat;
+    try {
+      koordinat = await konumAl();
+    } catch (hata) {
+      setErrorMessage(konumHataMesaji(hata));
       return;
     }
 
-    setErrorMessage("");
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        /*
-         * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
-         * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
-         */
+    {
+      const coords = { latitude: koordinat.enlem, longitude: koordinat.boylam };
+      /*
+       * Koordinati ONCE sakla: ilan icin zorunlu olan bu, sehir
+       * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
+       */
         updateForm(
           "latitude",
           String(coords.latitude),
@@ -318,42 +419,38 @@ export default function AdoptionCreatePage() {
             "Konum bilgisi şehir adına dönüştürülemedi.",
           );
         }
-      },
-      () => {
-        setErrorMessage(
-          "Konum alınamadı. Lütfen konum izni verdiğinizden emin olun.",
-        );
-      },
-    );
+    }
   };
 
-  const validateForm = () => {
+  /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
+     zenginleşmiş kopya doğrulanabilsin diye (state henüz eskiyken). */
+  const validateForm = (f: typeof form = form) => {
     if (images.length === 0) {
       return "En az 1 fotoğraf yüklemelisiniz.";
     }
 
-    if (!form.name.trim()) {
+    if (!f.name.trim()) {
       return "Hayvanın adını girin.";
     }
 
-    if (!form.species) {
+    if (!f.species) {
       return "Hayvan türünü seçin.";
     }
 
     /* Backend AdoptionAdCreateRequest'te breed @NotBlank */
-    if (!form.breed.trim()) {
+    if (!f.breed.trim()) {
       return "Irk/cins bilgisini girin.";
     }
 
-    if (!form.date) {
+    if (!f.date) {
       return "İlan tarihini seçin.";
     }
 
-    if (form.date > today) {
+    if (f.date > today) {
       return "Gelecekte bir tarih seçilemez.";
     }
 
-    if (!form.city.trim()) {
+    if (!f.city.trim()) {
       return "Şehir bilgisini girin.";
     }
 
@@ -361,19 +458,19 @@ export default function AdoptionCreatePage() {
      * Backend konumu zorunlu tutuyor ve eslestirme mesafeye bakiyor.
      * Sehir/ilce metni koordinat yerine gecmez.
      */
-    if (!form.latitude || !form.longitude) {
-      return '"Mevcut konumumu kullan" ile ilanın konumunu ekleyin.';
+    if (!f.latitude || !f.longitude) {
+      return '"Mevcut konumumu kullan" düğmesiyle ya da enlem/boylam alanlarına elle girerek ilanın konumunu ekleyin.';
     }
 
-    if (!form.title.trim()) {
+    if (!f.title.trim()) {
       return "İlan başlığını girin.";
     }
 
-    if (!form.description.trim()) {
+    if (!f.description.trim()) {
       return "İlan açıklamasını girin.";
     }
 
-    if (!form.acceptResponsibility) {
+    if (!f.acceptResponsibility) {
       return "İlan bilgilerini doğru verdiğinizi onaylamalısınız.";
     }
 
@@ -384,7 +481,30 @@ export default function AdoptionCreatePage() {
     setErrorMessage("");
     setDateError("");
 
-    const validationError = validateForm();
+    /*
+     * Koordinat boş ama il/ilçe beyanı varsa ilçe merkezinden yaklaşık
+     * doldur (22.08 saha bulgusu: konum izni vermeyen kullanıcı
+     * kilitleniyordu). GPS ve elle giriş her zaman önceliklidir — yalnız
+     * ikisi de boşken devreye girer; başarısız olursa mevcut doğrulama
+     * mesajı yolları gösterir.
+     */
+    let gonderilecek = form;
+
+    if ((!form.latitude || !form.longitude) && form.city.trim()) {
+      const tahmin = await ilIlcedenKoordinat(form.city, form.district);
+
+      if (tahmin) {
+        gonderilecek = {
+          ...form,
+          latitude: String(tahmin.latitude),
+          longitude: String(tahmin.longitude),
+        };
+        updateForm("latitude", gonderilecek.latitude);
+        updateForm("longitude", gonderilecek.longitude);
+      }
+    }
+
+    const validationError = validateForm(gonderilecek);
 
     if (validationError) {
       setErrorMessage(validationError);
@@ -445,8 +565,17 @@ export default function AdoptionCreatePage() {
        */
       coatPattern: "UNKNOWN",
       eyeColor: "UNKNOWN",
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
+      latitude: Number(gonderilecek.latitude),
+      longitude: Number(gonderilecek.longitude),
+      /*
+       * İl/ilçe beyanı (BE V19): form zaten soruyor; yapılandırılmış alan
+       * olarak da gider ki kartlar ham koordinat yerine bunu gösterebilsin.
+       * Boşsa alan hiç gönderilmez (undefined, JSON.stringify'da düşer) —
+       * sunucu o durumda koordinattan çözmeyi dener.
+       */
+      city: form.city.trim() || undefined,
+      district: form.district.trim() || undefined,
+      isMatchRequired: false,
     };
 
     /*
@@ -520,43 +649,8 @@ export default function AdoptionCreatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <Header />
-
-      <main>
-        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF]">
-          <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8">
-            <button
-              type="button"
-              onClick={() => navigate("/adoption")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#F97316]"
-            >
-              <ArrowLeft size={18} />
-              Sahiplendirmeye dön
-            </button>
-
-            <div className="mt-7 max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316]">
-                <Heart size={16} />
-                Yeni yuva bul
-              </span>
-
-              <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">
-                Sahiplendirme ilanı oluştur
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
-                Dostunun bilgilerini eksiksiz paylaş.
-                Doğru bilgiler, onun için güvenli ve uygun
-                bir yuva bulunmasını kolaylaştırır.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
-          <div className="space-y-7">
-            <FormCard
+    <CreateAdLayout activeType="adopt">
+      <FormCard
               icon={<Camera size={21} />}
               title="Fotoğraflar"
               description="Dostunun net ve güncel fotoğraflarını ekle."
@@ -574,17 +668,22 @@ export default function AdoptionCreatePage() {
                 <button
                   type="button"
                   onClick={openFilePicker}
-                  className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#FB923C] hover:bg-[#FFF7ED]"
+                  disabled={isCompressing}
+                  className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#FB923C] hover:bg-[#FFF7ED] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-orange-500/10"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
-                    <ImagePlus size={30} />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400">
+                    {isCompressing ? (
+                      <Loader2 size={30} className="animate-spin" />
+                    ) : (
+                      <ImagePlus size={30} />
+                    )}
                   </div>
 
                   <strong className="mt-4 text-lg">
-                    Fotoğraf yükle
+                    {isCompressing ? "Sıkıştırılıyor..." : "Fotoğraf yükle"}
                   </strong>
 
-                  <span className="mt-2 text-sm text-[#64748B]">
+                  <span className="mt-2 text-sm text-[#64748B] dark:text-slate-400">
                     En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
                     her biri {MAX_FILE_SIZE_MB} MB · JPG, PNG veya WEBP
                   </span>
@@ -595,7 +694,7 @@ export default function AdoptionCreatePage() {
                     {images.map((image, index) => (
                       <div
                         key={image.id}
-                        className="relative overflow-hidden rounded-2xl border border-[#E2E8F0]"
+                        className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] dark:border-slate-700"
                       >
                         <img
                           src={image.preview}
@@ -626,22 +725,41 @@ export default function AdoptionCreatePage() {
                       <button
                         type="button"
                         onClick={openFilePicker}
-                        className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#F97316] hover:text-[#F97316]"
+                        disabled={isCompressing}
+                        className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#F97316] hover:text-[#F97316] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-orange-500/10"
                       >
-                        <Upload size={25} />
-                        <span className="mt-2 text-sm font-semibold">
-                          Fotoğraf ekle
-                        </span>
+                        {isCompressing ? (
+                          <>
+                            <Loader2 size={25} className="animate-spin text-[#F97316]" />
+                            <span className="mt-2 text-sm font-semibold">Sıkıştırılıyor...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={25} />
+                            <span className="mt-2 text-sm font-semibold">
+                              Fotoğraf ekle
+                            </span>
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
 
-                  <p className="mt-3 text-sm text-[#64748B]">
+                  <p className="mt-3 text-sm text-[#64748B] dark:text-slate-400">
                     {images.length}/{MAX_IMAGES} fotoğraf
                     yüklendi.
                   </p>
                 </>
               )}
+
+              <AiAutofillCard
+                onAnalyze={runAiAnalysis}
+                isAnalyzing={isAnalyzing}
+                disabled={isSubmitting}
+                analysisMessage={analysisMessage}
+                hasImages={images.length > 0}
+                variant="adoption"
+              />
             </FormCard>
 
             <FormCard
@@ -841,11 +959,49 @@ export default function AdoptionCreatePage() {
                 <button
                   type="button"
                   onClick={handleUseLocation}
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-2.5 text-sm font-bold text-[#EA580C] transition hover:bg-[#FFEDD5]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-2.5 text-sm font-bold text-[#EA580C] transition hover:bg-[#FFEDD5] dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400 dark:hover:bg-orange-500/15"
                 >
                   <MapPin size={17} />
                   Mevcut konumumu kullan
                 </button>
+              </div>
+
+              {/* Konum izni kapalıyken form kilitleniyordu (22.08 saha
+                  bulgusu): koordinatın tek kaynağı GPS'ti, il/ilçe metni
+                  koordinat yerine geçmiyor. Kayıp ve bulundu formlarındaki
+                  elle giriş deseninin aynısı. */}
+              <div className="mb-5 grid gap-5 sm:grid-cols-2">
+                <Field label="Enlem" required>
+                  <input
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    required
+                    value={form.latitude}
+                    onChange={(e) =>
+                      updateForm("latitude", e.target.value)
+                    }
+                    placeholder="40.195000"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Boylam" required>
+                  <input
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    required
+                    value={form.longitude}
+                    onChange={(e) =>
+                      updateForm("longitude", e.target.value)
+                    }
+                    placeholder="29.060000"
+                    className={inputClass}
+                  />
+                </Field>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
@@ -926,13 +1082,13 @@ export default function AdoptionCreatePage() {
             {errorMessage && (
               <div
                 role="alert"
-                className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C]"
+                className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
               >
                 {errorMessage}
               </div>
             )}
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
               <input
                 type="checkbox"
                 checked={form.acceptResponsibility}
@@ -946,11 +1102,11 @@ export default function AdoptionCreatePage() {
               />
 
               <div>
-                <strong className="text-sm text-[#0F172A]">
+                <strong className="text-sm text-[#0F172A] dark:text-slate-100">
                   Bilgilerin doğruluğunu onaylıyorum.
                 </strong>
 
-                <p className="mt-1 text-sm leading-6 text-[#64748B]">
+                <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
                   İlanda verdiğim bilgilerin doğru olduğunu
                   ve sahiplendirme sürecinde hayvanın
                   güvenliğini önceliklendireceğimi kabul
@@ -962,7 +1118,7 @@ export default function AdoptionCreatePage() {
             {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
                 formu baştan sona kontrol etmeye zorlar. */}
             {images.length < MIN_IMAGES && (
-              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
                 <ImagePlus size={17} />
                 İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
               </p>
@@ -986,63 +1142,12 @@ export default function AdoptionCreatePage() {
                 </>
               )}
             </button>
-          </div>
-
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#F97316]">
-                <Info size={22} />
-              </div>
-
-              <h2 className="mt-5 text-lg font-bold">
-                İyi bir ilan için
-              </h2>
-
-              <div className="mt-5 space-y-4">
-                <Tip>
-                  Güncel ve net fotoğraflar kullan.
-                </Tip>
-
-                <Tip>
-                  Karakter özelliklerini açıkça belirt.
-                </Tip>
-
-                <Tip>
-                  Sağlık durumunu eksiksiz paylaş.
-                </Tip>
-
-                <Tip>
-                  Teslim edilebilecek konumu doğru gir.
-                </Tip>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#BBF7D0] bg-[#F0FDF4] p-6">
-              <ShieldCheck
-                size={25}
-                className="text-[#16A34A]"
-              />
-
-              <h3 className="mt-4 font-bold text-[#166534]">
-                Güvenli sahiplendirme
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-[#15803D]">
-                Sahiplenecek kişiyle görüşmeden ve uygun
-                koşulları doğrulamadan hayvanı teslim etme.
-              </p>
-            </div>
-          </aside>
-        </section>
-      </main>
-
-      <Footer />
-    </div>
+    </CreateAdLayout>
   );
 }
 
 const inputClass =
-  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]/40";
+  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 type FormCardProps = {
   icon: React.ReactNode;
@@ -1058,18 +1163,18 @@ function FormCard({
   children,
 }: FormCardProps) {
   return (
-    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7">
-      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5 dark:border-slate-800">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10 dark:text-orange-400">
           {icon}
         </div>
 
         <div>
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold dark:text-slate-50">
             {title}
           </h2>
 
-          <p className="mt-1 text-sm leading-6 text-[#64748B]">
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
             {description}
           </p>
         </div>
@@ -1093,7 +1198,7 @@ function Field({
 }: FieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-[#334155]">
+      <span className="text-sm font-semibold text-[#334155] dark:text-slate-300">
         {label}
 
         {required && (
@@ -1122,7 +1227,7 @@ function CheckBox({
   description,
 }: CheckBoxProps) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition hover:border-[#FDBA74]">
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition hover:border-[#FDBA74] dark:border-slate-700 dark:bg-slate-800/60">
       <input
         type="checkbox"
         checked={checked}
@@ -1137,27 +1242,10 @@ function CheckBox({
           {title}
         </strong>
 
-        <p className="mt-1 text-xs leading-5 text-[#64748B]">
+        <p className="mt-1 text-xs leading-5 text-[#64748B] dark:text-slate-400">
           {description}
         </p>
       </div>
     </label>
-  );
-}
-
-function Tip({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3 text-sm text-[#475569]">
-      <CheckCircle2
-        size={18}
-        className="mt-0.5 shrink-0 text-[#22C55E]"
-      />
-
-      <span>{children}</span>
-    </div>
   );
 }

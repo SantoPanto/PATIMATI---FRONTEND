@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 import ReportUserModal from "../components/ReportUserModal";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatWebSocket } from "../hooks/useChatWebSocket";
@@ -21,9 +20,10 @@ import {
   createOrGetChatRoom,
   getChatRooms,
   getMessageHistory,
+  getUserStatus,
   markMessageAsRead,
 } from "../services/messages";
-import type { ChatRoomResponse, MessageResponse } from "../services/types";
+import type { ChatRoomResponse, MessageResponse, UserStatusEvent, UserStatusResponse } from "../services/types";
 
 interface ChatContact {
   userId: number;
@@ -49,14 +49,49 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [userStatus, setUserStatus] = useState<UserStatusResponse | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll helper
-  const scrollToBottom = useCallback((smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: smooth ? "smooth" : "auto",
-    });
+  const activeUserIdRef = useRef<number | null>(activeUserId);
+  const currentUserIdRef = useRef<number>(currentUserId);
+  const initialScrollDoneRef = useRef(false);
+
+  useEffect(() => {
+    activeUserIdRef.current = activeUserId;
+  }, [activeUserId]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
+
+  useEffect(() => {
+    initialScrollDoneRef.current = false;
+  }, [activeUserId]);
+
+  // Helper to format last seen timestamp
+  const formatLastSeen = useCallback((lastSeenStr?: string | null): string => {
+    if (!lastSeenStr) return "Çevrim dışı";
+    try {
+      const date = new Date(lastSeenStr);
+      if (isNaN(date.getTime())) return "Çevrim dışı";
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      const timePart = date.toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return isToday
+        ? `Bugün ${timePart}`
+        : date.toLocaleDateString("tr-TR", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+    } catch {
+      return "Çevrim dışı";
+    }
   }, []);
 
   // Helper to upsert a contact room in contacts list
@@ -97,6 +132,125 @@ export default function ChatPage() {
     [],
   );
 
+  // 3. WebSocket incoming message handler
+  const handleIncomingMessage = useCallback(
+    (incomingMessage: MessageResponse) => {
+      const senderId = Number(incomingMessage.senderId);
+      const recipientId = Number(incomingMessage.recipientId);
+      const currentId = currentUserIdRef.current;
+      const activeId = activeUserIdRef.current;
+
+      const otherId = senderId === currentId ? recipientId : senderId;
+      const otherName =
+        senderId === currentId
+          ? incomingMessage.recipientName
+          : incomingMessage.senderName;
+
+      // Update contacts sidebar room list
+      upsertContact(
+        otherId,
+        otherName,
+        incomingMessage.content,
+        incomingMessage.timestamp,
+      );
+
+      // If incoming message belongs to active chat, append to messages state
+      if (activeId && (senderId === activeId || recipientId === activeId)) {
+        console.log(`[CHAT INCOMING] activeUserId=${activeId}, senderId=${senderId}, messageId=${incomingMessage.id}, content="${incomingMessage.content}"`);
+        setMessages((prev) => {
+          console.log(`[CHAT SETMESSAGES] Source=INCOMING_WS, activeUserId=${activeId}, incomingId=${incomingMessage.id}, prevLength=${prev.length}`);
+          // If exact ID exists, ignore duplicate
+          if (prev.some((m) => Number(m.id) === Number(incomingMessage.id))) {
+            console.log(`[CHAT SETMESSAGES] Message id=${incomingMessage.id} already exists in state, ignoring duplicate.`);
+            return prev;
+          }
+
+          // Replace matching optimistic message if present (ONLY if m.isOptimistic === true)
+          const optIndex = prev.findIndex(
+            (m) =>
+              m.isOptimistic === true &&
+              Number(m.senderId) === senderId &&
+              Number(m.recipientId) === recipientId &&
+              m.content === incomingMessage.content,
+          );
+
+          if (optIndex !== -1) {
+            console.log(`[CHAT SETMESSAGES] Replacing optimistic message at index ${optIndex} with real message id=${incomingMessage.id}`);
+            const updated = [...prev];
+            updated[optIndex] = incomingMessage;
+            return updated;
+          }
+
+          console.log(`[CHAT SETMESSAGES] Appending new message id=${incomingMessage.id} to state. New length: ${prev.length + 1}`);
+          return [...prev, incomingMessage];
+        });
+
+        // Mark as read if received from active partner
+        if (senderId === activeId && !incomingMessage.isRead) {
+          void markMessageAsRead(incomingMessage.id).catch(console.error);
+        }
+      } else if (senderId !== currentId) {
+        console.log(`[CHAT INCOMING] Message from non-active partner (${otherName}): content="${incomingMessage.content}"`);
+        setToastMessage(`${otherName}: ${incomingMessage.content}`);
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+    },
+    [upsertContact],
+  );
+
+  // Real-time STOMP status event handler for /topic/user-status
+  const handleUserStatusUpdate = useCallback(
+    (event: UserStatusEvent) => {
+      const activeId = activeUserIdRef.current;
+      if (activeId && Number(event.userId) === Number(activeId)) {
+        const isOnline =
+          event.online === true ||
+          event.status?.toUpperCase() === "ONLINE";
+        setUserStatus({
+          userId: Number(event.userId),
+          online: isOnline,
+          status: isOnline ? "ONLINE" : "OFFLINE",
+          lastSeen: event.lastSeen ?? null,
+        });
+      }
+    },
+    [],
+  );
+
+  // Encapsulated Custom Hook for WebSocket status, messaging, and online status topic subscription
+  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
+    handleIncomingMessage,
+    handleUserStatusUpdate,
+  );
+
+  // Fetch initial online status for active partner via GET /api/users/{userId}/status
+  useEffect(() => {
+    if (!activeUserId || !Number.isFinite(activeUserId)) {
+      setUserStatus(null);
+      return;
+    }
+
+    const targetUserId = activeUserId;
+    let isMounted = true;
+
+    async function fetchUserStatus() {
+      try {
+        const statusData = await getUserStatus(targetUserId);
+        if (isMounted) {
+          setUserStatus(statusData);
+        }
+      } catch (err) {
+        console.error("Kullanıcı durumu alınamadı:", err);
+      }
+    }
+
+    void fetchUserStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeUserId]);
+
   // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
   useEffect(() => {
     if (!currentUserId || !Number.isFinite(currentUserId)) return;
@@ -133,63 +287,7 @@ export default function ChatPage() {
     };
   }, [currentUserId]);
 
-  // 3. WebSocket incoming message handler
-  const handleIncomingMessage = useCallback(
-    (incomingMessage: MessageResponse) => {
-      const senderId = incomingMessage.senderId;
-      const recipientId = incomingMessage.recipientId;
-      const otherId = senderId === currentUserId ? recipientId : senderId;
-      const otherName =
-        senderId === currentUserId
-          ? incomingMessage.recipientName
-          : incomingMessage.senderName;
-
-      // Update contacts sidebar room list
-      upsertContact(
-        otherId,
-        otherName,
-        incomingMessage.content,
-        incomingMessage.timestamp,
-      );
-
-      // If incoming message belongs to active chat, append to messages
-      if (activeUserId && (senderId === activeUserId || recipientId === activeUserId)) {
-        setMessages((prev) => {
-          // If exact ID exists, ignore
-          if (prev.some((m) => m.id === incomingMessage.id)) return prev;
-
-          // Replace matching optimistic message if present
-          const optIndex = prev.findIndex(
-            (m) =>
-              m.senderId === incomingMessage.senderId &&
-              m.recipientId === incomingMessage.recipientId &&
-              m.content === incomingMessage.content,
-          );
-
-          if (optIndex !== -1) {
-            const updated = [...prev];
-            updated[optIndex] = incomingMessage;
-            return updated;
-          }
-
-          return [...prev, incomingMessage];
-        });
-
-        // Mark as read if received from active partner
-        if (senderId === activeUserId && !incomingMessage.isRead) {
-          void markMessageAsRead(incomingMessage.id).catch(console.error);
-        }
-      }
-    },
-    [activeUserId, currentUserId, upsertContact],
-  );
-
-  // Encapsulated Custom Hook for WebSocket status and STOMP message sending
-  const { status: wsStatus, sendMessage: sendStompMessage } = useChatWebSocket(
-    handleIncomingMessage,
-  );
-
-  // Load active chat room message history
+  // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
   useEffect(() => {
     if (!activeUserId || !Number.isFinite(activeUserId)) {
       // Aktif sohbet partneri degistiginde onceki partnerin mesajlarinin bir
@@ -236,6 +334,7 @@ export default function ChatPage() {
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
         );
 
+        console.log(`[CHAT HISTORY LOAD] activeUserId=${currentActiveUserId}, loadedCount=${sortedHistory.length}`);
         setMessages(sortedHistory);
 
         // Add or update active partner in contacts list
@@ -279,10 +378,23 @@ export default function ChatPage() {
     };
   }, [activeUserId, currentUserId, upsertContact]);
 
-  // 2. Auto-Scroll: Yeni mesaj geldiğinde veya sohbet açıldığında en alta kaydırma
+  // Initial & updates auto-scroll logic
   useEffect(() => {
-    scrollToBottom(true);
-  }, [messages, scrollToBottom]);
+    if (messages.length > 0) {
+      const isInitial = !initialScrollDoneRef.current;
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: isInitial ? "auto" : "smooth",
+          block: "end",
+        });
+        if (isInitial) {
+          initialScrollDoneRef.current = true;
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [messages, activeUserId]);
 
   // Determine active contact partner name dynamically
   const activeContact = contacts.find((c) => c.userId === activeUserId);
@@ -295,10 +407,26 @@ export default function ChatPage() {
         : messages[0].senderName
       : activeContact?.userName || `Kullanıcı #${activeUserId}`;
 
+  // Always sync refs during render for immediate availability
+  activeUserIdRef.current = activeUserId;
+  currentUserIdRef.current = currentUserId;
+
   // Send message via WebSocket with Optimistic UI update (Instant state update)
   const handleSend = () => {
     const content = text.trim();
-    if (!content || !activeUserId) return;
+    const targetUserId = activeUserId ?? activeUserIdRef.current;
+
+    if (!content) {
+      console.warn("Gönderim iptal edildi: Mesaj içeriği boş.");
+      return;
+    }
+    if (!targetUserId || !Number.isFinite(targetUserId)) {
+      console.warn("Gönderim iptal edildi: Alıcı kullanıcı ID tanımlı değil.", {
+        activeUserId,
+        refUserId: activeUserIdRef.current,
+      });
+      return;
+    }
 
     // Optimistic message object for instant UI reactivity
     const optimisticMsg: MessageResponse = {
@@ -307,17 +435,19 @@ export default function ChatPage() {
       senderName: user?.firstName
         ? `${user.firstName} ${user.lastName || ""}`.trim()
         : "Ben",
-      recipientId: activeUserId,
+      recipientId: targetUserId,
       recipientName: activePartnerName,
       content,
       timestamp: new Date().toISOString(),
       isRead: false,
+      isOptimistic: true,
     };
 
     // Instant UI State Update (Reaktivite & F5 Çözümü)
+    console.log(`[CHAT HANDLE SEND] activeUserId=${targetUserId}, optimisticId=${optimisticMsg.id}, content="${content}"`);
     setMessages((prev) => [...prev, optimisticMsg]);
     upsertContact(
-      activeUserId,
+      targetUserId,
       activePartnerName,
       content,
       optimisticMsg.timestamp,
@@ -325,15 +455,20 @@ export default function ChatPage() {
     setText("");
 
     try {
-      sendStompMessage(activeUserId, content);
+      sendStompMessage(targetUserId, content);
     } catch (err) {
-      console.error("Mesaj gönderilirken hata oluştu:", err);
+      console.error("Mesaj gönderilirken WebSocket hatası oluştu:", err);
       setError("Mesaj gönderilirken bağlantı hatası oluştu.");
     }
   };
 
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleSend();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -345,25 +480,25 @@ export default function ChatPage() {
       case "CONNECTED":
         return {
           label: "Canlı",
-          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+          badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
           dotClass: "bg-emerald-500",
         };
       case "CONNECTING":
         return {
           label: "Bağlanıyor...",
-          badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+          badgeClass: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
           dotClass: "bg-amber-500 animate-pulse",
         };
       case "ERROR":
         return {
           label: "Bağlantı Hatası",
-          badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
+          badgeClass: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
           dotClass: "bg-rose-500",
         };
       default:
         return {
           label: "Bağlantı Kesildi",
-          badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+          badgeClass: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
           dotClass: "bg-slate-400",
         };
     }
@@ -373,24 +508,24 @@ export default function ChatPage() {
     getStatusBadge();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden dark:bg-slate-950">
       <Header />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-[600px] overflow-hidden flex flex-col md:flex-row">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col h-[calc(100vh-80px)] min-h-0 overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md flex-1 min-h-0 h-full overflow-hidden flex flex-col md:flex-row dark:bg-slate-900 dark:border-slate-800">
           {/* Left Contacts / Rooms Sidebar */}
           <div
-            className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 ${
+            className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 min-h-0 h-full overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 ${
               activeUserId ? "hidden md:flex" : "flex"
             }`}
           >
             {/* Sidebar Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl dark:bg-blue-500/10 dark:text-blue-400">
                   <MessageSquare size={20} />
                 </span>
-                <h1 className="text-lg font-extrabold text-slate-900">
+                <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
                   Mesajlarım
                 </h1>
               </div>
@@ -404,19 +539,19 @@ export default function ChatPage() {
             </div>
 
             {/* Contacts / Chat Rooms List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100/80">
+            <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-slate-100/80 dark:divide-slate-800">
               {loadingRooms ? (
-                <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 size={20} className="animate-spin text-blue-600" />
+                <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2 dark:text-slate-500">
+                  <Loader2 size={20} className="animate-spin text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-medium">Odalar yükleniyor...</span>
                 </div>
               ) : contacts.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
+                <div className="p-8 text-center text-slate-400 dark:text-slate-500">
                   <MessageSquareOff size={36} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-semibold text-slate-600">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                     Henüz sohbetiniz yok
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-1 dark:text-slate-500">
                     İlan detay sayfalarından kullanıcılarla sohbet başlatabilirsiniz.
                   </p>
                 </div>
@@ -430,21 +565,21 @@ export default function ChatPage() {
                       onClick={() => navigate(`/chat/${c.userId}`)}
                       className={`w-full p-4 flex items-start gap-3 text-left transition-all ${
                         isActive
-                          ? "bg-blue-50/80 border-l-4 border-blue-600"
-                          : "hover:bg-slate-100/80 bg-white md:bg-transparent"
+                          ? "bg-blue-50/80 border-l-4 border-blue-600 dark:bg-blue-500/10"
+                          : "hover:bg-slate-100/80 bg-white md:bg-transparent dark:bg-slate-900 dark:md:bg-transparent dark:hover:bg-slate-800/60"
                       }`}
                     >
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 font-extrabold text-blue-700">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 font-extrabold text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
                         {c.userName ? c.userName.charAt(0).toUpperCase() : "U"}
                       </span>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <h3 className="text-sm font-bold text-slate-900 truncate">
+                          <h3 className="text-sm font-bold text-slate-900 truncate dark:text-slate-50">
                             {c.userName || `Kullanıcı #${c.userId}`}
                           </h3>
                           {c.lastTimestamp && (
-                            <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                            <span className="text-[11px] font-medium text-slate-400 shrink-0 dark:text-slate-500">
                               {new Date(c.lastTimestamp).toLocaleTimeString(
                                 "tr-TR",
                                 { hour: "2-digit", minute: "2-digit" },
@@ -453,7 +588,7 @@ export default function ChatPage() {
                           )}
                         </div>
 
-                        <p className="text-xs font-medium text-slate-500 truncate">
+                        <p className="text-xs font-medium text-slate-500 truncate dark:text-slate-400">
                           {c.lastMessage || "Sohbeti görüntülemek için tıklayın"}
                         </p>
                       </div>
@@ -466,19 +601,19 @@ export default function ChatPage() {
 
           {/* Right Active Chat Window */}
           <div
-            className={`flex-1 flex flex-col bg-white ${
+            className={`flex-1 flex flex-col bg-white min-h-0 h-full overflow-hidden dark:bg-slate-900 ${
               !activeUserId ? "hidden md:flex" : "flex"
             }`}
           >
             {activeUserId ? (
               <>
                 {/* Active Chat Header */}
-                <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 shrink-0 dark:border-slate-800 dark:bg-slate-900/40">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => navigate("/chat")}
-                      className="md:hidden p-2 text-slate-500 hover:text-slate-900"
+                      className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                     >
                       &larr;
                     </button>
@@ -486,13 +621,22 @@ export default function ChatPage() {
                       <User size={20} />
                     </span>
                     <div>
-                      <h2 className="text-base font-extrabold text-slate-900">
+                      <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-50">
                         {activePartnerName}
                       </h2>
-                      <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Çevrim içi
-                      </span>
+                      {userStatus?.online ? (
+                        <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 dark:text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Çevrim içi
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400 flex items-center gap-1 dark:text-slate-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          {userStatus?.lastSeen
+                            ? `Son görülme ${formatLastSeen(userStatus.lastSeen)}`
+                            : "Çevrim dışı"}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -500,7 +644,7 @@ export default function ChatPage() {
                   <button
                     type="button"
                     onClick={() => setIsReportModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/60 hover:border-rose-300 transition-all shadow-2xs"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/60 hover:border-rose-300 transition-all shadow-2xs dark:text-rose-400 dark:hover:bg-rose-500/10 dark:border-rose-500/20 dark:hover:border-rose-500/40"
                     title="Kullanıcıyı Şikayet Et"
                   >
                     <Flag size={14} />
@@ -509,26 +653,26 @@ export default function ChatPage() {
                 </div>
 
                 {/* Messages Body */}
-                <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/30">
+                <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-0 space-y-4 bg-slate-50/30 dark:bg-slate-900/40">
                   {loadingHistory ? (
-                    <div className="h-full flex items-center justify-center text-slate-400 gap-2">
-                      <Loader2 size={24} className="animate-spin text-blue-600" />
+                    <div className="h-full flex items-center justify-center text-slate-400 gap-2 dark:text-slate-500">
+                      <Loader2 size={24} className="animate-spin text-blue-600 dark:text-blue-400" />
                       <span className="text-sm font-medium">
                         Mesaj geçmişi yükleniyor...
                       </span>
                     </div>
                   ) : error ? (
-                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold rounded-2xl flex items-center gap-2">
+                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold rounded-2xl flex items-center gap-2 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400">
                       <AlertCircle size={18} />
                       <span>{error}</span>
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400">
+                    <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-500">
                       <MessageSquare size={40} className="mb-2 opacity-40" />
-                      <p className="text-sm font-bold text-slate-700">
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                         Henüz mesajınız yok
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-400 mt-1 dark:text-slate-500">
                         Aşağıdaki alandan ilk mesajınızı yazıp gönderebilirsiniz.
                       </p>
                     </div>
@@ -546,7 +690,7 @@ export default function ChatPage() {
                             className={`max-w-[80%] sm:max-w-[70%] px-4 py-3 rounded-2xl text-sm font-medium shadow-xs ${
                               isMine
                                 ? "bg-blue-600 text-white rounded-br-none"
-                                : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-none"
+                                : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-none dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
                             }`}
                           >
                             <p className="whitespace-pre-wrap break-words leading-relaxed">
@@ -554,7 +698,7 @@ export default function ChatPage() {
                             </p>
                             <div
                               className={`mt-1.5 flex items-center justify-end gap-1 text-[10px] ${
-                                isMine ? "text-blue-100" : "text-slate-400"
+                                isMine ? "text-blue-100" : "text-slate-400 dark:text-slate-500"
                               }`}
                             >
                               <span>
@@ -580,7 +724,10 @@ export default function ChatPage() {
                 </div>
 
                 {/* Chat Input Bar */}
-                <div className="p-4 border-t border-slate-100 bg-white">
+                <form
+                  onSubmit={handleFormSubmit}
+                  className="p-4 border-t border-slate-100 bg-white shrink-0 dark:border-slate-800 dark:bg-slate-900"
+                >
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -589,29 +736,28 @@ export default function ChatPage() {
                       onKeyDown={handleKeyDown}
                       placeholder="Bir mesaj yazın..."
                       maxLength={2000}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:focus:bg-slate-800 dark:focus:ring-blue-500/20"
                     />
 
                     <button
-                      type="button"
-                      onClick={handleSend}
+                      type="submit"
                       disabled={!text.trim()}
                       className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 transition-all shrink-0 shadow-md shadow-blue-600/20"
                     >
                       <Send size={18} />
                     </button>
                   </div>
-                </div>
+                </form>
               </>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mb-4">
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500">
+                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mb-4 dark:bg-blue-500/10 dark:text-blue-400">
                   <MessageSquare size={32} />
                 </div>
-                <h2 className="text-xl font-extrabold text-slate-800">
+                <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
                   Sohbet Başlatın
                 </h2>
-                <p className="text-sm text-slate-500 mt-1 max-w-sm">
+                <p className="text-sm text-slate-500 mt-1 max-w-sm dark:text-slate-400">
                   Sol taraftaki kişilerden birini seçin veya ilan detay sayfalarından doğrudan mesaj gönderin.
                 </p>
               </div>
@@ -620,7 +766,7 @@ export default function ChatPage() {
         </div>
       </main>
 
-      <Footer />
+      {/* Report User Modal */}
 
       {/* Report User Modal */}
       {activeUserId && (

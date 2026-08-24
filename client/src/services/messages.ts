@@ -1,6 +1,55 @@
 import { API_BASE_URL, request } from "./api";
 import { getStoredToken } from "./auth";
-import type { ChatRoomResponse, MessageResponse, Page } from "./types";
+import type { ChatRoomResponse, MessageResponse, Page, UserStatusResponse } from "./types";
+
+/**
+ * GET /api/users/{userId}/status (Bearer)
+ * Returns user online status and last seen detail
+ */
+export async function getUserStatus(userId: number): Promise<UserStatusResponse> {
+  const res = await request<unknown>(`/api/users/${userId}/status`, {
+    method: "GET",
+    requiresAuth: true,
+  });
+
+  if (typeof res === "boolean") {
+    return {
+      userId,
+      online: res,
+      status: res ? "ONLINE" : "OFFLINE",
+    };
+  }
+
+  if (typeof res === "string") {
+    const isOnline = res.toUpperCase() === "ONLINE";
+    return {
+      userId,
+      online: isOnline,
+      status: isOnline ? "ONLINE" : "OFFLINE",
+    };
+  }
+
+  if (res && typeof res === "object") {
+    const data = res as Record<string, unknown>;
+    const isOnline =
+      data.online === true ||
+      data.status === "ONLINE" ||
+      data.status === "online" ||
+      data.isOnline === true;
+    return {
+      userId: Number(data.userId ?? userId),
+      online: isOnline,
+      status: isOnline ? "ONLINE" : "OFFLINE",
+      lastSeen: typeof data.lastSeen === "string" ? data.lastSeen : null,
+    };
+  }
+
+  return {
+    userId,
+    online: false,
+    status: "OFFLINE",
+  };
+}
 
 /**
  * 4. Mesajlaşma & Chat (/api/messages ve WebSocket)

@@ -2,10 +2,15 @@
    PATIMATI — Map Page
    ========================================================= */
 
+.map-page-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .map-page {
   width: 100%;
-  min-height: 100vh;
-  padding-bottom: 90px;
+  padding-bottom: 32px;
 }
 
 /* ---------------------------------------------------------
@@ -98,10 +103,13 @@
   flex: 1;
   min-width: 0;
   border: 0;
-  outline: 0;
   background: transparent;
   color: #172033;
   font-size: 14px;
+}
+
+.map-search input:focus {
+  outline: none;
 }
 
 .map-search input::placeholder {
@@ -112,9 +120,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
   border: 0;
-  background: transparent;
-  color: #172033;
+  border-radius: 50%;
+  background: #f0f3f7;
+  color: #64748b;
   cursor: pointer;
 }
 
@@ -126,26 +137,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  color: #667085;
-  font-size: 13px;
+  padding-bottom: 12px;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .map-status strong {
   color: #172033;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* ---------------------------------------------------------
-   Map container
+   Map Canvas Wrapper
    --------------------------------------------------------- */
 
 .map-art {
   position: relative;
   width: 100%;
-  height: min(70vh, 720px);
-  min-height: 500px;
+  height: clamp(420px, 60vh, 660px);
+  min-height: 420px;
   overflow: hidden;
   border: 1px solid #dce1e8;
   border-radius: 24px;
@@ -459,6 +469,51 @@
 }
 
 /* ---------------------------------------------------------
+   Legend — işaretçi renklerinin anlamı (palet .pet-map-marker--* ile aynı)
+   --------------------------------------------------------- */
+
+.map-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 450;
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #dce1e8;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.map-legend i.lost {
+  background: #ef4444;
+}
+
+.map-legend i.found {
+  background: #22c55e;
+}
+
+.map-legend i.adoption {
+  background: #f59e0b;
+}
+
+/* ---------------------------------------------------------
    Loading state
    --------------------------------------------------------- */
 
@@ -541,6 +596,112 @@
   .map-popup {
     width: 220px;
   }
+}
+
+/* ---------------------------------------------------------
+   Karanlık tema
+   Not: Leaflet'in kendi bileşenleri (yakınlaştırma denetimi, popup
+   çerçevesi) burada yeniden temalandırılmadı — harita karolarının
+   kendisi zaten temadan bağımsız olduğundan üzerlerindeki beyaz
+   denetimler haritanın rengiyle tutarlı kalıyor.
+   --------------------------------------------------------- */
+
+.dark .map-filter-chip {
+  border-color: #334155;
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.dark .map-filter-chip:hover {
+  border-color: #64748b;
+}
+
+.dark .map-filter-chip.active {
+  background: #334155;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark .map-search {
+  border-color: #334155;
+  background: #1e293b;
+}
+
+.dark .map-search input {
+  color: #e2e8f0;
+}
+
+.dark .map-search input::placeholder {
+  color: #64748b;
+}
+
+.dark .map-search button {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.dark .map-status {
+  color: #94a3b8;
+}
+
+.dark .map-status strong {
+  color: #f1f5f9;
+}
+
+.dark .map-art {
+  background: #1e293b;
+}
+
+.dark .map-empty {
+  background: rgba(30, 41, 59, 0.96);
+}
+
+.dark .map-empty strong,
+.dark .map-empty a {
+  color: #f1f5f9;
+}
+
+.dark .map-error {
+  border-color: #334155;
+  background: #1e293b;
+}
+
+.dark .map-error a {
+  color: #f1f5f9;
+}
+
+.dark .map-selected-card {
+  border-color: #334155;
+  background: rgba(30, 41, 59, 0.96);
+}
+
+.dark .map-selected-card > div > span,
+.dark .map-selected-card p {
+  color: #94a3b8;
+}
+
+.dark .map-selected-card strong {
+  color: #f1f5f9;
+}
+
+.dark .map-selected-card > button {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.dark .map-selected-card > button:hover {
+  background: #475569;
+}
+
+.dark .map-legend {
+  border-color: #334155;
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+.dark .map-loading {
+  background: rgba(30, 41, 59, 0.94);
+  color: #f1f5f9;
 }
 
 @media (max-width: 480px) {

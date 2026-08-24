@@ -5,12 +5,10 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowLeft,
   CalendarDays,
   Camera,
-  CheckCircle2,
   ImagePlus,
-  Info,
+  Loader2,
   MapPin,
   PawPrint,
   Search,
@@ -20,11 +18,16 @@ import {
   X,
 } from "lucide-react";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import CreateAdLayout from "../components/CreateAdLayout";
+import AiAutofillCard from "../components/AiAutofillCard";
+import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
-import type { PetColor } from "../services/types";
+import type { AiAnalysis, MatchedAdResponseDTO, PetColor } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
+import { ilIlcedenKoordinat } from "../utils/geokod";
+import { konumAl, konumHataMesaji } from "../utils/konum";
+import { compressImagesWithinLimit } from "../utils/imageCompression";
 
 const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   siyah: "BLACK",
@@ -49,6 +52,18 @@ const TURKISH_COLOR_TO_ENUM: Record<string, PetColor> = {
   diğer: "OTHER",
   diger: "OTHER",
   other: "OTHER",
+};
+
+const COLOR_LABELS: Record<PetColor, string> = {
+  BLACK: "Siyah",
+  WHITE: "Beyaz",
+  GRAY: "Gri",
+  BROWN: "Kahverengi",
+  ORANGE: "Turuncu",
+  CREAM: "Krem",
+  GOLDEN: "Altın",
+  BEIGE: "Bej",
+  OTHER: "Diğer",
 };
 
 function parseColorsFromText(text: string): PetColor[] {
@@ -99,11 +114,97 @@ export default function FoundPetCreatePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [dateError, setDateError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocationLoading, setIsLocationLoading] =
     useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState("");
+  const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
+  const [showMatchModal, setShowMatchModal] = useState(false);
+
+  const runAiAnalysis = async () => {
+    if (images.length === 0) {
+      setErrorMessage("AI analizi için önce en az bir fotoğraf yükleyin.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setAnalysisMessage("Fotoğraf AI tarafından analiz ediliyor...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", images[0].file);
+
+      const analysis = await request<AiAnalysis>("/api/ai/analyze", {
+        method: "POST",
+        body: formData,
+        requiresAuth: true,
+      });
+
+      const parsed = parseAiAnalysis(analysis);
+
+      if (!parsed.isPet) {
+        setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
+      } else {
+        if (parsed.species) {
+          updateForm("species", parsed.species);
+        }
+
+        if (parsed.breed) {
+          updateForm("breed", parsed.breed);
+        }
+
+        if (parsed.colors.length > 0) {
+          const colorNames = parsed.colors.map((c) => COLOR_LABELS[c] || c).join(", ");
+          updateForm("color", colorNames);
+        }
+
+        if (parsed.collarStatus !== "UNKNOWN") {
+          updateForm("collarStatus", parsed.collarStatus);
+        }
+
+        setAnalysisMessage(
+          parsed.appliedCount > 0
+            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
+        );
+
+        try {
+          const matchFormData = new FormData();
+          matchFormData.append("listingType", "FOUND");
+          images.forEach((img) => matchFormData.append("images", img.file));
+
+          if (form.latitude.trim() && form.longitude.trim()) {
+            matchFormData.append("latitude", form.latitude.trim());
+            matchFormData.append("longitude", form.longitude.trim());
+          }
+
+          const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
+            method: "POST",
+            body: matchFormData,
+            requiresAuth: true,
+          });
+
+          if (matchesData && matchesData.length > 0) {
+            setMatches(matchesData);
+            setShowMatchModal(true);
+          }
+        } catch (matchErr) {
+          console.error("Eşleştirme hatası:", matchErr);
+        }
+      }
+    } catch (err) {
+      console.error("AI analiz hatası:", err);
+      setAnalysisMessage("");
+      setErrorMessage(getUserErrorMessage(err, "AI analizi sırasında hata oluştu."));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const [form, setForm] = useState({
     species: "",
@@ -164,7 +265,7 @@ export default function FoundPetCreatePage() {
     fileInputRef.current?.click();
   };
 
-  const handleImages = (
+  const handleImages = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     const files = Array.from(event.target.files ?? []);
@@ -218,17 +319,40 @@ export default function FoundPetCreatePage() {
       availableSlots,
     );
 
-    const newImages: SelectedImage[] =
-      filesToAdd.map((file) => ({
-        id: createImageId(file),
-        file,
-        preview: URL.createObjectURL(file),
-      }));
+    if (filesToAdd.length === 0) return;
 
-    setImages((current) => [
-      ...current,
-      ...newImages,
-    ]);
+    try {
+      setIsCompressing(true);
+
+      // Sıkıştırma SONRASI yeniden ölç (bkz. imageCompression.ts): sıkıştırma
+      // başarısız olursa orijinal dosya geri geliyor ve sunucudan 413 alınıyor.
+      const { accepted, stillTooLarge } = await compressImagesWithinLimit(
+        filesToAdd,
+        MAX_FILE_SIZE,
+      );
+
+      if (stillTooLarge.length > 0) {
+        setErrorMessage(
+          `${stillTooLarge[0].name} küçültülemedi ve ${MAX_FILE_SIZE_MB} MB sınırının üstünde kaldı; eklenmedi.`,
+        );
+      }
+
+      const newImages: SelectedImage[] =
+        accepted.map((file) => ({
+          id: createImageId(file),
+          file,
+          preview: URL.createObjectURL(file),
+        }));
+
+      setImages((current) => [
+        ...current,
+        ...newImages,
+      ]);
+    } catch (err) {
+      console.error("Fotoğraf sıkıştırma hatası:", err);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const removeImage = (imageId: string) => {
@@ -249,19 +373,22 @@ export default function FoundPetCreatePage() {
     setErrorMessage("");
   };
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage(
-        "Tarayıcınız konum özelliğini desteklemiyor.",
-      );
-      return;
-    }
-
+  const handleUseCurrentLocation = async () => {
     setErrorMessage("");
     setIsLocationLoading(true);
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
+    // Hata kodu ayrımı + zaman aşımında ikinci deneme: utils/konum.ts
+    let koordinat;
+    try {
+      koordinat = await konumAl();
+    } catch (hata) {
+      setIsLocationLoading(false);
+      setErrorMessage(konumHataMesaji(hata));
+      return;
+    }
+
+    {
+      const coords = { latitude: koordinat.enlem, longitude: koordinat.boylam };
         /*
          * Koordinati ONCE sakla: ilan icin zorunlu olan bu, adres
          * metni degil. Nominatim'e ulasilamasa bile ilan acilabilsin.
@@ -315,40 +442,29 @@ export default function FoundPetCreatePage() {
         } finally {
           setIsLocationLoading(false);
         }
-      },
-      () => {
-        setIsLocationLoading(false);
-
-        setErrorMessage(
-          "Konum alınamadı. Tarayıcıdan konum izni verdiğinizden emin olun.",
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
+    }
   };
 
-  const validateForm = () => {
+  /* f parametresi: gönderim anında il/ilçeden türetilen koordinatla
+     zenginleşmiş kopya doğrulanabilsin diye (state henüz eskiyken). */
+  const validateForm = (f: typeof form = form) => {
     if (images.length < MIN_IMAGES) {
       return "En az 1 fotoğraf yüklemelisiniz.";
     }
 
-    if (!form.species) {
+    if (!f.species) {
       return "Hayvan türünü seçin.";
     }
 
-    if (!form.foundDate) {
+    if (!f.foundDate) {
       return "Hayvanı bulduğunuz tarihi seçin.";
     }
 
-    if (!form.city.trim()) {
+    if (!f.city.trim()) {
       return "Şehir bilgisini girin.";
     }
 
-    if (!form.district.trim()) {
+    if (!f.district.trim()) {
       return "İlçe bilgisini girin.";
     }
 
@@ -356,15 +472,15 @@ export default function FoundPetCreatePage() {
      * Backend konumu zorunlu tutuyor ve eslestirme mesafeye bakiyor.
      * Sehir/ilce metni koordinat yerine gecmez.
      */
-    if (!form.latitude || !form.longitude) {
-      return '"Mevcut konumumu kullan" ile hayvanı bulduğunuz konumu ekleyin.';
+    if (!f.latitude || !f.longitude) {
+      return '"Mevcut konumumu kullan" düğmesiyle ya da enlem/boylam alanlarına elle girerek hayvanı bulduğunuz konumu ekleyin.';
     }
 
-    if (!form.description.trim()) {
+    if (!f.description.trim()) {
       return "Hayvan hakkında kısa bir açıklama girin.";
     }
 
-    if (!form.acceptResponsibility) {
+    if (!f.acceptResponsibility) {
       return "İlan bilgilerinin doğru olduğunu onaylamalısınız.";
     }
 
@@ -374,7 +490,30 @@ export default function FoundPetCreatePage() {
   const handleSubmit = async () => {
     setErrorMessage("");
 
-    const validationError = validateForm();
+    /*
+     * Koordinat boş ama il/ilçe beyanı varsa ilçe merkezinden yaklaşık
+     * doldur (22.08 saha bulgusu sınıfı: konum izni vermeyen kullanıcı
+     * kilitlenmesin). GPS ve elle giriş her zaman önceliklidir — yalnız
+     * ikisi de boşken devreye girer; başarısız olursa mevcut doğrulama
+     * mesajı yolları gösterir.
+     */
+    let gonderilecek = form;
+
+    if ((!form.latitude || !form.longitude) && form.city.trim()) {
+      const tahmin = await ilIlcedenKoordinat(form.city, form.district);
+
+      if (tahmin) {
+        gonderilecek = {
+          ...form,
+          latitude: String(tahmin.latitude),
+          longitude: String(tahmin.longitude),
+        };
+        updateForm("latitude", gonderilecek.latitude);
+        updateForm("longitude", gonderilecek.longitude);
+      }
+    }
+
+    const validationError = validateForm(gonderilecek);
 
     if (validationError) {
       setErrorMessage(validationError);
@@ -441,8 +580,17 @@ export default function FoundPetCreatePage() {
       ]
         .filter(Boolean)
         .join(" · "),
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
+      latitude: Number(gonderilecek.latitude),
+      longitude: Number(gonderilecek.longitude),
+      /*
+       * İl/ilçe beyanı (BE V19): form zaten soruyor; yapılandırılmış alan
+       * olarak da gider ki kartlar ham koordinat yerine bunu gösterebilsin.
+       * Boşsa alan hiç gönderilmez (undefined, JSON.stringify'da düşer) —
+       * sunucu o durumda koordinattan çözmeyi dener.
+       */
+      city: form.city.trim() || undefined,
+      district: form.district.trim() || undefined,
+      isMatchRequired: true,
     };
 
     /*
@@ -520,557 +668,525 @@ export default function FoundPetCreatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <Header />
+    <CreateAdLayout activeType="found">
+      <FormCard
+        icon={<Camera size={21} />}
+        title="Fotoğraflar"
+        description="Bulduğun hayvanın net ve mümkünse farklı açılardan fotoğraflarını ekle."
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          className="hidden"
+          onChange={handleImages}
+        />
 
-      <main>
-        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#EFF6FF] via-white to-[#FFF7ED]">
-          <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 md:py-14 lg:px-8">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#2563EB]"
-            >
-              <ArrowLeft size={18} />
-              Ana sayfaya dön
-            </button>
-
-            <div className="mt-7 max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-bold text-[#2563EB] shadow-sm">
-                <Search size={16} />
-                Bir dost buldum
-              </span>
-
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-[#0F172A] sm:text-5xl">
-                Bulduğun dostu
-                <span className="block text-[#2563EB]">
-                  ailesine kavuşturalım.
-                </span>
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
-                Bulduğun hayvanın fotoğraflarını ve
-                bulunduğu konumu paylaş. Detaylı bilgiler,
-                sahibinin ilanı daha kolay fark etmesini
-                sağlar.
-              </p>
+        {images.length === 0 ? (
+          <button
+            type="button"
+            onClick={openFilePicker}
+            disabled={isCompressing}
+            className="flex min-h-[230px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-blue-500/10"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DBEAFE] text-[#2563EB] dark:bg-blue-500/15 dark:text-blue-400">
+              {isCompressing ? (
+                <Loader2 size={30} className="animate-spin" />
+              ) : (
+                <ImagePlus size={30} />
+              )}
             </div>
-          </div>
-        </section>
 
-        <section className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
-          <div className="space-y-7">
-            <FormCard
-              icon={<Camera size={21} />}
-              title="Fotoğraflar"
-              description="Bulduğun hayvanın net ve mümkünse farklı açılardan fotoğraflarını ekle."
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                className="hidden"
-                onChange={handleImages}
-              />
+            <strong className="mt-4 text-lg">
+              {isCompressing ? "Sıkıştırılıyor..." : "Fotoğraf yükle"}
+            </strong>
 
-              {images.length === 0 ? (
+            <span className="mt-2 max-w-md text-sm leading-6 text-[#64748B] dark:text-slate-400">
+              Bulduğun hayvanı tanımaya yardımcı olacak
+              en fazla {MAX_IMAGES} fotoğraf yükleyebilirsin.
+            </span>
+
+            <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+              En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
+              JPG, PNG veya WEBP · her biri {MAX_FILE_SIZE_MB} MB
+            </span>
+          </button>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {images.map((image, index) => (
+                <div
+                  key={image.id}
+                  className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9] dark:border-slate-700 dark:bg-slate-800"
+                >
+                  <img
+                    src={image.preview}
+                    alt={`Bulunan hayvan fotoğrafı ${
+                      index + 1
+                    }`}
+                    className="h-40 w-full object-cover"
+                  />
+
+                  {index === 0 && (
+                    <span className="absolute bottom-2 left-2 rounded-full bg-[#0F172A]/80 px-3 py-1 text-xs font-bold text-white">
+                      Kapak
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeImage(image.id)
+                    }
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#0F172A]/75 text-white transition hover:bg-[#DC2626]"
+                    aria-label={`${index + 1}. fotoğrafı kaldır`}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+
+              {images.length < MAX_IMAGES && (
                 <button
                   type="button"
                   onClick={openFilePicker}
-                  className="flex min-h-[230px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 text-center transition hover:border-[#60A5FA] hover:bg-[#EFF6FF]"
+                  disabled={isCompressing}
+                  className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] hover:text-[#2563EB] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-blue-500/10"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DBEAFE] text-[#2563EB]">
-                    <ImagePlus size={30} />
-                  </div>
-
-                  <strong className="mt-4 text-lg">
-                    Fotoğraf yükle
-                  </strong>
-
-                  <span className="mt-2 max-w-md text-sm leading-6 text-[#64748B]">
-                    Bulduğun hayvanı tanımaya yardımcı olacak
-                    en fazla 5 fotoğraf yükleyebilirsin.
-                  </span>
-
-                  <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">
-                    En az {MIN_IMAGES} zorunlu · en fazla {MAX_IMAGES} fotoğraf ·
-                    JPG, PNG veya WEBP · her biri {MAX_FILE_SIZE_MB} MB
-                  </span>
+                  {isCompressing ? (
+                    <>
+                      <Loader2 size={25} className="animate-spin text-[#2563EB]" />
+                      <span className="mt-2 text-sm font-semibold">Sıkıştırılıyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={25} />
+                      <span className="mt-2 text-sm font-semibold">Fotoğraf ekle</span>
+                    </>
+                  )}
                 </button>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {images.map((image, index) => (
-                      <div
-                        key={image.id}
-                        className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9]"
-                      >
-                        <img
-                          src={image.preview}
-                          alt={`Bulunan hayvan fotoğrafı ${
-                            index + 1
-                          }`}
-                          loading="lazy"
-                          className="h-40 w-full object-cover"
-                        />
-
-                        {index === 0 && (
-                          <span className="absolute bottom-2 left-2 rounded-full bg-[#0F172A]/80 px-3 py-1 text-xs font-bold text-white">
-                            Kapak
-                          </span>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeImage(image.id)
-                          }
-                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#0F172A]/75 text-white transition hover:bg-[#DC2626]"
-                          aria-label={`${index + 1}. fotoğrafı kaldır`}
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))}
-
-                    {images.length < MAX_IMAGES && (
-                      <button
-                        type="button"
-                        onClick={openFilePicker}
-                        className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#60A5FA] hover:bg-[#EFF6FF] hover:text-[#2563EB]"
-                      >
-                        <Upload size={25} />
-
-                        <span className="mt-2 text-sm font-semibold">
-                          Fotoğraf ekle
-                        </span>
-                      </button>
-                    )}
-                  </div>
-
-                  <p className="mt-3 text-sm text-[#64748B]">
-                    {images.length}/{MAX_IMAGES} fotoğraf
-                    yüklendi.
-                  </p>
-                </>
               )}
-            </FormCard>
+            </div>
 
-            <FormCard
-              icon={<PawPrint size={21} />}
-              title="Hayvan bilgileri"
-              description="Bildiğin özellikleri gir. Emin olmadığın alanları boş bırakabilirsin."
+            <p className="mt-3 text-sm text-[#64748B] dark:text-slate-400">
+              {images.length}/{MAX_IMAGES} fotoğraf
+              yüklendi.
+            </p>
+          </>
+        )}
+
+        <AiAutofillCard
+          onAnalyze={runAiAnalysis}
+          isAnalyzing={isAnalyzing}
+          disabled={isSubmitting}
+          analysisMessage={analysisMessage}
+          hasImages={images.length > 0}
+          variant="found"
+        />
+      </FormCard>
+
+      <FormCard
+        icon={<PawPrint size={21} />}
+        title="Hayvan bilgileri"
+        description="Bildiğin özellikleri gir. Emin olmadığın alanları boş bırakabilirsin."
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Tür" required>
+            <select
+              value={form.species}
+              onChange={(event) =>
+                updateForm(
+                  "species",
+                  event.target.value,
+                )
+              }
+              className={inputClass}
             >
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Tür" required>
-                  <select
-                    value={form.species}
-                    onChange={(event) =>
-                      updateForm(
-                        "species",
-                        event.target.value,
-                      )
-                    }
-                    className={inputClass}
-                  >
-                    {/*
-                      Yalniz CAT ve DOG: backend Species enum'unda
-                      BIRD/OTHER YOK ve AdCreateRequest bunu ayrica
-                      dogruluyor (@AssertTrue "Species must be CAT or
-                      DOG"). Secenek birakilirsa kullanici formu
-                      doldurup 400 aliyor.
-                    */}
-                    <option value="">Tür seç</option>
-                    <option value="CAT">Kedi</option>
-                    <option value="DOG">Köpek</option>
-                  </select>
-                </Field>
+              <option value="">Tür seç</option>
+              <option value="CAT">Kedi</option>
+              <option value="DOG">Köpek</option>
+            </select>
+          </Field>
 
-                <Field label="Irk">
-                  <input
-                    value={form.breed}
-                    onChange={(event) =>
-                      updateForm(
-                        "breed",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Örn. Golden Retriever"
-                    className={inputClass}
-                  />
-                </Field>
+          <Field label="Irk">
+            <input
+              value={form.breed}
+              onChange={(event) =>
+                updateForm(
+                  "breed",
+                  event.target.value,
+                )
+              }
+              placeholder="Örn. Golden Retriever"
+              className={inputClass}
+            />
+          </Field>
 
-                <Field label="Cinsiyet">
-                  <select
-                    value={form.gender}
-                    onChange={(event) =>
-                      updateForm(
-                        "gender",
-                        event.target.value as Gender,
-                      )
-                    }
-                    className={inputClass}
-                  >
-                    <option value="UNKNOWN">
-                      Bilinmiyor
-                    </option>
-
-                    <option value="FEMALE">
-                      Dişi
-                    </option>
-
-                    <option value="MALE">
-                      Erkek
-                    </option>
-                  </select>
-                </Field>
-
-                <Field label="Renk">
-                  <input
-                    value={form.color}
-                    onChange={(event) =>
-                      updateForm(
-                        "color",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Örn. Beyaz - kahverengi"
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-            </FormCard>
-
-            <FormCard
-              icon={<CalendarDays size={21} />}
-              title="Ne zaman ve nerede buldun?"
-              description="Konum ve tarih bilgisi doğru eşleşme için oldukça önemli."
+          <Field label="Cinsiyet">
+            <select
+              value={form.gender}
+              onChange={(event) =>
+                updateForm(
+                  "gender",
+                  event.target.value as Gender,
+                )
+              }
+              className={inputClass}
             >
-              <Field label="Bulunma tarihi" required>
-                <input
-                  type="date"
-                  required
-                  value={form.foundDate || ""}
-                  max={today}
-                  onChange={(event) => {
-                    setDateError("");
-                    updateForm(
-                      "foundDate",
-                      event.target.value,
-                    );
-                  }}
-                  className={`${inputClass} ${
-                    dateError
-                      ? "border-red-500 ring-2 ring-red-200"
-                      : ""
-                  }`}
-                />
-                {dateError && (
-                  <p className="mt-1 text-xs font-semibold text-red-600">
-                    {dateError}
-                  </p>
-                )}
-              </Field>
+              <option value="UNKNOWN">
+                Bilinmiyor
+              </option>
 
-              <div>
-                <button
-                  type="button"
-                  onClick={handleUseCurrentLocation}
-                  disabled={isLocationLoading}
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2.5 text-sm font-bold text-[#2563EB] transition hover:bg-[#DBEAFE] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <MapPin size={17} />
+              <option value="FEMALE">
+                Dişi
+              </option>
 
-                  {isLocationLoading
-                    ? "Konum alınıyor..."
-                    : "Mevcut konumumu kullan"}
-                </button>
-              </div>
+              <option value="MALE">
+                Erkek
+              </option>
+            </select>
+          </Field>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Şehir" required>
-                  <input
-                    value={form.city}
-                    onChange={(event) =>
-                      updateForm(
-                        "city",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Bursa"
-                    className={inputClass}
-                  />
-                </Field>
+          <Field label="Renk">
+            <input
+              value={form.color}
+              onChange={(event) =>
+                updateForm(
+                  "color",
+                  event.target.value,
+                )
+              }
+              placeholder="Örn. Beyaz - kahverengi"
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </FormCard>
 
-                <Field label="İlçe" required>
-                  <input
-                    value={form.district}
-                    onChange={(event) =>
-                      updateForm(
-                        "district",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Nilüfer"
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
+      <FormCard
+        icon={<CalendarDays size={21} />}
+        title="Ne zaman ve nerede buldun?"
+        description="Konum ve tarih bilgisi doğru eşleşme için oldukça önemli."
+      >
+        <Field label="Bulunma tarihi" required>
+          <input
+            type="date"
+            required
+            value={form.foundDate || ""}
+            max={today}
+            onChange={(event) => {
+              setDateError("");
+              updateForm(
+                "foundDate",
+                event.target.value,
+              );
+            }}
+            className={`${inputClass} ${
+              dateError
+                ? "border-red-500 ring-2 ring-red-200"
+                : ""
+            }`}
+          />
+          {dateError && (
+            <p className="mt-1 text-xs font-semibold text-red-600">
+              {dateError}
+            </p>
+          )}
+        </Field>
 
-              <Field label="Bulunduğu yerin açıklaması">
-                <input
-                  value={form.locationDescription}
-                  onChange={(event) =>
-                    updateForm(
-                      "locationDescription",
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Örn. Üniversite metro çıkışının karşısındaki park"
-                  className={inputClass}
-                />
-              </Field>
-            </FormCard>
+        <div>
+          <button
+            type="button"
+            onClick={handleUseCurrentLocation}
+            disabled={isLocationLoading}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2.5 text-sm font-bold text-[#2563EB] transition hover:bg-[#DBEAFE] disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/15"
+          >
+            <MapPin size={17} />
 
-            <FormCard
-              icon={<Tag size={21} />}
-              title="Ayırt edici özellikler"
-              description="Tasma, renk ve belirgin işaretler sahibinin hayvanını tanımasına yardımcı olur."
-            >
-              <Field label="Tasma durumu">
-                <select
-                  value={form.collarStatus}
-                  onChange={(event) =>
-                    updateForm(
-                      "collarStatus",
-                      event.target
-                        .value as CollarStatus,
-                    )
-                  }
-                  className={inputClass}
-                >
-                  <option value="UNKNOWN">
-                    Bilinmiyor
-                  </option>
+            {isLocationLoading
+              ? "Konum alınıyor..."
+              : "Mevcut konumumu kullan"}
+          </button>
+        </div>
 
-                  <option value="YES">
-                    Tasma var
-                  </option>
+        {/* B2: Hayvan başka yerde bulunup ilan sonra (ör. evde) açılabiliyor;
+            yalnız "mevcut konum" olsaydı ilan, bulunan yerin değil ilan açılan
+            yerin koordinatını taşırdı — 25 km'lik eşleştirme yarıçapı kayardı.
+            Kayıp formundaki elle giriş deseninin aynısı. */}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Enlem" required>
+            <input
+              type="number"
+              step="any"
+              min="-90"
+              max="90"
+              required
+              value={form.latitude}
+              onChange={(event) =>
+                updateForm(
+                  "latitude",
+                  event.target.value,
+                )
+              }
+              placeholder="40.195000"
+              className={inputClass}
+            />
+          </Field>
 
-                  <option value="NO">
-                    Tasma yok
-                  </option>
-                </select>
-              </Field>
+          <Field label="Boylam" required>
+            <input
+              type="number"
+              step="any"
+              min="-180"
+              max="180"
+              required
+              value={form.longitude}
+              onChange={(event) =>
+                updateForm(
+                  "longitude",
+                  event.target.value,
+                )
+              }
+              placeholder="29.060000"
+              className={inputClass}
+            />
+          </Field>
+        </div>
 
-              {form.collarStatus === "YES" && (
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Tasma rengi">
-                    <input
-                      value={form.collarColor}
-                      onChange={(event) =>
-                        updateForm(
-                          "collarColor",
-                          event.target.value,
-                        )
-                      }
-                      placeholder="Örn. Kırmızı"
-                      className={inputClass}
-                    />
-                  </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Şehir" required>
+            <input
+              value={form.city}
+              onChange={(event) =>
+                updateForm(
+                  "city",
+                  event.target.value,
+                )
+              }
+              placeholder="Bursa"
+              className={inputClass}
+            />
+          </Field>
 
-                  <Field label="Tasma üzerindeki yazı">
-                    <input
-                      value={form.collarTagText}
-                      onChange={(event) =>
-                        updateForm(
-                          "collarTagText",
-                          event.target.value,
-                        )
-                      }
-                      placeholder="İsim veya numara varsa"
-                      className={inputClass}
-                    />
-                  </Field>
-                </div>
-              )}
+          <Field label="İlçe" required>
+            <input
+              value={form.district}
+              onChange={(event) =>
+                updateForm(
+                  "district",
+                  event.target.value,
+                )
+              }
+              placeholder="Nilüfer"
+              className={inputClass}
+            />
+          </Field>
+        </div>
 
-              <Field label="Belirgin iz / leke">
-                <textarea
-                  value={form.distinctiveMarks}
-                  onChange={(event) =>
-                    updateForm(
-                      "distinctiveMarks",
-                      event.target.value,
-                    )
-                  }
-                  rows={4}
-                  placeholder="Örn. Sol kulağında küçük siyah leke, kuyruğunun ucu beyaz."
-                  className={inputClass}
-                />
-              </Field>
-            </FormCard>
+        <Field label="Bulunduğu yerin açıklaması">
+          <input
+            value={form.locationDescription}
+            onChange={(event) =>
+              updateForm(
+                "locationDescription",
+                event.target.value,
+              )
+            }
+            placeholder="Örn. Metro çıkışı karşısındaki park"
+            className={inputClass}
+          />
+        </Field>
+      </FormCard>
 
-            <FormCard
-              icon={<ShieldCheck size={21} />}
-              title="Genel durum"
-              description="Hayvanın bulunduğu andaki fiziksel durumunu kısaca belirt."
-            >
-              <Field label="Sağlık / fiziksel durum">
-                <textarea
-                  value={form.condition}
-                  onChange={(event) =>
-                    updateForm(
-                      "condition",
-                      event.target.value,
-                    )
-                  }
-                  rows={4}
-                  placeholder="Örn. Sağlıklı görünüyor, sağ ön ayağında hafif yaralanma var."
-                  className={inputClass}
-                />
-              </Field>
+      <FormCard
+        icon={<Tag size={21} />}
+        title="Ayırt edici özellikler"
+        description="Tasma, renk ve belirgin işaretler sahibinin hayvanını tanımasına yardımcı olur."
+      >
+        <Field label="Tasma durumu">
+          <select
+            value={form.collarStatus}
+            onChange={(event) =>
+              updateForm(
+                "collarStatus",
+                event.target
+                  .value as CollarStatus,
+              )
+            }
+            className={inputClass}
+          >
+            <option value="UNKNOWN">
+              Bilinmiyor
+            </option>
 
-              <Field label="Ek açıklama" required>
-                <textarea
-                  value={form.description}
-                  onChange={(event) =>
-                    updateForm(
-                      "description",
-                      event.target.value,
-                    )
-                  }
-                  rows={6}
-                  placeholder="Hayvanın davranışı, nerede bulunduğu ve sahibinin bilmesi gereken diğer detayları yaz."
-                  className={inputClass}
-                />
-              </Field>
-            </FormCard>
+            <option value="YES">
+              Tasma var
+            </option>
 
-            {errorMessage && (
-              <div
-                role="alert"
-                className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C]"
-              >
-                {errorMessage}
-              </div>
-            )}
+            <option value="NO">
+              Tasma yok
+            </option>
+          </select>
+        </Field>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+        {form.collarStatus === "YES" && (
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Tasma rengi">
               <input
-                type="checkbox"
-                checked={form.acceptResponsibility}
+                value={form.collarColor}
                 onChange={(event) =>
                   updateForm(
-                    "acceptResponsibility",
-                    event.target.checked,
+                    "collarColor",
+                    event.target.value,
                   )
                 }
-                className="mt-1 h-4 w-4 accent-[#2563EB]"
+                placeholder="Örn. Kırmızı"
+                className={inputClass}
               />
+            </Field>
 
-              <div>
-                <strong className="text-sm text-[#0F172A]">
-                  Bilgilerin doğru olduğunu
-                  onaylıyorum.
-                </strong>
-
-                <p className="mt-1 text-sm leading-6 text-[#64748B]">
-                  Bu hayvanı bulduğumu ve ilan
-                  bilgilerinin bildiğim kadarıyla doğru
-                  olduğunu kabul ediyorum.
-                </p>
-              </div>
-            </label>
-
-            {/* Pasif düğmenin SEBEBİ yazılmalı; sebepsiz pasif düğme kullanıcıyı
-                formu baştan sona kontrol etmeye zorlar. */}
-            {images.length < MIN_IMAGES && (
-              <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                <ImagePlus size={17} />
-                İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || images.length < MIN_IMAGES}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:bg-[#CBD5E1] disabled:shadow-none"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  İlan hazırlanıyor...
-                </>
-              ) : (
-                <>
-                  <Search size={20} />
-                  Buldum ilanını yayınla
-                </>
-              )}
-            </button>
+            <Field label="Tasma üzerindeki yazı">
+              <input
+                value={form.collarTagText}
+                onChange={(event) =>
+                  updateForm(
+                    "collarTagText",
+                    event.target.value,
+                  )
+                }
+                placeholder="İsim veya numara varsa"
+                className={inputClass}
+              />
+            </Field>
           </div>
+        )}
 
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB]">
-                <Info size={22} />
-              </div>
+        <Field label="Belirgin iz / leke">
+          <textarea
+            value={form.distinctiveMarks}
+            onChange={(event) =>
+              updateForm(
+                "distinctiveMarks",
+                event.target.value,
+              )
+            }
+            rows={4}
+            placeholder="Örn. Sol kulağında küçük siyah leke, kuyruğunun ucu beyaz."
+            className={inputClass}
+          />
+        </Field>
+      </FormCard>
 
-              <h2 className="mt-5 text-lg font-bold">
-                Daha hızlı eşleşme için
-              </h2>
+      <FormCard
+        icon={<ShieldCheck size={21} />}
+        title="Genel durum"
+        description="Hayvanın bulunduğu andaki fiziksel durumunu kısaca belirt."
+      >
+        <Field label="Sağlık / fiziksel durum">
+          <textarea
+            value={form.condition}
+            onChange={(event) =>
+              updateForm(
+                "condition",
+                event.target.value,
+              )
+            }
+            rows={4}
+            placeholder="Örn. Sağlıklı görünüyor, sağ ön ayağında hafif yaralanma var."
+            className={inputClass}
+          />
+        </Field>
 
-              <div className="mt-5 space-y-4">
-                <Tip>
-                  Hayvanın yüzünü net gösteren fotoğraf ekle.
-                </Tip>
+        <Field label="Ek açıklama" required>
+          <textarea
+            value={form.description}
+            onChange={(event) =>
+              updateForm(
+                "description",
+                event.target.value,
+              )
+            }
+            rows={6}
+            placeholder="Hayvanın davranışı, nerede bulunduğu ve sahibinin bilmesi gereken diğer detayları yaz."
+            className={inputClass}
+          />
+        </Field>
+      </FormCard>
 
-                <Tip>
-                  Bulunduğu konumu mümkün olduğunca doğru
-                  belirt.
-                </Tip>
+      {errorMessage && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#B91C1C] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+        >
+          {errorMessage}
+        </div>
+      )}
 
-                <Tip>
-                  Tasma ve ayırt edici işaretleri mutlaka
-                  yaz.
-                </Tip>
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <input
+          type="checkbox"
+          checked={form.acceptResponsibility}
+          onChange={(event) =>
+            updateForm(
+              "acceptResponsibility",
+              event.target.checked,
+            )
+          }
+          className="mt-1 h-4 w-4 accent-[#2563EB]"
+        />
 
-                <Tip>
-                  Bulunduğu tarihi doğru seç.
-                </Tip>
-              </div>
-            </div>
+        <div>
+          <strong className="text-sm text-[#0F172A] dark:text-slate-100">
+            Bilgilerin doğru olduğunu
+            onaylıyorum.
+          </strong>
 
-            <div className="rounded-3xl border border-[#BFDBFE] bg-[#EFF6FF] p-6">
-              <ShieldCheck
-                size={25}
-                className="text-[#2563EB]"
-              />
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
+            Bu hayvanı bulduğumu ve ilan
+            bilgilerinin bildiğim kadarıyla doğru
+            olduğunu kabul ediyorum.
+          </p>
+        </div>
+      </label>
 
-              <h3 className="mt-4 font-bold text-[#1E3A8A]">
-                Güvenli teslim
-              </h3>
+      {images.length < MIN_IMAGES && (
+        <p className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
+          <ImagePlus size={17} />
+          İlanı yayınlamak için en az {MIN_IMAGES} fotoğraf eklemelisiniz.
+        </p>
+      )}
 
-              <p className="mt-2 text-sm leading-6 text-[#1D4ED8]">
-                Hayvanı teslim etmeden önce sahip olduğunu
-                iddia eden kişiden fotoğraf, veteriner kaydı
-                veya ayırt edici özellik doğrulaması iste.
-              </p>
-            </div>
-          </aside>
-        </section>
-      </main>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isSubmitting || images.length < MIN_IMAGES}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:bg-[#CBD5E1] disabled:shadow-none"
+      >
+        {isSubmitting ? (
+          <>
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            İlan hazırlanıyor...
+          </>
+        ) : (
+          <>
+            <Search size={20} />
+            Buldum ilanını yayınla
+          </>
+        )}
+      </button>
 
-      <Footer />
-    </div>
+      <AiMatchModal
+        isOpen={showMatchModal}
+        matches={matches}
+        onClose={() => setShowMatchModal(false)}
+      />
+    </CreateAdLayout>
   );
 }
 
 const inputClass =
-  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:ring-4 focus:ring-[#BFDBFE]/40";
+  "mt-2 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:ring-4 focus:ring-[#BFDBFE]/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 type FormCardProps = {
   icon: React.ReactNode;
@@ -1086,18 +1202,18 @@ function FormCard({
   children,
 }: FormCardProps) {
   return (
-    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7">
-      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
+    <section className="rounded-3xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-7 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-6 flex items-start gap-4 border-b border-[#F1F5F9] pb-5 dark:border-slate-800">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB] dark:bg-blue-500/10 dark:text-blue-400">
           {icon}
         </div>
 
         <div>
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold dark:text-slate-50">
             {title}
           </h2>
 
-          <p className="mt-1 text-sm leading-6 text-[#64748B]">
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
             {description}
           </p>
         </div>
@@ -1123,7 +1239,7 @@ function Field({
 }: FieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-[#334155]">
+      <span className="text-sm font-semibold text-[#334155] dark:text-slate-300">
         {label}
 
         {required && (
@@ -1135,22 +1251,5 @@ function Field({
 
       {children}
     </label>
-  );
-}
-
-function Tip({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3 text-sm text-[#475569]">
-      <CheckCircle2
-        size={18}
-        className="mt-0.5 shrink-0 text-[#22C55E]"
-      />
-
-      <span>{children}</span>
-    </div>
   );
 }

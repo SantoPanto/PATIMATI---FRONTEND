@@ -11,6 +11,7 @@ import {
   Eye,
   Flag,
   Heart,
+  Info,
   MapPin,
   MessageCircle,
   PawPrint,
@@ -25,8 +26,10 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
 import AdEditModal from "../components/AdEditModal";
+import SightingModal from "../components/SightingModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
+import { getSightings, type Sighting } from "../services/sightings";
 import { request } from "../services/api";
 import { downloadLostPoster } from "../services/posters";
 import { createOrGetChatRoom } from "../services/messages";
@@ -42,6 +45,7 @@ import {
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
+import { translateEnum, translateEnumArray } from "../utils/enumTranslator";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import "../App.css";
 
@@ -50,22 +54,22 @@ function getAdTypeBadge(adType: AdType) {
     case "LOST":
       return {
         label: "Kayıp İlanı",
-        className: "bg-rose-100 text-rose-700 border-rose-200",
+        className: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
       };
     case "FOUND":
       return {
         label: "Bulunan Dost",
-        className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+        className: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
       };
     case "ADOPTION":
       return {
         label: "Sahiplendirme",
-        className: "bg-orange-100 text-orange-700 border-orange-200",
+        className: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
       };
     default:
       return {
         label: "İlan",
-        className: "bg-slate-100 text-slate-700 border-slate-200",
+        className: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
       };
   }
 }
@@ -103,11 +107,9 @@ function formatCollarStatus(
   status: AdResponse["collarStatus"],
   collarColor?: string,
 ): string {
-  // Backend enum'u: entity/enums/PresenceStatus = UNKNOWN | YES | NO.
-  // Buradaki eski PRESENT / ABSENT degerleri backend'de HIC YOKTU: iki kosul da
-  // tutmadigi icin tasmali ilanlar bile "bilinmiyor" gorunuyordu.
   if (status === "YES") {
-    return collarColor ? `Tasmalı (${collarColor})` : "Tasmalı";
+    const translatedColor = collarColor ? translateEnum(collarColor, "color") : undefined;
+    return translatedColor ? `Tasmalı (${translatedColor})` : "Tasmalı";
   }
   if (status === "NO") {
     return "Tasmasız";
@@ -117,21 +119,7 @@ function formatCollarStatus(
 
 function formatPattern(pattern?: AdResponse["coatPattern"]): string {
   if (!pattern) return "";
-  // Backend enum'u: entity/enums/CoatPattern. Eskiden BICOLOR/TRICOLOR/TABBY/
-  // HARLEQUIN yaziyordu - dordu de backend'de yok; buna karsilik gercek
-  // degerlerin besi (UNKNOWN, STRIPED, PATCHED, CALICO, TORTOISESHELL) eksikti,
-  // o ilanlarda kullaniciya ham kod ("TORTOISESHELL") gosteriliyordu.
-  const patterns: Record<AdResponse["coatPattern"], string> = {
-    UNKNOWN: "Desen belirtilmemiş",
-    SOLID: "Tek Renk",
-    STRIPED: "Çizgili / Tekir",
-    SPOTTED: "Benekli",
-    PATCHED: "Parçalı / Alaca",
-    CALICO: "Sarman / Üç Renk",
-    TORTOISESHELL: "Kaplumbağa Kabuğu",
-    OTHER: "Diğer Desen",
-  };
-  return patterns[pattern] || pattern;
+  return translateEnum(pattern, "coatPattern");
 }
 
 export default function PetDetailPage() {
@@ -147,6 +135,9 @@ export default function PetDetailPage() {
   const [copied, setCopied] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSightingModalOpen, setIsSightingModalOpen] = useState(false);
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [sightingsError, setSightingsError] = useState<string | null>(null);
   const [isPosterDownloading, setIsPosterDownloading] = useState(false);
   const [posterError, setPosterError] = useState<string | null>(null);
 
@@ -190,6 +181,33 @@ export default function PetDetailPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ilan id'si degistiginde sunucudan veri cekmek (dis sistemle senkronizasyon), fetchAdDetail kendi ici setIsLoading/setError cagirir
     void fetchAdDetail();
   }, [fetchAdDetail]);
+
+  /* Görülmeler yalnız ilan sahibine yüklenir (sunucu da sahiplik dışını
+     reddediyor); sahip olmayanın boşuna 403 yemesin diye istemci de süzer. */
+  const gorulmeleriYukle = isOwner && ad?.adType === "LOST" && isValidId;
+  useEffect(() => {
+    if (!gorulmeleriYukle) {
+      return;
+    }
+
+    let iptal = false;
+    getSightings(adId)
+      .then((liste) => {
+        if (!iptal) {
+          setSightings(liste);
+          setSightingsError(null);
+        }
+      })
+      .catch(() => {
+        if (!iptal) {
+          setSightingsError("Görülmeler yüklenemedi.");
+        }
+      });
+
+    return () => {
+      iptal = true;
+    };
+  }, [gorulmeleriYukle, adId]);
 
   useEffect(() => {
     if (!user || !isValidId) {
@@ -326,22 +344,22 @@ export default function PetDetailPage() {
   // 1. YÜKLENİYOR DURUMU (LOADING UI)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
         <Header />
         <main className="page-container py-10 sm:py-16">
           <div className="mx-auto max-w-5xl space-y-6">
-            <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
+            <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
             <div className="grid gap-8 lg:grid-cols-2">
-              <div className="h-[420px] animate-pulse rounded-3xl bg-slate-200" />
+              <div className="h-[420px] animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-800" />
               <div className="space-y-4">
-                <div className="h-6 w-32 animate-pulse rounded bg-slate-200" />
-                <div className="h-10 w-3/4 animate-pulse rounded bg-slate-200" />
-                <div className="h-5 w-1/2 animate-pulse rounded bg-slate-200" />
+                <div className="h-6 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-10 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-5 w-1/2 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
                 <div className="grid grid-cols-2 gap-3 pt-4">
-                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200" />
-                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200" />
-                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200" />
-                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200" />
+                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-20 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
                 </div>
               </div>
             </div>
@@ -355,19 +373,19 @@ export default function PetDetailPage() {
   // 2. HATA VEYA İLAN BULUNAMADI DURUMU (404 UI HANDLE)
   if (error || !ad) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
         <Header />
         <main className="page-container flex min-h-[65vh] items-center justify-center py-16">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg sm:p-10">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#F97316]">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg sm:p-10 dark:border-slate-800 dark:bg-slate-900">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 text-[#F97316] dark:bg-orange-500/10">
               <Search size={38} />
             </div>
 
-            <h1 className="mt-6 text-2xl font-bold text-slate-900">
+            <h1 className="mt-6 text-2xl font-bold text-slate-900 dark:text-slate-50">
               İlan Bulunamadı
             </h1>
 
-            <p className="mt-3 text-sm leading-relaxed text-slate-500">
+            <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
               {error ||
                 "Aradığınız ilan sistemden kaldırılmış veya hiç var olmamış olabilir."}
             </p>
@@ -385,7 +403,7 @@ export default function PetDetailPage() {
               <button
                 type="button"
                 onClick={() => void fetchAdDetail()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 Tekrar Dene
               </button>
@@ -407,7 +425,7 @@ export default function PetDetailPage() {
   const currentPhoto = photos[selectedPhotoIndex] || photos[0];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
       <Header />
 
       <main className="page-container py-8 sm:py-12">
@@ -416,13 +434,13 @@ export default function PetDetailPage() {
           <button
             type="button"
             onClick={() => navigate("/listings")}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-[#F97316]"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-[#F97316] dark:text-slate-400"
           >
             <ArrowLeft size={18} />
             İlanlar Sayfasına Dön
           </button>
 
-          <div className="flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500">
             <button
               type="button"
               onClick={() => navigate("/listings")}
@@ -431,7 +449,7 @@ export default function PetDetailPage() {
               İlanlar
             </button>
             <ChevronRight size={14} />
-            <span className="max-w-[200px] truncate font-medium text-slate-700 sm:max-w-xs">
+            <span className="max-w-[200px] truncate font-medium text-slate-700 sm:max-w-xs dark:text-slate-300">
               {ad.title}
             </span>
           </div>
@@ -441,8 +459,8 @@ export default function PetDetailPage() {
         <div className="grid gap-8 lg:grid-cols-12">
           {/* Sol Kolon: Fotoğraflar & Galeri (5 Kolon) */}
           <div className="lg:col-span-5">
-            <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 sm:aspect-[1/1]">
+            <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 sm:aspect-[1/1] dark:bg-slate-800">
                 <img
                   src={currentPhoto}
                   alt={ad.title}
@@ -531,23 +549,23 @@ export default function PetDetailPage() {
           {/* Sağ Kolon: Detaylar & Sahip Bilgileri (7 Kolon) */}
           <div className="space-y-6 lg:col-span-7">
             {/* Ana Başlık & Özeti */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
               <span className="text-xs font-bold uppercase tracking-wider text-[#F97316]">
                 {getSpeciesLabel(ad.species)} · {ad.breed || "Cins Belirtilmemiş"}
               </span>
 
-              <h1 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">
+              <h1 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl dark:text-slate-50">
                 {ad.title}
               </h1>
 
-              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 border-t border-slate-100 pt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 border-t border-slate-100 pt-4 dark:text-slate-400 dark:border-slate-800">
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin size={15} className="text-[#F97316]" />
                   {getAdLocation(ad)}
                 </span>
 
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock size={15} className="text-slate-400" />
+                  <Clock size={15} className="text-slate-400 dark:text-slate-500" />
                   {getRelativeDate(ad.createdAt)}
                 </span>
 
@@ -561,80 +579,82 @@ export default function PetDetailPage() {
 
               {/* Temel Bilgiler Grid */}
               <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-                  <span className="block text-[11px] font-semibold text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center dark:border-slate-800 dark:bg-slate-800/60">
+                  <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                     CİNSİYET
                   </span>
-                  <strong className="mt-1 block text-sm font-bold text-slate-800">
+                  <strong className="mt-1 block text-sm font-bold text-slate-800 dark:text-slate-200">
                     {getGenderLabel(ad.gender)}
                   </strong>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-                  <span className="block text-[11px] font-semibold text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center dark:border-slate-800 dark:bg-slate-800/60">
+                  <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                     YAŞ GRUBU
                   </span>
-                  <strong className="mt-1 block text-sm font-bold text-slate-800">
+                  <strong className="mt-1 block text-sm font-bold text-slate-800 dark:text-slate-200">
                     {getAgeLabel(ad.ageGroup)}
                   </strong>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-                  <span className="block text-[11px] font-semibold text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center dark:border-slate-800 dark:bg-slate-800/60">
+                  <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                     DESEN
                   </span>
-                  <strong className="mt-1 block truncate text-sm font-bold text-slate-800">
+                  {/* truncate bilerek YOK: ızgaradaki diğer üç hücre gibi
+                      uzun değer ("Kaplumbağa Kabuğu") kesilmek yerine sarar. */}
+                  <strong className="mt-1 block text-sm font-bold text-slate-800 dark:text-slate-200">
                     {formatPattern(ad.coatPattern)}
                   </strong>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-                  <span className="block text-[11px] font-semibold text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-center dark:border-slate-800 dark:bg-slate-800/60">
+                  <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                     MİKROÇİP
                   </span>
-                  <strong className="mt-1 block text-sm font-bold text-slate-800">
+                  <strong className="mt-1 block text-sm font-bold text-slate-800 dark:text-slate-200">
                     {ad.microchipped ? "Var" : "Yok"}
                   </strong>
                 </div>
               </div>
 
               {/* Açıklama Metni */}
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <h3 className="text-base font-bold text-slate-900">
+              <div className="mt-8 border-t border-slate-100 pt-6 dark:border-slate-800">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">
                   İlan Açıklaması
                 </h3>
-                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600">
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                   {ad.description || "Bu ilan için bir açıklama girilmemiş."}
                 </p>
               </div>
 
               {/* Ek Özellikler & Etiketler */}
-              <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-6">
+              <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-6 dark:border-slate-800">
                 {ad.microchipped && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                     <ShieldCheck size={15} />
                     Mikroçipli Dost
                   </span>
                 )}
 
                 {ad.collarStatus && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                     <Tag size={14} />
                     {formatCollarStatus(ad.collarStatus, ad.collarColor)}
                   </span>
                 )}
 
                 {ad.colors && ad.colors.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
                     <BadgeCheck size={15} />
-                    Renk: {ad.colors.join(", ")}
+                    Renk: {translateEnumArray(ad.colors, "color")}
                   </span>
                 )}
 
                 {ad.eyeColor && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                     <Eye size={14} />
-                    Göz Rengi: {ad.eyeColor}
+                    Göz Rengi: {translateEnum(ad.eyeColor, "eyeColor")}
                   </span>
                 )}
               </div>
@@ -642,11 +662,11 @@ export default function PetDetailPage() {
 
             {/* Ayırt Edici Özellikler (Varsa) */}
             {ad.distinctiveMarks && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <h3 className="text-base font-bold text-slate-900">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">
                   Ayırt Edici Özellikler
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                   {ad.distinctiveMarks}
                 </p>
               </div>
@@ -654,13 +674,13 @@ export default function PetDetailPage() {
 
             {/* Dynamic Afiş İndirme PDF Kartı (LOST, FOUND, ADOPTION) */}
             {ad && (
-              <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm sm:p-8">
+              <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm sm:p-8 dark:border-orange-500/20 dark:bg-slate-900">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">
                       {getPosterInfo(ad.adType).title}
                     </h3>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
                       {getPosterInfo(ad.adType).description}
                     </p>
                   </div>
@@ -696,7 +716,7 @@ export default function PetDetailPage() {
                 </div>
 
                 {posterError && (
-                  <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400">
                     {posterError}
                   </p>
                 )}
@@ -704,7 +724,21 @@ export default function PetDetailPage() {
             )}
 
             {/* İlan Sahibi & İletişim Kartı */}
-            <div className="rounded-3xl border border-orange-100 bg-orange-50/60 p-6 shadow-sm sm:p-8">
+            <div className="rounded-3xl border border-orange-100 bg-orange-50/60 p-6 shadow-sm sm:p-8 dark:border-orange-500/15 dark:bg-orange-500/5">
+              {isOwner && (
+                <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900 shadow-xs dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+                  <Info size={20} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <strong className="block text-sm font-bold text-amber-900 dark:text-amber-300">
+                      Bu ilan size aittir.
+                    </strong>
+                    <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400/90">
+                      Kendi ilanınız olduğu için mesaj gönderme ve sahiplenme butonları devre dışı bırakılmıştır. İlanınızı aşağıdaki butondan düzenleyebilirsiniz.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F97316] font-bold text-white shadow-md">
@@ -712,10 +746,10 @@ export default function PetDetailPage() {
                   </div>
 
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                       İLAN SAHİBİ
                     </span>
-                    <h4 className="text-lg font-bold text-slate-900">
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-slate-50">
                       {ad.ownerDisplayName || "Kullanıcı"}
                     </h4>
                   </div>
@@ -724,9 +758,25 @@ export default function PetDetailPage() {
 
               <div
                 className={`mt-6 grid gap-3 ${
-                  isOwner ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                  isOwner
+                    ? "sm:grid-cols-2"
+                    : ad.adType === "LOST"
+                      ? "sm:grid-cols-2"
+                      : "sm:grid-cols-3"
                 }`}
               >
+                {/* Kayıp ilanında en görünür eylem: afiş QR'ından gelen
+                    girişsiz ziyaretçi de dahil herkes görülme bırakabilir. */}
+                {!isOwner && ad.adType === "LOST" && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSightingModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-emerald-700"
+                  >
+                    <Eye size={19} />
+                    Bu Hayvanı Gördüm
+                  </button>
+                )}
                 {!isOwner ? (
                   <button
                     type="button"
@@ -734,7 +784,7 @@ export default function PetDetailPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
                   >
                     <MessageCircle size={19} />
-                    Mesaj Gönder
+                    {ad.adType === "ADOPTION" ? "Sahiplenmek İçin İletişime Geç" : "Mesaj Gönder"}
                   </button>
                 ) : (
                   <button
@@ -750,7 +800,7 @@ export default function PetDetailPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/map")}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-5 py-3.5 font-bold text-[#F97316] shadow-sm transition hover:bg-orange-100"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-5 py-3.5 font-bold text-[#F97316] shadow-sm transition hover:bg-orange-100 dark:border-orange-500/20 dark:bg-slate-900 dark:hover:bg-orange-500/10"
                 >
                   <MapPin size={19} />
                   Haritada Gör
@@ -764,13 +814,84 @@ export default function PetDetailPage() {
                   <button
                     type="button"
                     onClick={() => setIsComplaintModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 shadow-sm transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/15"
                   >
                     <Flag size={19} />
                     Şikayet Et
                   </button>
                 )}
               </div>
+
+              {isOwner && ad.adType === "LOST" && (
+                <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 dark:border-emerald-500/15 dark:bg-emerald-500/5">
+                  <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-50">
+                    <Eye size={18} className="text-emerald-600 dark:text-emerald-400" />
+                    Görülmeler
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                      {sightings.length}
+                    </span>
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    &quot;Bu hayvanı gördüm&quot; bildirimleri yalnız sana görünür.
+                  </p>
+
+                  {sightingsError ? (
+                    <p className="mt-3 text-sm text-red-600 dark:text-red-400">{sightingsError}</p>
+                  ) : sightings.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                      Henüz görülme bildirimi yok. Afişini paylaş — QR&apos;ı
+                      okutan, üye olmadan buraya bildirim bırakabilir.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 space-y-3">
+                      {sightings.map((gorulme) => (
+                        <li
+                          key={gorulme.id}
+                          className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 dark:text-slate-500">
+                            <span>
+                              {new Date(gorulme.createdAt).toLocaleString("tr-TR", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </span>
+                            <a
+                              href={`https://www.openstreetmap.org/?mlat=${gorulme.latitude}&mlon=${gorulme.longitude}#map=16/${gorulme.latitude}/${gorulme.longitude}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                            >
+                              <MapPin size={13} />
+                              Haritada aç
+                            </a>
+                          </div>
+
+                          {gorulme.note && (
+                            <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">
+                              {gorulme.note}
+                            </p>
+                          )}
+
+                          {gorulme.photoUrl && (
+                            <img
+                              src={gorulme.photoUrl}
+                              alt="Görülme fotoğrafı"
+                              className="mt-2 h-32 w-32 rounded-lg object-cover"
+                            />
+                          )}
+
+                          {gorulme.reporterContact && (
+                            <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-400">
+                              İletişim: {gorulme.reporterContact}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -786,6 +907,14 @@ export default function PetDetailPage() {
             targetType={ad.adType === "ADOPTION" ? "ADOPTION" : "AD"}
             targetId={ad.id}
             targetTitle={ad.title}
+          />
+
+          <SightingModal
+            isOpen={isSightingModalOpen}
+            onClose={() => setIsSightingModalOpen(false)}
+            adId={ad.id}
+            adTitle={ad.title}
+            defaultContact={user?.phone || user?.email || undefined}
           />
 
           <AdEditModal

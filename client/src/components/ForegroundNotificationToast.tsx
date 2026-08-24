@@ -1,4 +1,4 @@
-import { Bell, X } from "lucide-react";
+import { Bell, MessageSquare, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import type { MessagePayload } from "firebase/messaging";
@@ -6,11 +6,12 @@ import type { MessagePayload } from "firebase/messaging";
 import { useAuth } from "../contexts/AuthContext";
 import {
   clearInAppNotifications,
+  getNotificationHref,
   loadNotifications,
   markNotificationAsRead,
   recordForegroundNotification,
 } from "../services/notifications";
-import { listenForForegroundMessages } from "../services/firbase";
+import { listenForForegroundMessages } from "../services/firebase";
 import type { InAppNotification } from "../services/notifications";
 
 export default function ForegroundNotificationToast() {
@@ -93,50 +94,68 @@ function AuthenticatedForegroundNotificationToast() {
     return null;
   }
 
-  const aiAdId =
-    notification.data.type === "AI_MATCH"
-      ? notification.data.adId
-      : undefined;
+  const href = getNotificationHref(notification);
+  const type = notification.data.type?.toUpperCase();
+  const isAiMatch = type === "AI_MATCH";
+  const isMessage =
+    type === "MESSAGE" ||
+    type === "CHAT" ||
+    type === "NEW_MESSAGE" ||
+    type === "CHAT_MESSAGE";
 
-  const openAiMatch = () => {
-    if (!aiAdId) return;
-
+  const handleToastClick = () => {
     markNotificationAsRead(notification.id);
     setNotification(null);
-    navigate(`/pet/${encodeURIComponent(aiAdId)}`);
+    if (href) {
+      navigate(href);
+    }
   };
 
   return (
     <div className="fixed right-4 top-4 z-[1200] w-[min(390px,calc(100vw-2rem))]">
       <div
-        className="flex items-start gap-3 rounded-2xl border border-orange-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.18)]"
+        className="flex items-start gap-3 rounded-2xl border border-orange-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.18)] dark:border-orange-500/20 dark:bg-slate-900"
         role="status"
         aria-live="polite"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-          <Bell size={20} />
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+            isAiMatch
+              ? "bg-amber-50 text-amber-600"
+              : isMessage
+              ? "bg-blue-50 text-blue-600"
+              : "bg-orange-50 text-orange-500"
+          }`}
+        >
+          {isAiMatch ? (
+            <Sparkles size={20} />
+          ) : isMessage ? (
+            <MessageSquare size={20} />
+          ) : (
+            <Bell size={20} />
+          )}
         </span>
 
         <div className="min-w-0 flex-1">
-          {aiAdId ? (
+          {href ? (
             <button
               type="button"
-              onClick={openAiMatch}
-              className="w-full text-left"
+              onClick={handleToastClick}
+              className="w-full text-left focus:outline-none"
             >
-              <strong className="block text-sm font-bold text-slate-900">
+              <strong className="block text-sm font-bold text-slate-900 dark:text-slate-50">
                 {notification.title}
               </strong>
-              <span className="mt-1 block text-sm leading-5 text-slate-600">
+              <span className="mt-1 block text-sm leading-5 text-slate-600 dark:text-slate-400">
                 {notification.body}
               </span>
             </button>
           ) : (
             <>
-              <strong className="block text-sm font-bold text-slate-900">
+              <strong className="block text-sm font-bold text-slate-900 dark:text-slate-50">
                 {notification.title}
               </strong>
-              <p className="mt-1 text-sm leading-5 text-slate-600">
+              <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">
                 {notification.body}
               </p>
             </>
@@ -146,7 +165,7 @@ function AuthenticatedForegroundNotificationToast() {
         <button
           type="button"
           onClick={() => setNotification(null)}
-          className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           aria-label="Bildirimi kapat"
         >
           <X size={17} />
@@ -155,3 +174,4 @@ function AuthenticatedForegroundNotificationToast() {
     </div>
   );
 }
+

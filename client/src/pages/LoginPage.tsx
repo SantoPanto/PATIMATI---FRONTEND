@@ -85,7 +85,7 @@ export default function LoginPage() {
         if (!currentUser) {
           clearAuthStorage();
           setErrorMessage(
-            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı Lütfen tekrar deneyin",
+            "Google girişi tamamlandı ancak kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.",
           );
           setIsOAuthLoading(false);
           return;
@@ -105,7 +105,7 @@ export default function LoginPage() {
     setErrorMessage("");
 
     if (!email.trim() || !password.trim()) {
-      setErrorMessage("E posta ve şifre alanlarını doldurmalısın");
+      setErrorMessage("E-posta ve şifre alanlarını doldurmalısın");
       return;
     }
 
@@ -141,12 +141,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8">
-      <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-orange-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-blue-200/40 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 dark:bg-slate-950">
+      <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-orange-200/40 blur-3xl dark:bg-orange-500/10" />
+      <div className="pointer-events-none absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-blue-200/40 blur-3xl dark:bg-blue-500/10" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-6xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_480px]">
+        <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_480px] dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/40">
           <section className="relative hidden min-h-[700px] overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.32),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.25),transparent_38%)]" />
 
@@ -176,8 +176,8 @@ export default function LoginPage() {
               </h1>
 
               <p className="mt-6 max-w-md text-lg leading-8 text-slate-300">
-                Kayıp ve bulunan hayvan ilanlarına ulaş yakınındaki ilanları
-                haritada gör ve güvenli şekilde iletişim kur
+                Kayıp ve bulunan hayvan ilanlarına ulaş, yakınındaki ilanları
+                haritada gör ve güvenli şekilde iletişim kur.
               </p>
             </div>
 
@@ -210,7 +210,7 @@ export default function LoginPage() {
           <section className="relative p-6 sm:p-10 lg:p-12">
             <Link
               href="/"
-              className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500"
+              className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-500 dark:text-slate-400"
             >
               <ArrowLeft size={18} />
               Ana sayfaya dön
@@ -233,11 +233,11 @@ export default function LoginPage() {
                 Hoş geldin
               </span>
 
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
                 Hesabına giriş yap
               </h2>
 
-              <p className="mt-3 text-sm leading-6 text-slate-500">
+              <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 İlan oluşturmak mesajlaşmak ve bildirim almak için hesabına
                 giriş yap
               </p>
@@ -247,7 +247,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isLoading || isOAuthLoading}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             >
               <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-500 text-sm font-extrabold text-white">
                 G
@@ -258,19 +258,19 @@ export default function LoginPage() {
             </button>
 
             <div className="my-6 flex items-center gap-4">
-              <span className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs font-medium text-slate-400">
-                veya e posta ile
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+              <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                veya e-posta ile
               </span>
-              <span className="h-px flex-1 bg-slate-200" />
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             </div>
 
             <form onSubmit={handleSubmit}>
               <label
                 htmlFor="login-email"
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
-                E posta
+                E-posta
               </label>
 
               <div className="relative mb-4">
@@ -286,13 +286,13 @@ export default function LoginPage() {
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="ornek@mail.com"
                   autoComplete="email"
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20"
                 />
               </div>
 
               <label
                 htmlFor="login-password"
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
                 Şifre
               </label>
@@ -310,13 +310,13 @@ export default function LoginPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Şifreni gir"
                   autoComplete="current-password"
-                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20"
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-200"
                   aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
                 >
                   {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
@@ -324,7 +324,7 @@ export default function LoginPage() {
               </div>
 
               <div className="my-5 flex items-center justify-between gap-4">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -345,7 +345,7 @@ export default function LoginPage() {
               {errorMessage && (
                 <div
                   role="alert"
-                  className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                  className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
                 >
                   {errorMessage}
                 </div>
@@ -363,12 +363,12 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleGuestContinue}
-              className="mt-3 h-12 w-full rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+              className="mt-3 h-12 w-full rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-orange-500/10"
             >
               Misafir olarak devam et
             </button>
 
-            <p className="mt-7 text-center text-sm text-slate-600">
+            <p className="mt-7 text-center text-sm text-slate-600 dark:text-slate-400">
               Hesabın yok mu{" "}
               <Link
                 href="/register"

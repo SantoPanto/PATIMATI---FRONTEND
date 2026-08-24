@@ -10,79 +10,33 @@ import { Link } from "wouter";
 import { Filter, MapPin, PawPrint, Search, X } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
+import MainLayout from "../components/MainLayout";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getPublicAds } from "../services/ads";
-import type { AdResponse, AdType } from "../services/types";
+import type { AdResponse } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
+import {
+  getMarkerType,
+  haritadaGorunur,
+  haritaOdagi,
+  VARSAYILAN_MERKEZ,
+  type HaritaFiltresi,
+  type HaritaOdagi,
+} from "../utils/haritaSunum";
 
-type MapFilter = "ALL" | "LOST" | "FOUND";
-
-const BURSA_CENTER: [number, number] = [40.195, 29.06];
-
-function MapController({
-  ads,
-  selectedAd,
-}: {
-  ads: AdResponse[];
-  selectedAd: AdResponse | null;
-}) {
+function MapController({ odak }: { odak: HaritaOdagi }) {
   const map = useMap();
 
   useEffect(() => {
-    if (
-      selectedAd &&
-      selectedAd.latitude != null &&
-      selectedAd.longitude != null
-    ) {
-      map.setView([selectedAd.latitude, selectedAd.longitude], 14);
+    if (odak.tip === "sinir") {
+      map.fitBounds(odak.noktalar, { padding: [48, 48], maxZoom: 13 });
       return;
     }
 
-    const points = ads
-      .filter(
-        (ad) =>
-          Number.isFinite(ad.latitude) && Number.isFinite(ad.longitude),
-      )
-      .map((ad) => [ad.latitude as number, ad.longitude as number] as [
-        number,
-        number,
-      ]);
-
-    if (points.length === 0) {
-      map.setView(BURSA_CENTER, 12);
-    } else if (points.length === 1) {
-      map.setView(points[0], 12);
-    } else {
-      // Tek bir aykiri/hatali koordinatli ilanin tum haritayi kendine
-      // kilitlemesini onlemek icin (bkz. 2026-08-21 canli test: yanlislikla
-      // (2, 2) girilmis bir ilan haritayi okyanus ortasina goturuyordu),
-      // ilk ilana degil, tum ilanlari kapsayan sinira gore konumlaniyoruz.
-      map.fitBounds(points, { padding: [40, 40], maxZoom: 13 });
-    }
-  }, [ads, selectedAd, map]);
+    map.setView(odak.nokta, odak.yakinlik);
+  }, [odak, map]);
 
   return null;
-}
-
-function getMarkerType(adType: AdType) {
-  if (adType === "LOST") {
-    return {
-      label: "Kayıp",
-      className: "lost",
-    };
-  }
-
-  if (adType === "FOUND") {
-    return {
-      label: "Bulunan",
-      className: "found",
-    };
-  }
-
-  return {
-    label: "Sahiplendirme",
-    className: "adoption",
-  };
 }
 
 function getSpeciesLabel(species: AdResponse["species"]) {
@@ -91,7 +45,7 @@ function getSpeciesLabel(species: AdResponse["species"]) {
 
 export default function MapPage() {
   const [ads, setAds] = useState<AdResponse[]>([]);
-  const [filter, setFilter] = useState<MapFilter>("ALL");
+  const [filter, setFilter] = useState<HaritaFiltresi>("ALL");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -136,38 +90,12 @@ export default function MapPage() {
     };
   }, []);
 
-  const mappedAds = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase("tr-TR");
-
-    return ads.filter((ad) => {
-      /*
-       * Adoption ads can exist in the database, but the map's
-       * primary purpose is lost/found animals.
-       */
-      if (
-        filter !== "ALL" &&
-        ad.adType !== filter
-      ) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return (
-        ad.title
-          ?.toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        ad.breed
-          ?.toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch) ||
-        getSpeciesLabel(ad.species)
-          .toLocaleLowerCase("tr-TR")
-          .includes(normalizedSearch)
-      );
-    });
-  }, [ads, filter, search]);
+  // Süzgeç + arama kuralı utils/haritaSunum'da (saf, testli): sahiplendirme
+  // işaretçileri çizilip lejantta yer aldığı hâlde süzgeçte seçeneği yoktu.
+  const mappedAds = useMemo(
+    () => ads.filter((ad) => haritadaGorunur(ad, filter, search)),
+    [ads, filter, search],
+  );
 
   const adsWithCoordinates = useMemo(
     () =>
@@ -179,8 +107,31 @@ export default function MapPage() {
     [mappedAds],
   );
 
+  const noktalar = useMemo<[number, number][]>(
+    () =>
+      adsWithCoordinates.map((ad) => [
+        ad.latitude as number,
+        ad.longitude as number,
+      ]),
+    [adsWithCoordinates],
+  );
+
+  const odak = useMemo(
+    () =>
+      haritaOdagi(
+        selectedAd &&
+          selectedAd.latitude != null &&
+          selectedAd.longitude != null
+          ? [selectedAd.latitude, selectedAd.longitude]
+          : null,
+        noktalar,
+      ),
+    [selectedAd, noktalar],
+  );
+
   return (
-    <TeamShell className="map-page">
+    <MainLayout showFooter={true} className="map-page-layout">
+      <TeamShell className="map-page">
       <header className="center-header">
         <TeamBack href="/" />
 
@@ -232,6 +183,17 @@ export default function MapPage() {
         >
           <MapPin size={16} />
           Bulunan
+        </button>
+
+        <button
+          type="button"
+          className={`map-filter-chip ${
+            filter === "ADOPTION" ? "active" : ""
+          }`}
+          onClick={() => setFilter("ADOPTION")}
+        >
+          <MapPin size={16} />
+          Sahiplendirme
         </button>
       </section>
 
@@ -290,12 +252,12 @@ export default function MapPage() {
       ) : (
         <section className="map-art">
           <MapContainer
-            center={BURSA_CENTER}
+            center={VARSAYILAN_MERKEZ}
             zoom={12}
             scrollWheelZoom
             className="real-map"
           >
-            <MapController ads={adsWithCoordinates} selectedAd={selectedAd} />
+            <MapController odak={odak} />
 
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -320,6 +282,12 @@ export default function MapPage() {
                   }
                   pathOptions={{
                     className: `pet-map-marker pet-map-marker--${marker.className}`,
+                    // Renk className'e bırakılmaz: canlıda sınıf SVG path'e
+                    // ulaşmıyordu, 20 işaretçi de varsayılan maviydi (22.08).
+                    fillColor: marker.fillColor,
+                    fillOpacity: 0.9,
+                    color: "#ffffff",
+                    weight: 3,
                   }}
                   eventHandlers={{
                     click: () => {
@@ -368,6 +336,25 @@ export default function MapPage() {
               );
             })}
           </MapContainer>
+
+          <div className="map-legend">
+            <span>
+              <i className="lost" />
+              Kayıp
+            </span>
+
+            <span>
+              <i className="found" />
+              Bulunan
+            </span>
+
+            {filter === "ALL" && (
+              <span>
+                <i className="adoption" />
+                Sahiplendirme
+              </span>
+            )}
+          </div>
 
           {!loading &&
             adsWithCoordinates.length === 0 && (
@@ -424,5 +411,6 @@ export default function MapPage() {
         </section>
       )}
     </TeamShell>
+    </MainLayout>
   );
 }

@@ -2,6 +2,7 @@ import {
   Bell,
   CheckCheck,
   ChevronRight,
+  MessageSquare,
   Sparkles,
   X,
 } from "lucide-react";
@@ -11,6 +12,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import type { InAppNotification } from "../services/notifications";
 import {
+  getNotificationHref,
   getNotificationSnapshot,
   loadNotifications,
   markAllNotificationsAsRead,
@@ -39,19 +41,6 @@ function formatNotificationDate(timestamp: number): string {
   }).format(timestamp);
 }
 
-function getNotificationHref(
-  notification: InAppNotification,
-): string | null {
-  if (
-    notification.data.type === "AI_MATCH" &&
-    notification.data.adId
-  ) {
-    return `/pet/${encodeURIComponent(notification.data.adId)}`;
-  }
-
-  return null;
-}
-
 export function NotificationList({
   notifications,
   compact = false,
@@ -64,13 +53,13 @@ export function NotificationList({
           compact ? "px-5 py-10" : "px-6 py-16"
         }`}
       >
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
           <Bell size={25} aria-hidden="true" />
         </span>
-        <h3 className="mt-4 text-base font-bold text-slate-900">
+        <h3 className="mt-4 text-base font-bold text-slate-900 dark:text-slate-50">
           Henüz bildiriminiz yok
         </h3>
-        <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+        <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
           Yeni bildirimler bu oturumda geldikçe burada görünür. Kalıcı bildirim
           geçmişiniz sunucuda saklanır.
         </p>
@@ -79,10 +68,16 @@ export function NotificationList({
   }
 
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-slate-100 dark:divide-slate-800">
       {notifications.map((notification) => {
         const href = getNotificationHref(notification);
-        const isAiMatch = notification.data.type === "AI_MATCH";
+        const type = notification.data.type?.toUpperCase();
+        const isAiMatch = type === "AI_MATCH";
+        const isMessage =
+          type === "MESSAGE" ||
+          type === "CHAT" ||
+          type === "NEW_MESSAGE" ||
+          type === "CHAT_MESSAGE";
 
         return (
           <button
@@ -93,8 +88,8 @@ export function NotificationList({
               compact ? "py-4" : "py-5 sm:px-6"
             } ${
               notification.read
-                ? "bg-white hover:bg-slate-50"
-                : "bg-orange-50/70 hover:bg-orange-50"
+                ? "bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                : "bg-orange-50/70 hover:bg-orange-50 dark:bg-orange-500/10 dark:hover:bg-orange-500/15"
             }`}
             aria-label={
               notification.read
@@ -105,20 +100,25 @@ export function NotificationList({
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                 isAiMatch
-                  ? "bg-amber-50 text-amber-600"
-                  : "bg-orange-50 text-orange-500"
+                  ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
+                  : isMessage
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                  : "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400"
               }`}
             >
               {isAiMatch ? (
                 <Sparkles size={19} aria-hidden="true" />
+              ) : isMessage ? (
+                <MessageSquare size={19} aria-hidden="true" />
               ) : (
                 <Bell size={19} aria-hidden="true" />
               )}
             </span>
 
+
             <span className="min-w-0 flex-1">
               <span className="flex items-start gap-2">
-                <strong className="min-w-0 flex-1 truncate text-sm font-bold text-slate-900">
+                <strong className="min-w-0 flex-1 truncate text-sm font-bold text-slate-900 dark:text-slate-50">
                   {notification.title}
                 </strong>
                 {!notification.read && (
@@ -126,11 +126,11 @@ export function NotificationList({
                 )}
               </span>
 
-              <span className="mt-1 block text-sm leading-5 text-slate-600">
+              <span className="mt-1 block text-sm leading-5 text-slate-600 dark:text-slate-400">
                 {notification.body}
               </span>
 
-              <span className="mt-2 block text-xs font-medium text-slate-400">
+              <span className="mt-2 block text-xs font-medium text-slate-400 dark:text-slate-500">
                 {formatNotificationDate(notification.receivedAt)}
               </span>
             </span>
@@ -138,7 +138,7 @@ export function NotificationList({
             {href && (
               <ChevronRight
                 size={18}
-                className="mt-1 shrink-0 text-slate-400"
+                className="mt-1 shrink-0 text-slate-400 dark:text-slate-500"
                 aria-hidden="true"
               />
             )}
@@ -214,22 +214,22 @@ export default function NotificationPanel({
   return (
     <section
       id="notification-panel"
-      className="absolute right-0 top-[calc(100%+12px)] z-[110] flex max-h-[min(70vh,34rem)] w-[min(390px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-2xl shadow-slate-950/15"
+      className="absolute right-0 top-[calc(100%+12px)] z-[110] flex max-h-[min(70vh,34rem)] w-[min(390px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-2xl shadow-slate-950/15 dark:border-slate-800 dark:bg-slate-900"
       role="dialog"
       aria-labelledby="notification-panel-title"
     >
-      <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
             <Bell size={18} className="text-orange-500" aria-hidden="true" />
             <h2
               id="notification-panel-title"
-              className="text-base font-extrabold text-slate-950"
+              className="text-base font-extrabold text-slate-950 dark:text-slate-50"
             >
               Bildirimler
             </h2>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {unreadCount > 0
               ? `${unreadCount} okunmamış bildirim`
               : "Yeni bildirim yok"}
@@ -239,7 +239,7 @@ export default function NotificationPanel({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           aria-label="Bildirim panelini kapat"
         >
           <X size={18} />
@@ -248,7 +248,7 @@ export default function NotificationPanel({
 
       <div className="min-h-0 overflow-y-auto">
         {effectiveLoading ? (
-          <div className="px-5 py-10 text-center text-sm text-slate-500">
+          <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
             Bildirimler yükleniyor...
           </div>
         ) : effectiveError ? (
@@ -267,12 +267,12 @@ export default function NotificationPanel({
         )}
       </div>
 
-      <div className="border-t border-slate-100 bg-white px-5 py-3">
+      <div className="border-t border-slate-100 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
         {unreadCount > 0 && (
           <button
             type="button"
             onClick={markAllNotificationsAsRead}
-            className="mb-2 inline-flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-orange-500"
+            className="mb-2 inline-flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400"
           >
             <CheckCheck size={15} aria-hidden="true" />
             Tümünü okundu işaretle
@@ -282,7 +282,7 @@ export default function NotificationPanel({
         <button
           type="button"
           onClick={handleViewAll}
-          className="flex w-full items-center justify-between rounded-xl bg-orange-50 px-3 py-2.5 text-sm font-bold text-orange-600 transition hover:bg-orange-100"
+          className="flex w-full items-center justify-between rounded-xl bg-orange-50 px-3 py-2.5 text-sm font-bold text-orange-600 transition hover:bg-orange-100 dark:bg-orange-500/10 dark:text-orange-400 dark:hover:bg-orange-500/15"
         >
           <span>Tüm Bildirimleri Gör</span>
           <ChevronRight size={17} aria-hidden="true" />

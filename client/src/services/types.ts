@@ -141,6 +141,16 @@ export type CoatPattern =
 
 export type PresenceStatus = "UNKNOWN" | "YES" | "NO";
 
+export type EyeColor =
+  | "UNKNOWN"
+  | "BROWN"
+  | "BLUE"
+  | "GREEN"
+  | "AMBER"
+  | "HAZEL"
+  | "HETEROCHROMIA"
+  | "OTHER";
+
 /**
  * İlanın nasıl kapandığı. `active=false` TEK BAŞINA yetmiyor: "sahibi yayından
  * kaldırdı" ile "hayvan bulundu" ikisi de `active=false` üretiyor.
@@ -177,6 +187,7 @@ export type AdCreateRequest = {
   distinctiveMarks?: string;
   latitude: number;
   longitude: number;
+  isMatchRequired?: boolean;
 };
 
 export type AdUpdateRequest = Partial<AdCreateRequest>;
@@ -232,6 +243,27 @@ export type AdResponse = {
   showPhoneOnPoster?: boolean;
   city?: string;
   district?: string;
+  resolutionStatus?: string;
+};
+
+/**
+ * Yapay Zekâ Analiz Yanıt DTO'su (POST /api/ai/analyze)
+ */
+export type AiAnalysis = {
+  species?: string;
+  speciesConfidence?: number;
+  species_confidence?: number;
+  breed?: string | null;
+  breedConfidence?: number;
+  breed_confidence?: number;
+  coatPattern?: string | null;
+  pattern?: string | null;
+  colors?: string[] | Array<{ r: number; g: number; b: number; score: number }>;
+  isPet?: boolean;
+  is_pet?: boolean;
+  embedding?: number[];
+  labels?: string[];
+  model_version?: string;
 };
 
 /**
@@ -285,6 +317,7 @@ export type AdoptionAdCreateRequest = {
   microchipNumber?: string | null;
   latitude: number;
   longitude: number;
+  isMatchRequired?: boolean;
 };
 
 export type AdoptionAdUpdateRequest = Partial<AdoptionAdCreateRequest>;
@@ -323,6 +356,7 @@ export type MessageResponse = {
   content: string;
   timestamp: string; // ISO-8601 UTC
   isRead: boolean;
+  isOptimistic?: boolean;
 };
 
 
@@ -374,6 +408,14 @@ export type ComplaintResponse = {
 export type UserDetailForAdminDTO = UserResponseDTO & {
   banned?: boolean;
   createdAt?: string;
+};
+
+export type AdminGetParams = {
+  page?: number;
+  size?: number;
+  search?: string;
+  sort?: string;
+  signal?: AbortSignal;
 };
 
 /**
@@ -524,3 +566,21 @@ export type PotentialMatchSummaryResponse = {
 };
 
 export type PotentialMatchDecision = "CONFIRMED" | "REJECTED";
+
+// ==========================================
+// 9. User Online Status Types (/api/users/{userId}/status)
+// ==========================================
+
+export type UserStatusResponse = {
+  userId: number;
+  online: boolean;
+  status: "ONLINE" | "OFFLINE";
+  lastSeen?: string | null;
+};
+
+export type UserStatusEvent = {
+  userId: number | string;
+  online?: boolean;
+  status?: "ONLINE" | "OFFLINE" | string;
+  lastSeen?: string | null;
+};

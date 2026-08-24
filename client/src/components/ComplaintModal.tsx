@@ -156,23 +156,23 @@ export default function ComplaintModal({
       <section
         aria-labelledby="complaint-modal-title"
         aria-modal="true"
-        className="w-full max-w-lg overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-2xl shadow-slate-950/25"
+        className="w-full max-w-lg overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-2xl shadow-slate-950/25 dark:border-slate-800 dark:bg-slate-900"
         role="dialog"
         onMouseDown={(event) => event.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
               <Flag size={22} aria-hidden="true" />
             </span>
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-600">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
                 {getTargetTypeText()}
               </span>
               <h2
                 id="complaint-modal-title"
-                className="mt-0.5 text-lg font-bold text-slate-900"
+                className="mt-0.5 text-lg font-bold text-slate-900 dark:text-slate-50"
               >
                 {targetTitle ? `"${targetTitle}"` : "Bildirim Oluştur"}
               </h2>
@@ -183,7 +183,7 @@ export default function ComplaintModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Kapat"
           >
             <X size={19} />
@@ -196,18 +196,18 @@ export default function ComplaintModal({
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-4 animate-bounce">
               <CheckCircle2 size={36} />
             </span>
-            <h3 className="text-xl font-extrabold text-slate-900">
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-50">
               Şikayetiniz Alındı
             </h3>
-            <p className="mt-2 text-sm text-slate-600 max-w-xs">
+            <p className="mt-2 text-sm text-slate-600 max-w-xs dark:text-slate-400">
               Geri bildiriminiz yöneticilerimize iletilmiştir. İnceleme en kısa sürede yapılacaktır.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
             {error && (
-              <div className="flex items-center gap-3 rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700 border border-rose-200">
-                <AlertCircle size={20} className="shrink-0 text-rose-600" />
+              <div className="flex items-center gap-3 rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20">
+                <AlertCircle size={20} className="shrink-0 text-rose-600 dark:text-rose-400" />
                 <span>{error}</span>
               </div>
             )}
@@ -216,7 +216,7 @@ export default function ComplaintModal({
             <div>
               <label
                 htmlFor="complaint-reason"
-                className="block text-sm font-semibold text-slate-700 mb-2"
+                className="block text-sm font-semibold text-slate-700 mb-2 dark:text-slate-300"
               >
                 Şikayet Nedeni <span className="text-rose-500">*</span>
               </label>
@@ -224,7 +224,7 @@ export default function ComplaintModal({
                 id="complaint-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value as ComplaintReason)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-100 transition-all"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-100 transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-800"
                 disabled={submitting}
               >
                 {REASON_OPTIONS.map((opt) => (
@@ -239,7 +239,7 @@ export default function ComplaintModal({
             <div>
               <label
                 htmlFor="complaint-description"
-                className="block text-sm font-semibold text-slate-700 mb-2"
+                className="block text-sm font-semibold text-slate-700 mb-2 dark:text-slate-300"
               >
                 Açıklama Detayı <span className="text-rose-500">*</span>
               </label>
@@ -249,11 +249,11 @@ export default function ComplaintModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Lütfen durumu detaylıca açıklayınız..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-100 transition-all resize-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-100 transition-all resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-800"
                 maxLength={1000}
                 disabled={submitting}
               />
-              <div className="mt-1 text-right text-xs text-slate-400">
+              <div className="mt-1 text-right text-xs text-slate-400 dark:text-slate-500">
                 {description.length}/1000
               </div>
             </div>
@@ -264,7 +264,7 @@ export default function ComplaintModal({
                 type="button"
                 onClick={onClose}
                 disabled={submitting}
-                className="h-11 px-5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                className="h-11 px-5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 İptal
               </button>

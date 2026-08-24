@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -9,6 +9,23 @@
       if (typeof global === 'undefined') {
         window.global = window;
       }
+    </script>
+    <script>
+      // React yüklenmeden önce çalışır: sayfa açılışında yanlış temayla
+      // (aydınlıktan karanlığa) kısa bir "yanıp sönme" olmasın diye.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('patimati-theme');
+          var isDark = stored
+            ? stored === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (error) {
+          // localStorage erişilemezse (gizli sekme vb.) sessizce aydınlık kalır.
+        }
+      })();
     </script>
   </head>
   <body>

@@ -188,15 +188,15 @@ export default function ChangePasswordPage() {
     form.newPassword !== form.confirmPassword;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <header className="border-b border-[#E2E8F0] bg-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
+      <header className="border-b border-[#E2E8F0] bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex items-center gap-2 font-bold text-[#0F172A]"
+            className="flex items-center gap-2 font-bold text-[#0F172A] dark:text-slate-50"
             aria-label="PATIMATI ana sayfa"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF7ED] text-[#F97316] dark:bg-orange-500/10">
               <PawPrint size={24} />
             </span>
 
@@ -211,7 +211,7 @@ export default function ChangePasswordPage() {
           <button
             type="button"
             onClick={() => navigate("/profile")}
-            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#0F172A] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE]"
+            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#0F172A] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           >
             <ArrowLeft size={18} />
             <span className="hidden sm:inline">
@@ -231,16 +231,16 @@ export default function ChangePasswordPage() {
             Şifre değiştir
           </h1>
 
-          <p className="mt-2 text-base leading-6 text-[#64748B]">
+          <p className="mt-2 text-base leading-6 text-[#64748B] dark:text-slate-400">
             Hesabını korumak için güçlü ve daha önce
             kullanmadığın bir şifre belirle.
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <div className="border-b border-[#E2E8F0] bg-[#FFF7ED] p-5 sm:p-6">
+        <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-[#E2E8F0] bg-[#FFF7ED] p-5 sm:p-6 dark:border-slate-800 dark:bg-orange-500/5">
             <div className="flex items-start gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#F97316] shadow-sm">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#F97316] shadow-sm dark:bg-slate-800">
                 <ShieldCheck size={24} />
               </span>
 
@@ -249,7 +249,7 @@ export default function ChangePasswordPage() {
                   Güvenliğini koru
                 </h2>
 
-                <p className="mt-1 text-sm leading-5 text-[#64748B]">
+                <p className="mt-1 text-sm leading-5 text-[#64748B] dark:text-slate-400">
                   Şifreni başka kişilerle paylaşma ve farklı
                   hesaplarda aynı şifreyi kullanmamaya çalış.
                 </p>
@@ -306,7 +306,7 @@ export default function ChangePasswordPage() {
               icon={<KeyRound size={20} />}
             />
 
-            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-800 dark:bg-slate-800/40">
               <p className="text-sm font-semibold">
                 Şifre gereksinimleri
               </p>
@@ -317,15 +317,15 @@ export default function ChangePasswordPage() {
                     key={rule.label}
                     className={`flex items-center gap-2 text-sm ${
                       rule.valid
-                        ? "text-[#15803D]"
-                        : "text-[#64748B]"
+                        ? "text-[#15803D] dark:text-emerald-400"
+                        : "text-[#64748B] dark:text-slate-400"
                     }`}
                   >
                     <span
                       className={`flex h-5 w-5 items-center justify-center rounded-full ${
                         rule.valid
-                          ? "bg-[#DCFCE7] text-[#15803D]"
-                          : "bg-[#E2E8F0] text-[#94A3B8]"
+                          ? "bg-[#DCFCE7] text-[#15803D] dark:bg-emerald-500/15 dark:text-emerald-400"
+                          : "bg-[#E2E8F0] text-[#94A3B8] dark:bg-slate-700 dark:text-slate-500"
                       }`}
                     >
                       <Check size={13} />
@@ -339,7 +339,7 @@ export default function ChangePasswordPage() {
 
             {passwordsDoNotMatch && (
               <p
-                className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#DC2626]"
+                className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#DC2626] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
                 role="alert"
               >
                 Yeni şifreler birbiriyle eşleşmiyor.
@@ -348,7 +348,7 @@ export default function ChangePasswordPage() {
 
             {passwordsMatch && (
               <p
-                className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-medium text-[#15803D]"
+                className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-medium text-[#15803D] dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
                 role="status"
               >
                 Yeni şifreler eşleşiyor.
@@ -357,7 +357,7 @@ export default function ChangePasswordPage() {
 
             {errorMessage && (
               <p
-                className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#DC2626]"
+                className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#DC2626] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
                 role="alert"
               >
                 {errorMessage}
@@ -366,19 +366,19 @@ export default function ChangePasswordPage() {
 
             {successMessage && (
               <p
-                className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-medium text-[#15803D]"
+                className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-medium text-[#15803D] dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
                 role="status"
               >
                 {successMessage}
               </p>
             )}
 
-            <div className="flex flex-col-reverse gap-3 border-t border-[#E2E8F0] pt-5 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-3 border-t border-[#E2E8F0] pt-5 sm:flex-row sm:justify-end dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => navigate("/profile")}
                 disabled={isSubmitting}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 font-semibold transition hover:bg-[#F1F5F9] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 font-semibold transition hover:bg-[#F1F5F9] focus:outline-none focus:ring-4 focus:ring-[#DBEAFE] disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Vazgeç
               </button>
@@ -425,7 +425,7 @@ function PasswordInput({
 }: PasswordInputProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-[#0F172A]">
+      <span className="mb-2 block text-sm font-medium text-[#0F172A] dark:text-slate-300">
         {label}
       </span>
 
@@ -442,13 +442,13 @@ function PasswordInput({
           }
           autoComplete={autoComplete}
           placeholder={placeholder}
-          className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-12 text-base text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA]"
+          className="h-12 w-full rounded-xl border border-[#CBD5E1] bg-white pl-12 pr-12 text-base text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-4 focus:ring-[#FED7AA] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
 
         <button
           type="button"
           onClick={onToggleVisibility}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-[#64748B] transition hover:text-[#0F172A] focus:outline-none"
+          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-[#64748B] transition hover:text-[#0F172A] focus:outline-none dark:text-slate-400 dark:hover:text-slate-100"
           aria-label={
             visible ? "Şifreyi gizle" : "Şifreyi göster"
           }

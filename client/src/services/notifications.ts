@@ -1,6 +1,6 @@
 import { request } from "./api";
 import { getStoredToken } from "./authStorage";
-import { getFcmToken } from "./firbase";
+import { getFcmToken } from "./firebase";
 
 export type InAppNotification = {
   id: string;
@@ -315,4 +315,67 @@ export async function registerCurrentDeviceForNotifications(): Promise<
   }
 
   return registerFcmToken(fcmToken);
+}
+
+/**
+ * Calculates navigation target URL for a given notification based on its type and payload data.
+ */
+export function getNotificationHref(
+  notification: InAppNotification,
+): string | null {
+  const type = notification.data.type?.toUpperCase();
+
+  // MESSAGE veya chat ile ilgili bildirimler
+  if (
+    type === "MESSAGE" ||
+    type === "CHAT" ||
+    type === "NEW_MESSAGE" ||
+    type === "CHAT_MESSAGE"
+  ) {
+    const targetId =
+      notification.data.referenceId ||
+      notification.data.senderId ||
+      notification.data.userId ||
+      notification.data.partnerId ||
+      notification.data.chatId ||
+      notification.data.roomId;
+    return targetId ? `/chat/${encodeURIComponent(targetId)}` : "/chat";
+  }
+
+  // AI Eşleşme bildirimi -> Eşleşmelerim
+  if (type === "AI_MATCH") {
+    return "/my-matches";
+  }
+
+  // AiMatchNotifier (backend) hem native hem Instagram kaynaklı olası
+  // eşleşmeler için bu tipte gönderir (bkz. PATIMATI---BACKEND
+  // ai/AiMatchNotifier.java) -- tek bir adId yok, liste sayfasına gider.
+  if (type === "POTENTIAL_MATCH") {
+    return "/potential-matches";
+  }
+
+  // Çevre uyarısı (konum aboneliği): hedef ilanın kendisi
+  if (
+    type === "NEARBY_AD" &&
+    notification.data.adId
+  ) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  }
+
+  // Görülme bildirimi: sahibi ilan detayına gider
+  if (
+    type === "SIGHTING" &&
+    notification.data.adId
+  ) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  }
+
+  // Genel yedek kontrol: referenceId var ve mesaj/chat çağrışımı var ise
+  if (notification.data.referenceId) {
+    if (type?.includes("MSG") || type?.includes("CHAT")) {
+      return `/chat/${encodeURIComponent(notification.data.referenceId)}`;
+    }
+  }
+
+  return null;
 }
