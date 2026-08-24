@@ -33,9 +33,13 @@ vi.mock("../components/CreateAdLayout", () => ({
 
 const { istek } = vi.hoisted(() => ({ istek: vi.fn() }));
 
-vi.mock("../services/api", () => ({
-  request: istek,
-}));
+vi.mock("../services/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/api")>();
+  return {
+    ...actual,
+    request: istek,
+  };
+});
 
 vi.mock("../utils/imageCompression", () => ({
   compressImagesWithinLimit: vi.fn(async (dosyalar: File[]) => ({
@@ -119,17 +123,14 @@ describe("AI oto-doldurma mesajı sonucu YANSITIR", () => {
     });
   });
 
-  it("backend'in YENİ cevap şekliyle de doldurur (#156: coatPattern/colors/isPet)", async () => {
-    // AiAnalyzeMapper'ın cevabı: `labels` HİÇ yok, renkler `colors`ta enum
-    // adı, `is_pet` yerine `isPet`. Normalleştirme olmasa hiçbir alan dolmaz
-    // ve ekran "elle doldurun" derdi.
+  it("gerçek backend AI response yapısını (species: CAT, breed: Abyssinian, colors: [GRAY, BROWN]) doğru aktarır", async () => {
     istek.mockResolvedValue({
       species: "CAT",
-      speciesConfidence: 0.97,
-      breed: "Tekir",
-      breedConfidence: 0.81,
-      coatPattern: "TABBY",
-      colors: ["GRAY", "WHITE"],
+      speciesConfidence: 0.9959,
+      breed: "Abyssinian",
+      breedConfidence: 0.7148,
+      coatPattern: "UNKNOWN",
+      colors: ["GRAY", "BROWN"],
       isPet: true,
     });
 

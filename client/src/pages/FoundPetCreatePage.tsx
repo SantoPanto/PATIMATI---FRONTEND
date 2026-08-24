@@ -22,8 +22,8 @@ import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
 import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
-import type { MatchedAdResponseDTO, PetColor } from "../services/types";
-import { aiCevabiniNormallestir } from "../utils/aiAnaliz";
+import type { AiAnalysis, MatchedAdResponseDTO, PetColor } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import { konumAl, konumHataMesaji } from "../utils/konum";
@@ -64,25 +64,6 @@ const COLOR_LABELS: Record<PetColor, string> = {
   GOLDEN: "Altın",
   BEIGE: "Bej",
   OTHER: "Diğer",
-};
-
-const AI_COLOR_MAP: Record<string, PetColor> = {
-  black: "BLACK",
-  white: "WHITE",
-  gray: "GRAY",
-  grey: "GRAY",
-  brown: "BROWN",
-  orange: "ORANGE",
-  cream: "CREAM",
-  golden: "GOLDEN",
-  beige: "BEIGE",
-};
-
-type AiAnalysis = {
-  species?: string;
-  is_pet?: boolean;
-  breed?: string | null;
-  labels?: string[];
 };
 
 function parseColorsFromText(text: string): PetColor[] {
@@ -166,59 +147,30 @@ export default function FoundPetCreatePage() {
         }),
       );
 
-      if (analysis.is_pet === false) {
+      const parsed = parseAiAnalysis(analysis);
+
+      if (!parsed.isPet) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
       } else {
-        /*
-         * AI servisi öznitelik çıkarımı patladığında sessizce boş sonuç
-         * dönüyor (PATIMATI-AI/app/main.py:145-152) ama `is_pet: true`
-         * olduğu için burası "tamamlandı" yazıyordu. Mesajı artık GERÇEKTEN
-         * doldurulan alan sayısı belirliyor.
-         */
-        let uygulanan = 0;
-
-        if (analysis.species === "cat" || analysis.species === "CAT") {
-          updateForm("species", "CAT");
-          uygulanan += 1;
-        } else if (analysis.species === "dog" || analysis.species === "DOG") {
-          updateForm("species", "DOG");
-          uygulanan += 1;
+        if (parsed.species) {
+          updateForm("species", parsed.species);
         }
 
-        if (analysis.breed && analysis.breed.trim()) {
-          updateForm("breed", analysis.breed.trim());
-          uygulanan += 1;
+        if (parsed.breed) {
+          updateForm("breed", parsed.breed);
         }
 
-        const etiketten = (onek: string) =>
-          (analysis.labels ?? [])
-            .filter((e) => e.startsWith(onek))
-            .map((e) => e.slice(onek.length).toLowerCase());
-
-        const detectedColors = etiketten("soft:color_")
-          .map((ad) => AI_COLOR_MAP[ad])
-          .filter((c): c is PetColor => Boolean(c));
-
-        if (detectedColors.length > 0) {
-          const uniqueColors = [...new Set(detectedColors)];
-          const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
+        if (parsed.colors.length > 0) {
+          const colorNames = parsed.colors.map((c) => COLOR_LABELS[c] || c).join(", ");
           updateForm("color", colorNames);
-          uygulanan += 1;
         }
 
-        const collar = etiketten("bonus:collar_");
-        if (collar.length > 0) {
-          if (collar[0] === "collar") {
-            updateForm("collarStatus", "YES");
-            uygulanan += 1;
-          } else if (collar[0] === "no_collar") {
-            updateForm("collarStatus", "NO");
-            uygulanan += 1;
-          }
+        if (parsed.collarStatus !== "UNKNOWN") {
+          updateForm("collarStatus", parsed.collarStatus);
         }
 
         setAnalysisMessage(
-          uygulanan > 0
+          parsed.appliedCount > 0
             ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
             : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
         );
