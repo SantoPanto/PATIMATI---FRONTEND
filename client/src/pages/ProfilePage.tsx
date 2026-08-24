@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
   Award,
+  Bell,
   ChevronRight,
   Heart,
   LockKeyhole,
@@ -546,6 +547,13 @@ function ProfileContent() {
                 label="Eşleşmelerim"
                 description="AI destekli eşleşme sonuçları"
                 onClick={() => navigate("/my-matches")}
+              />
+
+              <ProfileMenuItem
+                icon={<Bell size={20} />}
+                label="Olası Eşleşmelerim"
+                description="Diğer ilanlar ve Instagram'da tespit edilenler"
+                onClick={() => navigate("/potential-matches")}
               />
 
               <ProfileMenuItem

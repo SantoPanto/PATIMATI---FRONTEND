@@ -24,6 +24,13 @@ function getNotificationHref(
     return `/pet/${encodeURIComponent(notification.data.adId)}`;
   }
 
+  // AiMatchNotifier (backend) hem native hem Instagram kaynaklı olası
+  // eşleşmeler için bu tipte gönderir (bkz. PATIMATI---BACKEND
+  // ai/AiMatchNotifier.java) -- tek bir adId yok, liste sayfasına gider.
+  if (notification.data.type === "POTENTIAL_MATCH") {
+    return "/potential-matches";
+  }
+
   return null;
 }
 
