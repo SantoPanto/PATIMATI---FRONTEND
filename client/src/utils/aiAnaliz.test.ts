@@ -66,6 +66,21 @@ describe("aiCevabiniNormallestir", () => {
     expect(sonuc.is_pet).toBe(true);
   });
 
+  it("CANLIDAN alınmış birebir cevabı çevirir (24.08 03:10, patimati.me)", () => {
+    // Gerçek kedi fotoğrafıyla canlı /api/ai/analyze'ın döndürdüğü gövde.
+    const sonuc = aiCevabiniNormallestir<AiAnalizCevabi>({
+      species: "CAT",
+      breed: null,
+      coatPattern: "SPOTTED",
+      colors: ["GRAY", "BLACK"],
+      isPet: true,
+    });
+
+    expect(sonuc.is_pet).toBe(true);
+    expect(sonuc.pattern).toBe("SPOTTED");
+    expect(sonuc.labels).toEqual(["soft:color_gray", "soft:color_black"]);
+  });
+
   it("dolu labels varken colors'tan etiket TÜRETMEZ", () => {
     const sonuc = aiCevabiniNormallestir({
       labels: ["soft:color_black"],
