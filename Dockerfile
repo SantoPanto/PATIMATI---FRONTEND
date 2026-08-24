@@ -23,9 +23,12 @@ RUN npm run build
 # Stage 2: Production Nginx stage
 FROM nginx:alpine
 
+# Copy custom Nginx configuration to override default config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy built static assets to Nginx web root
 COPY --from=build /app/client/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 80 443
 
 CMD ["nginx", "-g", "daemon off;"]
