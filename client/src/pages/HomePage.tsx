@@ -22,6 +22,7 @@ import {
   ChevronRight,
   CirclePlus,
   Heart,
+  Loader2,
   MapPin,
   PawPrint,
   Search,
@@ -361,15 +362,16 @@ export default function HomePage() {
 
   if (isAuthLoading) {
     return (
-      <div className="home-page">
-        <div
-          className="page-container"
-          style={{
-            padding: "80px 24px",
-          }}
-        >
-          Oturum kontrol ediliyor
+      <div
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 dark:bg-slate-950"
+        role="status"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
+          <Loader2 size={32} className="animate-spin" />
         </div>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Oturum kontrol ediliyor...
+        </p>
       </div>
     );
   }

@@ -379,26 +379,26 @@ export default function AiMatchPage() {
       <Header />
 
       <main>
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF]">
-          <div className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-[#FED7AA]/30 blur-3xl" />
+        <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF] dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+          <div className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-[#FED7AA]/30 blur-3xl dark:bg-orange-500/10" />
 
-          <div className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full bg-[#BFDBFE]/30 blur-3xl" />
+          <div className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full bg-[#BFDBFE]/30 blur-3xl dark:bg-blue-500/10" />
 
           <div className="relative mx-auto grid max-w-[1200px] gap-12 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-20">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-semibold text-[#F97316] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-semibold text-[#F97316] shadow-sm dark:border-orange-500/20 dark:bg-slate-900 dark:text-orange-400">
                 <Sparkles size={17} />
                 Yapay zekâ destekli arama
               </div>
 
-              <h1 className="mt-5 max-w-2xl text-4xl font-bold tracking-tight text-[#0F172A] sm:text-5xl lg:text-6xl">
+              <h1 className="mt-5 max-w-2xl text-4xl font-bold tracking-tight text-[#0F172A] sm:text-5xl lg:text-6xl dark:text-slate-50">
                 Fotoğrafları yükle,
                 <span className="block text-[#F97316]">
                   benzer ilanları bulalım.
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-xl text-base leading-8 text-[#64748B] sm:text-lg">
+              <p className="mt-6 max-w-xl text-base leading-8 text-[#64748B] sm:text-lg dark:text-slate-400">
                 Hayvanın farklı açılardan çekilmiş en az üç
                 fotoğrafını yükle. PATIMATI; renk, desen, yüz
                 yapısı ve belirgin özellikleri analiz ederek en
@@ -417,14 +417,14 @@ export default function AiMatchPage() {
 
                 <a
                   href="#how-it-works"
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-6 py-3.5 font-semibold text-[#475569] transition hover:border-[#CBD5E1] hover:bg-[#F8FAFC] focus:outline-none focus:ring-4 focus:ring-[#E2E8F0]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-6 py-3.5 font-semibold text-[#475569] transition hover:border-[#CBD5E1] hover:bg-[#F8FAFC] focus:outline-none focus:ring-4 focus:ring-[#E2E8F0] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                 >
                   Nasıl çalışır?
                   <ArrowRight size={18} />
                 </a>
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#64748B]">
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#64748B] dark:text-slate-400">
                 <span className="flex items-center gap-2">
                   <CheckCircle2
                     size={17}
@@ -451,14 +451,14 @@ export default function AiMatchPage() {
               </div>
             </div>
 
-            <section className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-2xl shadow-slate-200/70 backdrop-blur sm:p-7">
+            <section className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-2xl shadow-slate-200/70 backdrop-blur sm:p-7 dark:border-slate-800 dark:bg-slate-900/90 dark:shadow-black/40">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-[#0F172A]">
+                  <h2 className="text-2xl font-bold text-[#0F172A] dark:text-slate-50">
                     Görsel eşleştirme
                   </h2>
 
-                  <p className="mt-2 text-sm leading-6 text-[#64748B]">
+                  <p className="mt-2 text-sm leading-6 text-[#64748B] dark:text-slate-400">
                     İlan türünü seç ve aynı hayvana ait net
                     fotoğraflar yükle.
                   </p>
@@ -468,21 +468,21 @@ export default function AiMatchPage() {
                   <button
                     type="button"
                     onClick={clearAllImages}
-                    className="shrink-0 text-sm font-semibold text-[#64748B] transition hover:text-[#DC2626]"
+                    className="shrink-0 text-sm font-semibold text-[#64748B] transition hover:text-[#DC2626] dark:text-slate-400 dark:hover:text-rose-400"
                   >
                     Tümünü sil
                   </button>
                 )}
               </div>
 
-              <div className="mb-5 grid grid-cols-2 rounded-xl bg-[#F1F5F9] p-1">
+              <div className="mb-5 grid grid-cols-2 rounded-xl bg-[#F1F5F9] p-1 dark:bg-slate-800">
                 <button
                   type="button"
                   onClick={() => setListingType("lost")}
                   className={`rounded-lg px-3 py-3 text-sm font-semibold transition sm:px-4 ${
                     listingType === "lost"
-                      ? "bg-white text-[#F97316] shadow-sm"
-                      : "text-[#64748B] hover:text-[#334155]"
+                      ? "bg-white text-[#F97316] shadow-sm dark:bg-slate-900 dark:text-orange-400"
+                      : "text-[#64748B] hover:text-[#334155] dark:text-slate-400 dark:hover:text-slate-200"
                   }`}
                 >
                   Kayıp Hayvanım
@@ -493,8 +493,8 @@ export default function AiMatchPage() {
                   onClick={() => setListingType("found")}
                   className={`rounded-lg px-3 py-3 text-sm font-semibold transition sm:px-4 ${
                     listingType === "found"
-                      ? "bg-white text-[#2563EB] shadow-sm"
-                      : "text-[#64748B] hover:text-[#334155]"
+                      ? "bg-white text-[#2563EB] shadow-sm dark:bg-slate-900 dark:text-blue-400"
+                      : "text-[#64748B] hover:text-[#334155] dark:text-slate-400 dark:hover:text-slate-200"
                   }`}
                 >
                   Hayvan Buldum
@@ -526,11 +526,11 @@ export default function AiMatchPage() {
                 onDrop={handleDrop}
                 className={`flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 text-center transition ${
                   isDragging
-                    ? "border-[#F97316] bg-[#FFF7ED]"
-                    : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#FB923C] hover:bg-[#FFF7ED]/50"
+                    ? "border-[#F97316] bg-[#FFF7ED] dark:bg-orange-500/10"
+                    : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#FB923C] hover:bg-[#FFF7ED]/50 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-orange-500/50 dark:hover:bg-orange-500/5"
                 } ${isCompressing ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFEDD5] text-[#F97316] dark:bg-orange-500/15 dark:text-orange-400">
                   {isCompressing ? (
                     <Loader2 size={30} className="animate-spin" />
                   ) : (
@@ -538,18 +538,18 @@ export default function AiMatchPage() {
                   )}
                 </div>
 
-                <p className="mt-5 text-lg font-bold text-[#1E293B]">
+                <p className="mt-5 text-lg font-bold text-[#1E293B] dark:text-slate-100">
                   {isCompressing
                     ? "Fotoğraflar sıkıştırılıyor..."
                     : "En az 3 fotoğraf yükleyin"}
                 </p>
 
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[#64748B] dark:text-slate-400">
                   Fotoğrafları buraya sürükleyin veya
                   bilgisayarınızdan seçmek için tıklayın.
                 </p>
 
-                <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B]">
+                <span className="mt-4 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-medium text-[#64748B] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                   JPG, PNG veya WEBP · Her fotoğraf en fazla 10
                   MB
                 </span>
@@ -557,15 +557,15 @@ export default function AiMatchPage() {
 
               <div className="mt-5">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-[#334155]">
+                  <p className="text-sm font-semibold text-[#334155] dark:text-slate-300">
                     Yüklenen fotoğraflar
                   </p>
 
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold ${
                       selectedImages.length >= MIN_IMAGES
-                        ? "bg-[#DCFCE7] text-[#15803D]"
-                        : "bg-[#FFEDD5] text-[#C2410C]"
+                        ? "bg-[#DCFCE7] text-[#15803D] dark:bg-emerald-500/15 dark:text-emerald-400"
+                        : "bg-[#FFEDD5] text-[#C2410C] dark:bg-orange-500/15 dark:text-orange-400"
                     }`}
                   >
                     {selectedImages.length}/{MAX_IMAGES}
@@ -573,7 +573,7 @@ export default function AiMatchPage() {
                 </div>
 
                 {selectedImages.length === 0 ? (
-                  <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-5 text-center text-sm text-[#64748B]">
+                  <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-5 text-center text-sm text-[#64748B] dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
                     Henüz fotoğraf yüklenmedi.
                   </div>
                 ) : (
@@ -581,7 +581,7 @@ export default function AiMatchPage() {
                     {selectedImages.map((image, index) => (
                       <div
                         key={image.id}
-                        className="group relative overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F1F5F9]"
+                        className="group relative overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F1F5F9] dark:border-slate-700 dark:bg-slate-800"
                       >
                         <img
                           src={image.preview}
@@ -621,7 +621,7 @@ export default function AiMatchPage() {
                       <button
                         type="button"
                         onClick={openFilePicker}
-                        className="flex h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#FB923C] hover:bg-[#FFF7ED] hover:text-[#F97316]"
+                        className="flex h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] transition hover:border-[#FB923C] hover:bg-[#FFF7ED] hover:text-[#F97316] dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:border-orange-500/50 dark:hover:bg-orange-500/5 dark:hover:text-orange-400"
                       >
                         <ImagePlus size={24} />
 
@@ -634,14 +634,14 @@ export default function AiMatchPage() {
                 )}
 
                 {selectedImages.length < MIN_IMAGES && (
-                  <p className="mt-3 text-sm font-medium text-[#EA580C]">
+                  <p className="mt-3 text-sm font-medium text-[#EA580C] dark:text-orange-400">
                     Devam etmek için {remainingRequiredImages}{" "}
                     fotoğraf daha yükleyin.
                   </p>
                 )}
 
                 {selectedImages.length >= MIN_IMAGES && (
-                  <p className="mt-3 flex items-center gap-2 text-sm font-medium text-[#15803D]">
+                  <p className="mt-3 flex items-center gap-2 text-sm font-medium text-[#15803D] dark:text-emerald-400">
                     <CheckCircle2 size={17} />
                     Fotoğraflar yapay zekâ analizi için hazır.
                   </p>
@@ -650,7 +650,7 @@ export default function AiMatchPage() {
                 {errorMessage && (
                   <p
                     role="alert"
-                    className="mt-3 rounded-lg bg-[#FEF2F2] px-3 py-2 text-sm font-medium text-[#DC2626]"
+                    className="mt-3 rounded-lg bg-[#FEF2F2] px-3 py-2 text-sm font-medium text-[#DC2626] dark:bg-rose-500/10 dark:text-rose-400"
                   >
                     {errorMessage}
                   </p>
@@ -676,7 +676,7 @@ export default function AiMatchPage() {
                 )}
               </button>
 
-              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#94A3B8]">
+              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#94A3B8] dark:text-slate-500">
                 <ShieldCheck size={15} />
                 Yüklenen fotoğraflar yalnızca eşleştirme
                 amacıyla kullanılır.

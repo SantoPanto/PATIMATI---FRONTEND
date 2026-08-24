@@ -15,14 +15,14 @@ export default function AboutPage() {
       <Header />
 
       <main>
-        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF]">
+        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF] dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
           <div className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316] dark:border-orange-500/20 dark:bg-slate-900 dark:text-orange-400">
               <Sparkles size={16} />
               PATIMATI hakkında
             </span>
 
-            <h1 className="mt-6 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl dark:text-[#0F172A]">
+            <h1 className="mt-6 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               Minik dostlarımızı
               <span className="text-[#F97316]">
                 {" "}
@@ -30,7 +30,7 @@ export default function AboutPage() {
               </span>
             </h1>
 
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-[#64748B]">
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-[#64748B] dark:text-slate-400">
               PATIMATI kayıp bulunan ve sahiplendirilecek
               hayvanları doğru kişilerle buluşturmayı amaçlayan
               teknoloji ve topluluk gücünü bir araya getiren bir

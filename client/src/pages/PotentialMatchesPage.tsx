@@ -118,23 +118,23 @@ function PotentialMatchesContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-50 text-slate-950 flex flex-col justify-between dark:bg-slate-950 dark:text-slate-50">
       <div>
         <Header />
 
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
                 <Sparkles size={14} />
                 OLASI EŞLEŞMELER
               </div>
 
-              <h1 className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl dark:text-slate-50">
                 Olası Eşleşmelerim
               </h1>
 
-              <p className="mt-2 max-w-2xl text-base text-slate-500">
+              <p className="mt-2 max-w-2xl text-base text-slate-500 dark:text-slate-400">
                 İlanlarınızla eşleşebilecek diğer ilanlar ve Instagram üzerinde
                 tespit edilen gönderiler burada listelenir.
               </p>
@@ -144,7 +144,7 @@ function PotentialMatchesContent() {
               type="button"
               onClick={() => void loadMatches()}
               disabled={isLoading}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 focus:outline-none disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 focus:outline-none disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <RefreshCw size={17} className={isLoading ? "animate-spin" : ""} />
               Yenile
@@ -153,18 +153,18 @@ function PotentialMatchesContent() {
 
           {errorMessage && (
             <div
-              className="mt-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 shadow-xs"
+              className="mt-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 shadow-xs dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
               role="alert"
             >
               <div className="flex items-center gap-2.5">
-                <AlertCircle size={20} className="shrink-0 text-rose-600" />
+                <AlertCircle size={20} className="shrink-0 text-rose-600 dark:text-rose-400" />
                 <span>{errorMessage}</span>
               </div>
 
               <button
                 type="button"
                 onClick={() => void loadMatches()}
-                className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-800 transition hover:bg-rose-200"
+                className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-800 transition hover:bg-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
               >
                 Tekrar Dene
               </button>
@@ -177,16 +177,16 @@ function PotentialMatchesContent() {
               <SkeletonCard />
             </div>
           ) : matches.length === 0 ? (
-            <div className="mt-12 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+            <div className="mt-12 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs dark:border-slate-700 dark:bg-slate-900">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
                 <Zap size={32} />
               </div>
 
-              <h3 className="mt-4 text-xl font-bold text-slate-900">
+              <h3 className="mt-4 text-xl font-bold text-slate-900 dark:text-slate-50">
                 Henüz Bir Olası Eşleşme Bulunmuyor
               </h3>
 
-              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
                 Sistemimiz yeni ilanları ve Instagram gönderilerini sürekli
                 tarar, olası bir eşleşme bulduğunda burada listeler.
               </p>
@@ -240,25 +240,25 @@ function PotentialMatchCard({
   const photoUrl = getImageUrl(counterparty.photoUrl || undefined);
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-3 text-xs font-semibold">
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-3 text-xs font-semibold dark:border-slate-800">
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
             isExternal
-              ? "bg-fuchsia-100 text-fuchsia-700"
-              : "bg-slate-100 text-slate-700"
+              ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300"
+              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
           }`}
         >
           {isExternal ? <Camera size={13} /> : <PawPrint size={13} />}
           {isExternal ? "Instagram" : "PatiMati İlanı"}
         </span>
 
-        <span className="text-slate-500">{statusLabel(match.status)}</span>
+        <span className="text-slate-500 dark:text-slate-400">{statusLabel(match.status)}</span>
       </div>
 
       <div className="p-5">
         <div className="flex items-center gap-4">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
             {counterparty.photoUrl ? (
               <img
                 src={photoUrl}
@@ -266,42 +266,42 @@ function PotentialMatchCard({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-300">
+              <div className="flex h-full w-full items-center justify-center text-slate-300 dark:text-slate-600">
                 <PawPrint size={24} />
               </div>
             )}
           </div>
 
           <div className="min-w-0">
-            <h3 className="truncate text-lg font-bold text-slate-900">
+            <h3 className="truncate text-lg font-bold text-slate-900 dark:text-slate-50">
               {title}
             </h3>
             {subtitle && (
-              <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-slate-500">
-                <MapPin size={13} className="text-slate-400" />
+              <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <MapPin size={13} className="text-slate-400 dark:text-slate-500" />
                 {subtitle}
               </p>
             )}
           </div>
 
-          <div className="ml-auto flex shrink-0 flex-col items-end rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          <div className="ml-auto flex shrink-0 flex-col items-end rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2 dark:border-slate-700 dark:bg-slate-800">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Benzerlik
             </span>
-            <span className="text-xl font-extrabold text-slate-800">
+            <span className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
               %{scorePct}
             </span>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           {isExternal ? (
             counterparty.sourceUrl && (
               <a
                 href={counterparty.sourceUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-fuchsia-700 transition hover:text-fuchsia-800"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-fuchsia-700 transition hover:text-fuchsia-800 dark:text-fuchsia-400 dark:hover:text-fuchsia-300"
               >
                 Instagram'da Görüntüle
                 <ExternalLink size={13} />
@@ -310,7 +310,7 @@ function PotentialMatchCard({
           ) : (
             <Link
               href={`/pet/${counterparty.id}`}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 transition hover:text-orange-600"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 transition hover:text-orange-600 dark:text-slate-300 dark:hover:text-orange-400"
             >
               İlanı İncele
               <ExternalLink size={13} />
@@ -323,7 +323,7 @@ function PotentialMatchCard({
                 type="button"
                 disabled={isDeciding}
                 onClick={() => void onDecide(match.recipientId, "REJECTED")}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-500/20 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-500/10"
               >
                 <XCircle size={14} />
                 Değil
@@ -347,16 +347,16 @@ function PotentialMatchCard({
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div className="h-5 w-24 rounded-lg bg-slate-200" />
-        <div className="h-4 w-20 rounded-lg bg-slate-200" />
+    <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+        <div className="h-5 w-24 rounded-lg bg-slate-200 dark:bg-slate-800" />
+        <div className="h-4 w-20 rounded-lg bg-slate-200 dark:bg-slate-800" />
       </div>
       <div className="mt-4 flex items-center gap-4">
-        <div className="h-16 w-16 shrink-0 rounded-2xl bg-slate-200" />
+        <div className="h-16 w-16 shrink-0 rounded-2xl bg-slate-200 dark:bg-slate-800" />
         <div className="space-y-2">
-          <div className="h-5 w-40 rounded-md bg-slate-200" />
-          <div className="h-3 w-28 rounded-md bg-slate-200" />
+          <div className="h-5 w-40 rounded-md bg-slate-200 dark:bg-slate-800" />
+          <div className="h-3 w-28 rounded-md bg-slate-200 dark:bg-slate-800" />
         </div>
       </div>
     </div>

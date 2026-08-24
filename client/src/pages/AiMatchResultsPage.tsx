@@ -32,12 +32,12 @@ export default function AiMatchResultsPage() {
       <Header />
 
       <main>
-        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF]">
+        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#FFF7ED] via-white to-[#EFF6FF] dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
           <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 md:py-16 lg:px-8">
             <button
               type="button"
               onClick={() => navigate("/ai-match")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#F97316]"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#F97316] dark:text-slate-400 dark:hover:text-orange-400"
             >
               <ArrowLeft size={18} />
               Yeni eşleştirme yap
@@ -45,32 +45,32 @@ export default function AiMatchResultsPage() {
 
             <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316]">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#FED7AA] bg-white px-4 py-2 text-sm font-bold text-[#F97316] dark:border-orange-500/20 dark:bg-slate-900 dark:text-orange-400">
                   <Sparkles size={16} />
                   Yapay zekâ eşleştirme sonucu
                 </span>
 
-                <h1 className="mt-5 text-4xl font-bold tracking-tight text-[#0F172A] sm:text-5xl">
+                <h1 className="mt-5 text-4xl font-bold tracking-tight text-[#0F172A] sm:text-5xl dark:text-slate-50">
                   En benzer ilanları bulduk.
                 </h1>
 
-                <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B] sm:text-lg">
+                <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B] sm:text-lg dark:text-slate-400">
                   Yüklediğin fotoğraflar mevcut ilanlarla karşılaştırıldı.
                   Sonuçlar görsel benzerlik oranına göre sıralandı.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-5 shadow-sm">
-                <span className="text-sm font-medium text-[#64748B]">
+              <div className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <span className="text-sm font-medium text-[#64748B] dark:text-slate-400">
                   Bulunan eşleşme
                 </span>
 
                 <div className="mt-1 flex items-end gap-2">
-                  <strong className="text-3xl font-black text-[#0F172A]">
+                  <strong className="text-3xl font-black text-[#0F172A] dark:text-slate-50">
                     {matchResults.length}
                   </strong>
 
-                  <span className="pb-1 text-sm text-[#94A3B8]">
+                  <span className="pb-1 text-sm text-[#94A3B8] dark:text-slate-500">
                     sonuç
                   </span>
                 </div>
