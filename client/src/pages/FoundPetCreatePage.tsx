@@ -139,13 +139,11 @@ export default function FoundPetCreatePage() {
       const formData = new FormData();
       formData.append("file", images[0].file);
 
-      const analysis = aiCevabiniNormallestir(
-        await request<AiAnalysis>("/api/ai/analyze", {
-          method: "POST",
-          body: formData,
-          requiresAuth: true,
-        }),
-      );
+      const analysis = await request<AiAnalysis>("/api/ai/analyze", {
+        method: "POST",
+        body: formData,
+        requiresAuth: true,
+      });
 
       const parsed = parseAiAnalysis(analysis);
 
