@@ -22,7 +22,8 @@ import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
 import AiMatchModal from "../components/AiMatchModal";
 import { request } from "../services/api";
-import type { AdResponse, MatchedAdResponseDTO } from "../services/types";
+import type { AdResponse, AiAnalysis, MatchedAdResponseDTO } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 import { konumAl, konumHataMesaji } from "../utils/konum";
@@ -82,33 +83,6 @@ type SelectedImage = {
   preview: string;
 };
 
-type AiAnalysis = {
-  embedding?: number[];
-  labels?: string[];
-  species?: string;
-  species_confidence?: number;
-  is_pet?: boolean;
-  breed?: string | null;
-  breed_confidence?: number;
-  pattern?: string | null;
-
-  /*
-   * DIKKAT: AI burada renk ADI degil, baskin renklerin RGB degerlerini
-   * donduruyor (orn. { r: 130, g: 130, b: 130, score: 0.8 }). Renklerin
-   * okunabilir adlari `labels` icinde "soft:color_gray" bicimindedir.
-   * Tip eskiden string[] yaziyordu; String(nesne) "[object Object]" verdigi
-   * icin hicbir renk eslesmiyordu.
-   */
-  colors?: Array<{
-    r: number;
-    g: number;
-    b: number;
-    score: number;
-  }>;
-
-  model_version?: string;
-};
-
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -155,41 +129,6 @@ const COLOR_LABELS: Record<PetColor, string> = {
 const SPECIES_LABELS: Record<Species, string> = {
   CAT: "Kedi",
   DOG: "Köpek",
-};
-
-const AI_COLOR_MAP: Record<string, PetColor> = {
-  black: "BLACK",
-  white: "WHITE",
-  gray: "GRAY",
-  grey: "GRAY",
-  brown: "BROWN",
-  orange: "ORANGE",
-  cream: "CREAM",
-  golden: "GOLDEN",
-  beige: "BEIGE",
-};
-
-const AI_PATTERN_MAP: Record<string, CoatPattern> = {
-  solid: "SOLID",
-  striped: "STRIPED",
-  spotted: "SPOTTED",
-  patched: "PATCHED",
-  calico: "CALICO",
-  tortoiseshell: "TORTOISESHELL",
-
-  /*
-   * AI "tabby" diyor ve bu kedilerde en sik gorulen desen; listede karsiligi
-   * yoktu, o yuzden tekir kedilerde desen hic dolmuyordu.
-   *
-   * STRIPED'a baglamak bir yaklastirma (tabby tam olarak "cizgili" demek
-   * degil, benekli/alacali alt turleri de var). SORULDU VE KARARA BAGLANDI
-   * (SenaF116, 11.08): "tabby cizgili bir desen oldugu icin mevcut enum
-   * icinde en dogru karsiligi o. Ileride filtreleme veya veri modeli
-   * acisindan ihtiyac olursa ayri bir TABBY secenegi dusunulur."
-   * ⇒ Bu satir acik bir soru DEGIL; yeniden tartismaya acmadan once
-   *   yukaridaki gerekcenin gecerliligini yitirip yitirmedigine bak.
-   */
-  tabby: "STRIPED",
 };
 
 /* -------------------------------------------------------------------------- */
@@ -509,132 +448,40 @@ export default function AddListingPage() {
   };
 
   /**
-   * AI cevabını forma uygular ve GERÇEKTEN doldurulan alan sayısını döndürür.
-   *
-   * <p>Sayı neden gerekli: AI servisi öznitelik çıkarımı patladığında sessizce
-   * `{labels: [], species: "unknown", breed: null, pattern: null,
-   * is_pet: true}` dönüyor (PATIMATI-AI/app/main.py:145-152 — "öznitelik
-   * hatası tüm analizi düşürmemeli"). `is_pet` true olduğu için ekran
-   * "AI analizi tamamlandı" yazıyor, oysa hiçbir alan dolmuyor. Sahadan gelen
-   * şikâyet tam olarak buydu. Artık mesajı SONUÇ belirliyor.
+   * AI cevabını forma uygular ve parse sonucunu döndürür.
    */
   const applyAiAnalysis = (
     analysis: AiAnalysis,
-  ): number => {
-    let uygulanan = 0;
+  ) => {
+    const parsed = parseAiAnalysis(analysis);
 
-    if (
-      analysis.species === "cat" ||
-      analysis.species === "CAT"
-    ) {
-      setSpecies("CAT");
-      uygulanan += 1;
-    } else if (
-      analysis.species === "dog" ||
-      analysis.species === "DOG"
-    ) {
-      setSpecies("DOG");
-      uygulanan += 1;
+    if (parsed.species === "CAT" || parsed.species === "DOG") {
+      setSpecies(parsed.species);
     }
 
-    if (
-      analysis.breed &&
-      analysis.breed.trim()
-    ) {
-      setBreed(analysis.breed);
-      uygulanan += 1;
+    if (parsed.breed) {
+      setBreed(parsed.breed);
     }
 
-    if (
-      analysis.pattern &&
-      AI_PATTERN_MAP[
-        analysis.pattern.toLowerCase()
-      ]
-    ) {
-      setCoatPattern(
-        AI_PATTERN_MAP[
-          analysis.pattern.toLowerCase()
-        ],
-      );
-      uygulanan += 1;
+    setCoatPattern(parsed.coatPattern);
+
+    if (parsed.colors.length > 0) {
+      setColors(parsed.colors);
     }
 
-    /*
-     * Renkler `colors` alanindan DEGIL `labels`tan okunuyor.
-     * `colors` baskin renklerin RGB degerlerini tasiyor; okunabilir adlar
-     * etiketlerde "soft:color_gray" bicimindedir. Eskiden RGB nesnesi
-     * String()'e verildigi icin "[object Object]" cikiyor ve hicbir renk
-     * eslesmiyordu.
-     */
-    const etiketten = (onek: string) =>
-      (analysis.labels ?? [])
-        .filter((etiket) =>
-          etiket.startsWith(onek),
-        )
-        .map((etiket) =>
-          etiket
-            .slice(onek.length)
-            .toLowerCase(),
-        );
-
-    const detectedColors = etiketten(
-      "soft:color_",
-    )
-      .map((ad) => AI_COLOR_MAP[ad])
-      .filter(
-        (color): color is PetColor =>
-          Boolean(color),
-      );
-
-    if (detectedColors.length > 0) {
-      setColors([
-        ...new Set(detectedColors),
-      ]);
-      uygulanan += 1;
+    if (parsed.eyeColor !== "UNKNOWN") {
+      setEyeColor(parsed.eyeColor);
     }
 
-    // Goz rengi (eye_color)
-    const eyeColors = etiketten("hard:eye_color_");
-    if (eyeColors.length > 0 && eyeColors[0] !== "unknown") {
-      const eyeMap: Record<string, EyeColor> = {
-        brown: "BROWN",
-        blue: "BLUE",
-        green: "GREEN",
-        amber: "AMBER",
-        hazel: "HAZEL",
-        heterochromia: "HETEROCHROMIA",
-      };
-      if (eyeMap[eyeColors[0]]) {
-        setEyeColor(eyeMap[eyeColors[0]]);
-        uygulanan += 1;
-      }
+    if (parsed.collarStatus !== "UNKNOWN") {
+      setCollarStatus(parsed.collarStatus);
     }
 
-    // Tasma (collar)
-    const collar = etiketten("bonus:collar_");
-    if (collar.length > 0) {
-      if (collar[0] === "collar") {
-        setCollarStatus("YES");
-        uygulanan += 1;
-      } else if (collar[0] === "no_collar") {
-        setCollarStatus("NO");
-        uygulanan += 1;
-      }
+    if (parsed.earTagStatus !== "UNKNOWN") {
+      setEarTagStatus(parsed.earTagStatus);
     }
 
-    // Kulak Kupesi (ear_tag)
-    const earTag = etiketten("bonus:ear_tag_");
-    if (earTag.length > 0) {
-      if (earTag[0] === "ear_tag") {
-        setEarTagStatus("YES");
-        uygulanan += 1;
-      } else if (earTag[0] === "no_ear_tag") {
-        setEarTagStatus("NO");
-        uygulanan += 1;
-      }
-    }
-
-    return uygulanan;
+    return parsed;
   };
 
   const runAiAnalysis = async () => {
@@ -653,21 +500,20 @@ export default function AddListingPage() {
 
     try {
       const analysis = await analyzeImage(images[0].file);
+      const parsed = applyAiAnalysis(analysis);
 
-      if (analysis.is_pet === false) {
+      if (!parsed.isPet) {
         setAnalysisMessage(
           "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
         );
       } else {
-        const uygulananAlan = applyAiAnalysis(analysis);
-
         /*
          * "Tamamlandı" demek, iş yapıldığını söylemektir. AI hiçbir alan
          * dolduramadıysa kullanıcıya doğruyu söylüyoruz — yoksa dolmayan
          * formu kendi hatası sanıyor.
          */
         setAnalysisMessage(
-          uygulananAlan > 0
+          parsed.appliedCount > 0
             ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
             : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
         );
@@ -712,7 +558,7 @@ export default function AddListingPage() {
            * (sonuç zaten formda görünüyor); dolmadıysa kullanıcıya ne
            * yapacağını söyleyen TEK yer bu satır.
            */
-          if (uygulananAlan > 0) {
+          if (parsed.appliedCount > 0) {
             setAnalysisMessage("");
           }
         }

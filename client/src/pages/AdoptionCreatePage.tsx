@@ -21,7 +21,8 @@ import AiAutofillCard from "../components/AiAutofillCard";
 import { request } from "../services/api";
 import { ilIlcedenKoordinat } from "../utils/geokod";
 import { konumAl, konumHataMesaji } from "../utils/konum";
-import type { PetColor } from "../services/types";
+import type { AiAnalysis, PetColor } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 
@@ -60,25 +61,6 @@ const COLOR_LABELS: Record<PetColor, string> = {
   GOLDEN: "Altın",
   BEIGE: "Bej",
   OTHER: "Diğer",
-};
-
-const AI_COLOR_MAP: Record<string, PetColor> = {
-  black: "BLACK",
-  white: "WHITE",
-  gray: "GRAY",
-  grey: "GRAY",
-  brown: "BROWN",
-  orange: "ORANGE",
-  cream: "CREAM",
-  golden: "GOLDEN",
-  beige: "BEIGE",
-};
-
-type AiAnalysis = {
-  species?: string;
-  is_pet?: boolean;
-  breed?: string | null;
-  labels?: string[];
 };
 
 function parseColorsFromText(text: string): PetColor[] {
@@ -168,48 +150,26 @@ export default function AdoptionCreatePage() {
         requiresAuth: true,
       });
 
-      if (analysis.is_pet === false) {
+      const parsed = parseAiAnalysis(analysis);
+
+      if (!parsed.isPet) {
         setAnalysisMessage("AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.");
       } else {
-        /*
-         * AI servisi öznitelik çıkarımı patladığında sessizce boş sonuç
-         * dönüyor (PATIMATI-AI/app/main.py:145-152) ama `is_pet: true`
-         * olduğu için burası "tamamlandı" yazıyordu. Mesajı artık GERÇEKTEN
-         * doldurulan alan sayısı belirliyor.
-         */
-        let uygulanan = 0;
-
-        if (analysis.species === "cat" || analysis.species === "CAT") {
-          updateForm("species", "CAT");
-          uygulanan += 1;
-        } else if (analysis.species === "dog" || analysis.species === "DOG") {
-          updateForm("species", "DOG");
-          uygulanan += 1;
+        if (parsed.species) {
+          updateForm("species", parsed.species);
         }
 
-        if (analysis.breed && analysis.breed.trim()) {
-          updateForm("breed", analysis.breed.trim());
-          uygulanan += 1;
+        if (parsed.breed) {
+          updateForm("breed", parsed.breed);
         }
 
-        const etiketten = (onek: string) =>
-          (analysis.labels ?? [])
-            .filter((e) => e.startsWith(onek))
-            .map((e) => e.slice(onek.length).toLowerCase());
-
-        const detectedColors = etiketten("soft:color_")
-          .map((ad) => AI_COLOR_MAP[ad])
-          .filter((c): c is PetColor => Boolean(c));
-
-        if (detectedColors.length > 0) {
-          const uniqueColors = [...new Set(detectedColors)];
-          const colorNames = uniqueColors.map((c) => COLOR_LABELS[c]).join(", ");
+        if (parsed.colors.length > 0) {
+          const colorNames = parsed.colors.map((c) => COLOR_LABELS[c] || c).join(", ");
           updateForm("color", colorNames);
-          uygulanan += 1;
         }
 
         setAnalysisMessage(
-          uygulanan > 0
+          parsed.appliedCount > 0
             ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
             : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
         );

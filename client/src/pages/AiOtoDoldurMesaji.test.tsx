@@ -33,9 +33,13 @@ vi.mock("../components/CreateAdLayout", () => ({
 
 const { istek } = vi.hoisted(() => ({ istek: vi.fn() }));
 
-vi.mock("../services/api", () => ({
-  request: istek,
-}));
+vi.mock("../services/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/api")>();
+  return {
+    ...actual,
+    request: istek,
+  };
+});
 
 vi.mock("../utils/imageCompression", () => ({
   compressImagesWithinLimit: vi.fn(async (dosyalar: File[]) => ({
@@ -107,6 +111,27 @@ describe("AI oto-doldurma mesajı sonucu YANSITIR", () => {
       pattern: "tabby",
       colors: [],
       is_pet: true,
+    });
+
+    const { container } = render(<AdoptionCreatePage />);
+    await fotografEkleVeAnalizEt(container);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Bilgiler forma aktarıldı/i),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("gerçek backend AI response yapısını (species: CAT, breed: Abyssinian, colors: [GRAY, BROWN]) doğru aktarır", async () => {
+    istek.mockResolvedValue({
+      species: "CAT",
+      speciesConfidence: 0.9959,
+      breed: "Abyssinian",
+      breedConfidence: 0.7148,
+      coatPattern: "UNKNOWN",
+      colors: ["GRAY", "BROWN"],
+      isPet: true,
     });
 
     const { container } = render(<AdoptionCreatePage />);
