@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aiCevabiniNormallestir } from "./aiAnaliz";
+import { aiCevabiniNormallestir, type AiAnalizCevabi } from "./aiAnaliz";
 
 /**
  * /api/ai/analyze'ın İKİ cevap şekli için normalleştirme bekçisi.
@@ -28,7 +28,7 @@ describe("aiCevabiniNormallestir", () => {
   });
 
   it("yeni şekli (#156) eski alan adlarına çevirir", () => {
-    const sonuc = aiCevabiniNormallestir({
+    const sonuc = aiCevabiniNormallestir<AiAnalizCevabi>({
       species: "CAT",
       breed: "Tekir",
       coatPattern: "TABBY",
@@ -45,13 +45,13 @@ describe("aiCevabiniNormallestir", () => {
   });
 
   it("yeni şekilde isPet:false 'hayvan yok' kapısına ulaşır", () => {
-    const sonuc = aiCevabiniNormallestir({ species: "UNKNOWN", isPet: false });
+    const sonuc = aiCevabiniNormallestir<AiAnalizCevabi>({ species: "UNKNOWN", isPet: false });
 
     expect(sonuc.is_pet).toBe(false);
   });
 
   it("yeni şeklin boş cevabı boş kalır (etiket uydurulmaz)", () => {
-    const sonuc = aiCevabiniNormallestir({
+    const sonuc = aiCevabiniNormallestir<AiAnalizCevabi>({
       species: "UNKNOWN",
       breed: null,
       coatPattern: null,
