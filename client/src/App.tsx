@@ -22,6 +22,7 @@ import SettingsPage from "./pages/SettingsPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
 import MyMatchesPage from "./pages/MyMatchesPage";
+import PotentialMatchesPage from "./pages/PotentialMatchesPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
@@ -79,6 +80,10 @@ function ProtectedMyListingsPage() {
 
 function ProtectedMyMatchesPage() {
   return <RequireAuth component={MyMatchesPage} mode="redirect" />;
+}
+
+function ProtectedPotentialMatchesPage() {
+  return <RequireAuth component={PotentialMatchesPage} mode="redirect" />;
 }
 
 function ProtectedSettingsPage() {
@@ -203,6 +208,10 @@ function App() {
 
         {/* Kullanıcı */}
         <Route path="/my-matches" component={ProtectedMyMatchesPage} />
+        <Route
+          path="/potential-matches"
+          component={ProtectedPotentialMatchesPage}
+        />
         <Route path="/profile/listings" component={ProtectedMyListingsPage} />
         <Route path="/profile" component={ProtectedProfilePage} />
         <Route path="/settings" component={ProtectedSettingsPage} />

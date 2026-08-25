@@ -700,6 +700,7 @@ export default function AdoptionCreatePage() {
                           src={image.preview}
                           alt={`Sahiplendirme fotoğrafı ${index + 1}`}
                           className="h-40 w-full object-cover"
+                          loading="lazy"
                         />
 
                         {index === 0 && (

@@ -4,6 +4,7 @@ import type {
   AdResponse,
   AdminGetParams,
   AdoptionComplaintAdminResponse,
+  ExternalPostAdminResponse,
   Page,
   UserComplaintAdminResponse,
   UserDetailForAdminDTO,
@@ -31,6 +32,7 @@ export function getAdminUsers(params?: AdminGetParams): Promise<Page<UserDetailF
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -72,6 +74,7 @@ export function getAdminAds(params?: AdminGetParams): Promise<Page<AdResponse>> 
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -122,6 +125,7 @@ export function getAdminAdComplaints(params?: AdminGetParams): Promise<Page<AdCo
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -142,6 +146,7 @@ export function getAdminUserComplaints(params?: AdminGetParams): Promise<Page<Us
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }
@@ -162,6 +167,30 @@ export function getAdminAdoptionComplaints(params?: AdminGetParams): Promise<Pag
     {
       method: "GET",
       requiresAuth: true,
+      signal: params?.signal,
+    },
+  );
+}
+
+/**
+ * GET /api/admin/external-posts
+ */
+export function getAdminExternalPosts(params?: {
+  page?: number;
+  size?: number;
+  signal?: AbortSignal;
+}): Promise<Page<ExternalPostAdminResponse>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.set("page", String(params.page));
+  if (params?.size !== undefined) searchParams.set("size", String(params.size));
+
+  const query = searchParams.toString();
+  return request<Page<ExternalPostAdminResponse>>(
+    `/api/admin/external-posts${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      requiresAuth: true,
+      signal: params?.signal,
     },
   );
 }

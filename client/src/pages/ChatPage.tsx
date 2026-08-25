@@ -290,6 +290,10 @@ export default function ChatPage() {
   // 1. Oda Listesi Fetch İşlemi (GET /api/messages/rooms)
   useEffect(() => {
     if (!activeUserId || !Number.isFinite(activeUserId)) {
+      // Aktif sohbet partneri degistiginde onceki partnerin mesajlarinin bir
+      // an icin gorunmesini onlemek icin senkron temizleme; asil veri cekimi
+      // asagida loadChatHistory icinde.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([]);
       return;
     }

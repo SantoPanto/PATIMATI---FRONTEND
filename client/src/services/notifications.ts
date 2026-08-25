@@ -347,6 +347,13 @@ export function getNotificationHref(
     return "/my-matches";
   }
 
+  // AiMatchNotifier (backend) hem native hem Instagram kaynaklı olası
+  // eşleşmeler için bu tipte gönderir (bkz. PATIMATI---BACKEND
+  // ai/AiMatchNotifier.java) -- tek bir adId yok, liste sayfasına gider.
+  if (type === "POTENTIAL_MATCH") {
+    return "/potential-matches";
+  }
+
   // Çevre uyarısı (konum aboneliği): hedef ilanın kendisi
   if (
     type === "NEARBY_AD" &&

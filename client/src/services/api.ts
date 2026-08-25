@@ -194,7 +194,7 @@ export async function request<T>(
         signal: zamanAsimiKontrolu.signal,
       },
     );
-  } catch (error) {
+  } catch (err) {
     /*
      * Zaman aşımı ile kullanıcının/çağıranın iptali AYNI hatayı (AbortError)
      * üretir; ayırt eden tek şey bayrağımız. Zaman aşımını ApiError'a
@@ -203,7 +203,21 @@ export async function request<T>(
     if (zamanAsimiOldu) {
       throw new ApiError(ZAMAN_ASIMI_MESAJI, ZAMAN_ASIMI_DURUMU, null);
     }
-    throw error;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      // Kasıtlı iptal (çağıranın kendi AbortController.abort()'u) -- gerçek
+      // bir ağ hatası değil, ApiError'a çevrilmeden olduğu gibi fırlatılmalı
+      // ki çağıran taraf (ör. bir useEffect cleanup'ı) bunu kullanıcıya hata
+      // olarak göstermesin.
+      throw err;
+    }
+    // fetch() burada çıplak bir TypeError fırlatır (bağlantı koptu, DNS
+    // çözülemedi, CORS engellendi vb.). Çağıranların çoğu ApiError
+    // bekliyor; aynı biçime çeviriyoruz.
+    throw new ApiError(
+      "Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.",
+      0,
+      null,
+    );
   } finally {
     window.clearTimeout(zamanlayici);
     cagiranSignali?.removeEventListener("abort", cagiranIptaliniAktar);

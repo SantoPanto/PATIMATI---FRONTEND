@@ -62,6 +62,9 @@ export default function AdEditModal({
 
   useEffect(() => {
     if (isOpen && ad) {
+      // Modal her acildiginda veya farkli bir ilan icin acildiginda formu o
+      // ilanin (dis) verisiyle senkronlamak bu effect'in var olma sebebi.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(ad.title || "");
       setDescription(ad.description || "");
       setSpecies(ad.species || "UNKNOWN");
