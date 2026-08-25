@@ -13,7 +13,9 @@ import {
   Flag,
   LayoutGrid,
   Loader2,
+  Megaphone,
   RefreshCw,
+  Send,
   Shield,
   Trash2,
   UserCheck,
@@ -23,6 +25,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import AdminFilterBar from "../components/admin/AdminFilterBar";
+import InstagramPublishModal from "../components/InstagramPublishModal";
 import {
   banUser,
   deleteAdminAd,
@@ -30,8 +33,10 @@ import {
   getAdminAdoptionComplaints,
   getAdminAds,
   getAdminExternalPosts,
+  getAdminInstagramQueue,
   getAdminUserComplaints,
   getAdminUsers,
+  skipInstagramQueueItem,
   suspendAd,
   unhideAd,
   unbanUser,
@@ -41,12 +46,13 @@ import type {
   AdResponse,
   AdoptionComplaintAdminResponse,
   ExternalPostAdminResponse,
+  InstagramQueueItemResponse,
   Page,
   UserComplaintAdminResponse,
   UserDetailForAdminDTO,
 } from "../services/types";
 
-type AdminTab = "users" | "ads" | "complaints" | "instagram";
+type AdminTab = "users" | "ads" | "complaints" | "instagram" | "instagramQueue";
 type ComplaintSubTab = "ads" | "users" | "adoptions";
 
 export default function AdminDashboardPage() {
@@ -85,6 +91,13 @@ export default function AdminDashboardPage() {
     null,
   );
 
+  // State for Instagram publish queue (outbound -- ilanları Instagram'a gönderme)
+  const [instagramQueuePage, setInstagramQueuePage] =
+    useState<Page<InstagramQueueItemResponse> | null>(null);
+  const [instagramQueuePageIndex, setInstagramQueuePageIndex] = useState(0);
+  const [publishModalItem, setPublishModalItem] =
+    useState<InstagramQueueItemResponse | null>(null);
+
   // General state
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | number | null>(
@@ -103,6 +116,7 @@ export default function AdminDashboardPage() {
   const adsAbortRef = useRef<AbortController | null>(null);
   const complaintsAbortRef = useRef<AbortController | null>(null);
   const externalPostsAbortRef = useRef<AbortController | null>(null);
+  const instagramQueueAbortRef = useRef<AbortController | null>(null);
 
   // Bileşen unmount olduğunda hâlâ süren istekleri iptal et (unmount sonrası
   // state güncellemesini önler).
@@ -112,6 +126,7 @@ export default function AdminDashboardPage() {
       adsAbortRef.current?.abort();
       complaintsAbortRef.current?.abort();
       externalPostsAbortRef.current?.abort();
+      instagramQueueAbortRef.current?.abort();
     };
   }, []);
 
@@ -247,6 +262,31 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  // Fetch Instagram publish queue (outbound)
+  const fetchInstagramQueue = useCallback(async (pageIndex: number) => {
+    instagramQueueAbortRef.current?.abort();
+    const controller = new AbortController();
+    instagramQueueAbortRef.current = controller;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getAdminInstagramQueue({
+        page: pageIndex,
+        size: 10,
+        signal: controller.signal,
+      });
+      setInstagramQueuePage(res);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      console.error("Instagram kuyruğu yüklenemedi:", err);
+      setError("Instagram kuyruğu alınamadı.");
+    } finally {
+      if (instagramQueueAbortRef.current === controller) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
   // Effect to load data based on active tab & filters
   useEffect(() => {
     if (activeTab === "users") {
@@ -257,6 +297,8 @@ export default function AdminDashboardPage() {
       fetchComplaints(complaintSubTab, complaintsPageIndex, searchQuery, sortOrder);
     } else if (activeTab === "instagram") {
       fetchExternalPosts(externalPostsPageIndex);
+    } else if (activeTab === "instagramQueue") {
+      fetchInstagramQueue(instagramQueuePageIndex);
     }
   }, [
     activeTab,
@@ -265,12 +307,14 @@ export default function AdminDashboardPage() {
     adsPageIndex,
     complaintsPageIndex,
     externalPostsPageIndex,
+    instagramQueuePageIndex,
     searchQuery,
     sortOrder,
     fetchUsers,
     fetchAds,
     fetchComplaints,
     fetchExternalPosts,
+    fetchInstagramQueue,
   ]);
 
   const handleSearchChange = (query: string) => {
@@ -369,6 +413,27 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSkipInstagramItem = async (id: number) => {
+    if (!window.confirm("Bu ilan Instagram'da paylaşılmayacak. Onaylıyor musunuz?")) {
+      return;
+    }
+
+    try {
+      setActionLoadingId(`instagram-skip-${id}`);
+      setFeedback(null);
+
+      await skipInstagramQueueItem(id);
+      setFeedback("İlan Instagram kuyruğundan çıkarıldı.");
+
+      await fetchInstagramQueue(instagramQueuePageIndex);
+    } catch (err) {
+      console.error("Instagram kuyruk kaydı atlanamadı:", err);
+      setError("İşlem gerçekleştirilemedi.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const getExternalCategoryLabel = (category: string | null) => {
     switch (category) {
       case "LOST":
@@ -435,6 +500,34 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const getInstagramQueueStatusLabel = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "Bekliyor";
+      case "PUBLISHED":
+        return "Gönderildi";
+      case "FAILED":
+        return "Başarısız";
+      case "SKIPPED":
+        return "Atlandı";
+      default:
+        return status;
+    }
+  };
+
+  const getInstagramQueueStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "PUBLISHED":
+        return "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30";
+      case "FAILED":
+        return "bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30";
+      case "SKIPPED":
+        return "bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+      default:
+        return "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30";
+    }
+  };
+
   const getReasonLabel = (reason: string) => {
     switch (reason) {
       case "SAHTE_ILAN":
@@ -482,6 +575,8 @@ export default function AdminDashboardPage() {
                 fetchComplaints(complaintSubTab, complaintsPageIndex);
               if (activeTab === "instagram")
                 fetchExternalPosts(externalPostsPageIndex);
+              if (activeTab === "instagramQueue")
+                fetchInstagramQueue(instagramQueuePageIndex);
             }}
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
@@ -587,6 +682,28 @@ export default function AdminDashboardPage() {
             {externalPostsPage?.totalElements !== undefined && (
               <span className="ml-1.5 px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 {externalPostsPage.totalElements}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("instagramQueue");
+              setError(null);
+              setFeedback(null);
+            }}
+            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "instagramQueue"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
+            }`}
+          >
+            <Megaphone size={18} />
+            <span>Instagram Kuyruğu</span>
+            {instagramQueuePage?.totalElements !== undefined && (
+              <span className="ml-1.5 px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {instagramQueuePage.totalElements}
               </span>
             )}
           </button>
@@ -1331,8 +1448,188 @@ export default function AdminDashboardPage() {
               )}
             </div>
           )}
+
+          {/* 5. INSTAGRAM PUBLISH QUEUE TAB (outbound -- ilanları Instagram'a gönderme) */}
+          {activeTab === "instagramQueue" && (
+            <div>
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
+                  Instagram'a Gönderim Kuyruğu
+                </h2>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Sayfa {instagramQueuePageIndex + 1} /{" "}
+                  {instagramQueuePage?.totalPages || 1}
+                </span>
+              </div>
+
+              {loading && !instagramQueuePage ? (
+                <div className="p-12 flex justify-center items-center text-slate-400 gap-2 dark:text-slate-500">
+                  <Loader2 size={24} className="animate-spin text-blue-600 dark:text-blue-400" />
+                  <span>Instagram kuyruğu yükleniyor...</span>
+                </div>
+              ) : !instagramQueuePage?.content.length ? (
+                <div className="p-12 text-center text-slate-500 font-medium dark:text-slate-400">
+                  Instagram'a gönderim için bekleyen ilan yok.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-xs border-b border-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-800">
+                      <tr>
+                        <th className="px-6 py-4">Fotoğraf</th>
+                        <th className="px-6 py-4">İlan</th>
+                        <th className="px-6 py-4">Gönderi Metni</th>
+                        <th className="px-6 py-4">Durum</th>
+                        <th className="px-6 py-4">Tarih</th>
+                        <th className="px-6 py-4 text-right">İşlem</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+                      {instagramQueuePage.content.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            {item.photoUrl ? (
+                              <img
+                                src={item.photoUrl}
+                                alt=""
+                                className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 dark:bg-slate-800 dark:border-slate-700" />
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            <Link
+                              href={`/ads/${item.adId}`}
+                              className="font-bold text-slate-900 hover:underline dark:text-slate-100"
+                            >
+                              {item.adTitle}
+                            </Link>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                              {item.adType === "LOST"
+                                ? "Kayıp"
+                                : item.adType === "FOUND"
+                                ? "Bulundu"
+                                : "Sahiplendirme"}
+                              {item.ownerDisplayName ? ` · ${item.ownerDisplayName}` : ""}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            <p className="text-xs max-w-xs truncate">
+                              {item.suggestedCaption || "-"}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-block px-2.5 py-1 text-xs font-bold rounded-lg ${getInstagramQueueStatusBadgeClass(
+                                item.status,
+                              )}`}
+                            >
+                              {getInstagramQueueStatusLabel(item.status)}
+                            </span>
+                            {item.failureReason && (
+                              <p className="text-xs text-rose-500 dark:text-rose-400 max-w-xs truncate mt-1">
+                                {item.failureReason}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(item.createdAt).toLocaleString("tr-TR")}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {item.status === "PENDING" ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSkipInstagramItem(item.id)}
+                                  disabled={actionLoadingId === `instagram-skip-${item.id}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition-all disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:border-slate-700"
+                                >
+                                  <X size={14} />
+                                  <span>Atla</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPublishModalItem(item)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all"
+                                >
+                                  <Send size={14} />
+                                  <span>Gönder</span>
+                                </button>
+                              </div>
+                            ) : item.status === "FAILED" ? (
+                              <button
+                                type="button"
+                                onClick={() => setPublishModalItem(item)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all"
+                              >
+                                <Send size={14} />
+                                <span>Tekrar Dene</span>
+                              </button>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {instagramQueuePage && instagramQueuePage.totalPages > 1 && (
+                <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30">
+                  <button
+                    type="button"
+                    disabled={instagramQueuePageIndex <= 0 || loading}
+                    onClick={() =>
+                      setInstagramQueuePageIndex((prev) => prev - 1)
+                    }
+                    className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Önceki</span>
+                  </button>
+
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                    Sayfa {instagramQueuePageIndex + 1} /{" "}
+                    {instagramQueuePage.totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={
+                      instagramQueuePageIndex >=
+                        instagramQueuePage.totalPages - 1 || loading
+                    }
+                    onClick={() =>
+                      setInstagramQueuePageIndex((prev) => prev + 1)
+                    }
+                    className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    <span>Sonraki</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
+
+      {publishModalItem && (
+        <InstagramPublishModal
+          isOpen
+          onClose={() => setPublishModalItem(null)}
+          queueItemId={publishModalItem.id}
+          adTitle={publishModalItem.adTitle}
+          suggestedCaption={publishModalItem.suggestedCaption || ""}
+          onPublished={() => fetchInstagramQueue(instagramQueuePageIndex)}
+        />
+      )}
 
       {lightboxPhotoUrl && (
         <div

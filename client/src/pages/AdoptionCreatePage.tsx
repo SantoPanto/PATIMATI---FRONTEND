@@ -212,6 +212,7 @@ export default function AdoptionCreatePage() {
     healthInfo: "",
     adoptionConditions: "",
     acceptResponsibility: false,
+    instagramShareConsent: false,
   });
 
   const updateForm = <
@@ -576,6 +577,7 @@ export default function AdoptionCreatePage() {
       city: form.city.trim() || undefined,
       district: form.district.trim() || undefined,
       isMatchRequired: false,
+      instagramShareConsent: form.instagramShareConsent,
     };
 
     /*
@@ -1111,6 +1113,34 @@ export default function AdoptionCreatePage() {
                   ve sahiplendirme sürecinde hayvanın
                   güvenliğini önceliklendireceğimi kabul
                   ediyorum.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <input
+                type="checkbox"
+                checked={form.instagramShareConsent}
+                onChange={(e) =>
+                  updateForm(
+                    "instagramShareConsent",
+                    e.target.checked,
+                  )
+                }
+                className="mt-1 h-4 w-4 accent-[#F97316]"
+              />
+
+              <div>
+                <strong className="text-sm text-[#0F172A] dark:text-slate-100">
+                  İlanımın PatiMati Instagram hesabında
+                  paylaşılmasına izin veriyorum.
+                </strong>
+
+                <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
+                  İsteğe bağlıdır. İzin verirsen, ekibimiz
+                  uygun gördüğünde fotoğrafını ve ilan
+                  bilgilerini PatiMati'nin Instagram
+                  hesabında paylaşabilir.
                 </p>
               </div>
             </label>

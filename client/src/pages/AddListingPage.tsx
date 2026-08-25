@@ -223,6 +223,8 @@ export default function AddListingPage() {
   const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
+  const [instagramShareConsent, setInstagramShareConsent] = useState(false);
+
   /* ---------------------------------------------------------------------- */
   /* Helpers                                                                */
   /* ---------------------------------------------------------------------- */
@@ -700,6 +702,8 @@ export default function AddListingPage() {
         longitude: Number(longitude),
 
         isMatchRequired: true,
+
+        instagramShareConsent,
       };
 
       /*
@@ -1725,6 +1729,31 @@ export default function AddListingPage() {
               </span>
             </div>
           )}
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <input
+              type="checkbox"
+              checked={instagramShareConsent}
+              onChange={(event) =>
+                setInstagramShareConsent(event.target.checked)
+              }
+              className="mt-1 h-4 w-4 accent-[#2563EB]"
+            />
+
+            <div>
+              <strong className="text-sm text-[#0F172A] dark:text-slate-100">
+                İlanımın PatiMati Instagram hesabında
+                paylaşılmasına izin veriyorum.
+              </strong>
+
+              <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
+                İsteğe bağlıdır. İzin verirsen, ekibimiz
+                uygun gördüğünde fotoğrafını ve ilan
+                bilgilerini PatiMati'nin Instagram
+                hesabında paylaşabilir.
+              </p>
+            </div>
+          </label>
 
           {/* ---------------------------------------------------------------- */}
           {/* SUBMIT                                                            */}

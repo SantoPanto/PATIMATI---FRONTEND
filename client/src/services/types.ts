@@ -576,6 +576,22 @@ export type ExternalPostAdminResponse = {
   matchedAdId: number | null;
 };
 
+export type InstagramPublishStatus = "PENDING" | "PUBLISHED" | "FAILED" | "SKIPPED";
+
+/** Backend karşılığı: dto/admin/InstagramPublishQueueAdminResponse. */
+export type InstagramQueueItemResponse = {
+  id: number;
+  adId: number;
+  adTitle: string;
+  adType: AdType;
+  ownerDisplayName: string | null;
+  photoUrl: string | null;
+  suggestedCaption: string | null;
+  status: InstagramPublishStatus;
+  failureReason: string | null;
+  createdAt: string; // ISO-8601 UTC
+};
+
 // ==========================================
 // 8. Potential Match Types (/api/me/potential-matches)
 // ==========================================
