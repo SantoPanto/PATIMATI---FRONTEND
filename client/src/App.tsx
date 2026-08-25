@@ -37,6 +37,8 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import VetDirectoryPage from "./pages/VetDirectoryPage";
+import VetPanelPage from "./pages/VetPanelPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
@@ -124,6 +126,12 @@ function ProtectedAdminListingsPage() {
 function ProtectedAdminUsersPage() {
   return (
     <RequireAuth component={AdminUsersPage} mode="redirect" requiredRole="ADMIN" />
+  );
+}
+
+function ProtectedVetPanelPage() {
+  return (
+    <RequireAuth component={VetPanelPage} mode="redirect" requiredRole="VET" />
   );
 }
 
@@ -259,6 +267,10 @@ function App() {
           component={ProtectedAdminListingsPage}
         />
         <Route path="/admin/users" component={ProtectedAdminUsersPage} />
+
+        {/* Hizmetler / Veteriner */}
+        <Route path="/hizmetler/veteriner" component={VetDirectoryPage} />
+        <Route path="/vet/panel" component={ProtectedVetPanelPage} />
 
         {/* Unauthorized */}
         <Route

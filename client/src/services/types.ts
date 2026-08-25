@@ -29,7 +29,7 @@ export type ApiResponse<T = unknown> = {
 // 1. User & Authentication Types (/api/auth)
 // ==========================================
 
-export type Role = "GUEST" | "USER" | "ADMIN";
+export type Role = "GUEST" | "USER" | "ADMIN" | "VET";
 
 export type UserResponseDTO = {
   uid: number;
@@ -590,6 +590,48 @@ export type InstagramQueueItemResponse = {
   status: InstagramPublishStatus;
   failureReason: string | null;
   createdAt: string; // ISO-8601 UTC
+};
+
+/** Backend karşılığı: dto/vet/VetClinicResponse (kendi kartı, GET/PUT /api/vet/clinic). */
+export type VetClinicResponse = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+};
+
+/** Backend karşılığı: dto/vet/VetClinicPublicResponse (herkese açık dizin, GET /api/vet-clinics). */
+export type VetClinicPublicResponse = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+};
+
+export type VetClinicUpsertPayload = {
+  name: string;
+  address: string;
+  city: string;
+  district?: string;
+  phone: string;
+  workingHours?: string;
+  photo?: File;
+};
+
+/** Backend karşılığı: dto/admin/CreateVetAccountRequest. */
+export type CreateVetAccountPayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 };
 
 // ==========================================
