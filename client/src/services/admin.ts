@@ -5,6 +5,8 @@ import type {
   AdminGetParams,
   AdoptionComplaintAdminResponse,
   ExternalPostAdminResponse,
+  InstagramPublishStatus,
+  InstagramQueueItemResponse,
   Page,
   UserComplaintAdminResponse,
   UserDetailForAdminDTO,
@@ -193,6 +195,52 @@ export function getAdminExternalPosts(params?: {
       signal: params?.signal,
     },
   );
+}
+
+/**
+ * GET /api/admin/instagram-queue
+ */
+export function getAdminInstagramQueue(params?: {
+  page?: number;
+  size?: number;
+  status?: InstagramPublishStatus;
+  signal?: AbortSignal;
+}): Promise<Page<InstagramQueueItemResponse>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.set("page", String(params.page));
+  if (params?.size !== undefined) searchParams.set("size", String(params.size));
+  if (params?.status) searchParams.set("status", params.status);
+
+  const query = searchParams.toString();
+  return request<Page<InstagramQueueItemResponse>>(
+    `/api/admin/instagram-queue${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      requiresAuth: true,
+      signal: params?.signal,
+    },
+  );
+}
+
+/**
+ * POST /api/admin/instagram-queue/{id}/publish
+ */
+export function publishAdToInstagram(id: number, caption: string): Promise<{ message: string }> {
+  return request<{ message: string }>(`/api/admin/instagram-queue/${id}/publish`, {
+    method: "POST",
+    body: JSON.stringify({ caption }),
+    requiresAuth: true,
+  });
+}
+
+/**
+ * POST /api/admin/instagram-queue/{id}/skip
+ */
+export function skipInstagramQueueItem(id: number): Promise<{ message: string }> {
+  return request<{ message: string }>(`/api/admin/instagram-queue/${id}/skip`, {
+    method: "POST",
+    requiresAuth: true,
+  });
 }
 
 /**
