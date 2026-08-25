@@ -544,7 +544,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="quick-actions-grid quick-actions-grid--three">
+          <div className="quick-actions-grid quick-actions-grid--four">
             <button
               type="button"
               className="quick-action-card quick-action-card--lost"
@@ -640,6 +640,39 @@ export default function HomePage() {
               </div>
 
               <PawPrint
+                className="quick-action-card__decoration"
+                size={120}
+              />
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-card quick-action-card--ben-neyim"
+              onClick={() => navigate("/ben-neyim")}
+            >
+              <div className="quick-action-card__icon">
+                <Sparkles size={28} />
+              </div>
+
+              <div className="quick-action-card__content">
+                <span className="quick-action-card__label">
+                  Yapay zekâ analizi
+                </span>
+
+                <h3>Ben neyim?</h3>
+
+                <p>
+                  Bir fotoğraf yükle, türünü, ırkını ve daha fazlasını
+                  yapay zekâ ile öğren — giriş yapmana gerek yok.
+                </p>
+
+                <span className="quick-action-card__link">
+                  Analiz et
+                  <ChevronRight size={18} />
+                </span>
+              </div>
+
+              <Sparkles
                 className="quick-action-card__decoration"
                 size={120}
               />
