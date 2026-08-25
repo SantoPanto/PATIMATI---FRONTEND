@@ -16,6 +16,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import AiMatchPage from "./pages/AiMatchPage";
 import AiMatchResultsPage from "./pages/AiMatchResultsPage";
+import BenNeyimPage from "./pages/BenNeyimPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
@@ -68,6 +69,10 @@ function ProtectedChatDetailPage() {
 
 function ProtectedAdoptionCreatePage() {
   return <RequireAuth component={AdoptionCreatePage} mode="redirect" />;
+}
+
+function ProtectedBenNeyimPage() {
+  return <RequireAuth component={BenNeyimPage} mode="redirect" />;
 }
 
 function ProtectedProfilePage() {
@@ -191,6 +196,11 @@ function App() {
         {/* AI Eşleşme */}
         <Route path="/ai-match" component={AiMatchPage} />
         <Route path="/ai-match-results" component={AiMatchResultsPage} />
+
+        {/* Ben Neyim? -- yalnızca kayıtlı kullanıcılar (bkz. sayfaya doğrudan
+            gidiliyor olması: ProtectedAdoptionCreatePage/profile ile AYNI
+            "redirect" deseni) */}
+        <Route path="/ben-neyim" component={ProtectedBenNeyimPage} />
 
         {/* Buldum İlanı */}
         <Route

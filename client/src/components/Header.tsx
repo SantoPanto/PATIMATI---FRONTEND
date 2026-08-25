@@ -1,6 +1,7 @@
 import {
   Bell,
   LogOut,
+  MessageCircle,
   Moon,
   PawPrint,
   ShieldAlert,
@@ -151,14 +152,14 @@ export default function Header() {
           </Link>
 
           <Link
-            href="/chat"
+            href="/ben-neyim"
             className={
-              isActive("/chat")
+              isActive("/ben-neyim")
                 ? "navigation-link active"
                 : "navigation-link"
             }
           >
-            Mesajlar
+            Ben neyim?
           </Link>
         </nav>
 
@@ -188,6 +189,15 @@ export default function Header() {
                 {(hasUnreadNotifications || hasPendingMatch) && (
                   <span className="notification-dot" />
                 )}
+              </button>
+
+              <button
+                className="header-notification-button"
+                type="button"
+                aria-label="Mesajları görüntüle"
+                onClick={() => navigate("/chat")}
+              >
+                <MessageCircle size={20} />
               </button>
 
               <Link
