@@ -226,6 +226,14 @@ export type AdResponse = {
    * Ikisi de active=false uretiyor; ayirt eden tek alan bu.
    */
   suspended: boolean;
+  /**
+   * İlanın nasıl kapandığı -- bkz. yukarıdaki AdResolutionStatus tanımı.
+   * `active=false`'un TEK BAŞINA "sahibi kaldırdı" mı "hayvan bulundu" mu
+   * olduğunu ayırt eder. Opsiyonel: backend bu alanı henüz her durumda
+   * doldurmuyor, MyListingsPage bu yüzden değeri undefined iken eski
+   * davranışı (yayından kaldırıldı) koruyacak şekilde yazıldı.
+   */
+  resolutionStatus?: AdResolutionStatus;
   createdAt: string; // ISO-8601 UTC
   updatedAt: string; // ISO-8601 UTC
   aiStatus?: AiStatus;
@@ -235,7 +243,6 @@ export type AdResponse = {
   showPhoneOnPoster?: boolean;
   city?: string;
   district?: string;
-  resolutionStatus?: string;
 };
 
 /**
@@ -356,6 +363,10 @@ export type MessageResponse = {
 // 5. Complaint Types (/api/complaints)
 // ==========================================
 
+// Backend'in tek ComplaintReason enum'uyla (Ad/Adoption/User şikayetlerinin
+// üçü de aynısını kullanır) birebir aynı olmalı -- bkz.
+// PATIMATI---BACKEND-social/.../entity/enums/ComplaintReason.java. Bunun
+// dışındaki bir değer backend'den 400 döner.
 export type ComplaintReason =
   | "SAHTE_ILAN"
   | "UYGUNSUZ_ICERIK"
@@ -403,6 +414,7 @@ export type AdminGetParams = {
   size?: number;
   search?: string;
   sort?: string;
+  signal?: AbortSignal;
 };
 
 /**
@@ -498,8 +510,64 @@ export type MatchResponseDTO = {
   createdAt?: string;
 };
 
+export type ExternalPostAdminResponse = {
+  id: number;
+  source: string;
+  sourcePostId: string;
+  canonicalUrl: string;
+  authorUsername: string | null;
+  caption: string | null;
+  detectedAt: string; // ISO-8601 UTC
+  processingStatus: string;
+  failureReason: string | null;
+  photoUrl: string | null;
+  category: string | null;
+  categoryConfidence: number | null;
+  species: string | null;
+  breed: string | null;
+  needsReview: boolean | null;
+  hasMatch: boolean;
+  matchedAdId: number | null;
+};
+
 // ==========================================
-// 8. User Online Status Types (/api/users/{userId}/status)
+// 8. Potential Match Types (/api/me/potential-matches)
+// ==========================================
+
+export type PotentialMatchStatus =
+  | "PENDING"
+  | "NOTIFIED"
+  | "VIEWED"
+  | "REJECTED"
+  | "CONFIRMED"
+  | "EXPIRED"
+  | "NOTIFICATION_FAILED";
+
+export type PotentialMatchCounterparty = {
+  kind: "AD" | "EXTERNAL";
+  id: number;
+  title?: string | null;
+  photoUrl?: string | null;
+  adType?: AdType | null;
+  category?: "LOST" | "FOUND" | "ADOPTION" | "IRRELEVANT" | "UNCERTAIN" | null;
+  species?: string | null;
+  breed?: string | null;
+  sourceUrl?: string | null;
+};
+
+export type PotentialMatchSummaryResponse = {
+  recipientId: number;
+  matchId: number;
+  status: PotentialMatchStatus;
+  finalScore: number;
+  createdAt: string; // ISO-8601 UTC
+  counterparty: PotentialMatchCounterparty;
+};
+
+export type PotentialMatchDecision = "CONFIRMED" | "REJECTED";
+
+// ==========================================
+// 9. User Online Status Types (/api/users/{userId}/status)
 // ==========================================
 
 export type UserStatusResponse = {
@@ -515,4 +583,3 @@ export type UserStatusEvent = {
   status?: "ONLINE" | "OFFLINE" | string;
   lastSeen?: string | null;
 };
-

@@ -211,6 +211,9 @@ export default function PetDetailPage() {
 
   useEffect(() => {
     if (!user || !isValidId) {
+      // Kullanici/ilan degistiginde onceki favori durumunun bir an icin
+      // gorunmesini onlemek icin senkron temizleme; asil veri cekimi asagida.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsFavorite(false);
       return;
     }
@@ -534,6 +537,7 @@ export default function PetDetailPage() {
                         src={photoUrl}
                         alt={`${ad.title} - ${idx + 1}`}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     </button>
                   ))}

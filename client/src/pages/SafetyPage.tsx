@@ -15,14 +15,14 @@ export default function SafetyPage() {
       <Header />
 
       <main>
-        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#EFF6FF] via-white to-[#FFF7ED]">
+        <section className="border-b border-[#E2E8F0] bg-gradient-to-br from-[#EFF6FF] via-white to-[#FFF7ED] dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
           <div className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-bold text-[#2563EB]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-bold text-[#2563EB] dark:border-blue-500/20 dark:bg-slate-900 dark:text-blue-400">
               <ShieldCheck size={17} />
               Güvenlik rehberi
             </span>
 
-            <h1 className="mt-6 max-w-4xl text-4xl font-bold sm:text-5xl dark:text-[#0F172A]">
+            <h1 className="mt-6 max-w-4xl text-4xl font-bold sm:text-5xl">
               Güvenli iletişim
               <span className="text-[#2563EB]">
                 {" "}
@@ -30,7 +30,7 @@ export default function SafetyPage() {
               </span>
             </h1>
 
-            <p className="mt-5 max-w-3xl text-lg leading-8 text-[#64748B]">
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-[#64748B] dark:text-slate-400">
               Kayıp bulunan veya sahiplendirilecek bir hayvan için
               iletişim kurarken birkaç temel güvenlik adımına dikkat
               etmek hem seni hem de hayvanı korur

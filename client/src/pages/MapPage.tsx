@@ -302,6 +302,7 @@ export default function MapPage() {
                           src={getImageUrl(ad.photoUrls[0])}
                           alt={ad.title}
                           className="map-popup__image"
+                          loading="lazy"
                         />
                       )}
 

@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 // `defineConfig` bilerek 'vite'ten degil 'vitest/config'ten aliniyor: ikisi ayni
 // yapilandirmayi uretir, ama yalniz bu ikincisi `test` alanini TANIR. 'vite'ten
 // alinirsa `test` bloguna tsc "boyle bir alan yok" der ve tip denetimi kirilir.

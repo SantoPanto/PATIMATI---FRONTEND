@@ -220,7 +220,7 @@ export default function MyListingsPage() {
             {ads.map((ad) => (
               <article key={ad.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <Link href={getAdDetailPath(ad)} className="relative block h-56 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img src={getAdImage(ad)} alt={ad.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" />
+                  <img src={getAdImage(ad)} alt={ad.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" loading="lazy" />
                   <span className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold ${ad.active ? "bg-emerald-500 text-white" : "bg-slate-700 text-white"}`}>
                     {ad.active
                       ? "Yayında"

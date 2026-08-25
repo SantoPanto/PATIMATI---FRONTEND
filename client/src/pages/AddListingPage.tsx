@@ -757,16 +757,11 @@ export default function AddListingPage() {
        * değeriyle birlikte kendisi oluşturur.
        */
       const url = adType === "ADOPTION" ? "/api/adoptions" : "/api/ads";
-      const responseData = await request<AdResponse>(url, {
+      await request<AdResponse>(url, {
         method: "POST",
         requiresAuth: true,
         body: formData,
       });
-
-      console.log(
-        "PatiMati listing created:",
-        responseData,
-      );
 
       /*
        * Release preview object URLs.
@@ -921,6 +916,7 @@ export default function AddListingPage() {
                         index + 1
                       }`}
                       className="h-full w-full object-cover"
+                      loading="lazy"
                     />
 
                     {index === 0 && (

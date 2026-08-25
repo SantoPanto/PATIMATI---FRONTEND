@@ -100,6 +100,7 @@ describe('MyListingsPage — kapanmış ilan', () => {
   })
 
   it('alan HIC gelmezse eski davranis korunur — arka yuzu beklemez', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- alani disarida birakmak icin kasitli destructuring
     const { resolutionStatus: _yok, ...alansiz } = {
       ...TEMEL,
       resolutionStatus: undefined,
