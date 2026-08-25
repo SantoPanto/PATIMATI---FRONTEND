@@ -71,6 +71,10 @@ function ProtectedAdoptionCreatePage() {
   return <RequireAuth component={AdoptionCreatePage} mode="redirect" />;
 }
 
+function ProtectedBenNeyimPage() {
+  return <RequireAuth component={BenNeyimPage} mode="redirect" />;
+}
+
 function ProtectedProfilePage() {
   return <RequireAuth component={ProfilePage} mode="redirect" />;
 }
@@ -193,8 +197,10 @@ function App() {
         <Route path="/ai-match" component={AiMatchPage} />
         <Route path="/ai-match-results" component={AiMatchResultsPage} />
 
-        {/* Ben Neyim? -- /ai-match ile AYNI desen: sarmalayıcısız, girişsiz erişilebilir */}
-        <Route path="/ben-neyim" component={BenNeyimPage} />
+        {/* Ben Neyim? -- yalnızca kayıtlı kullanıcılar (bkz. sayfaya doğrudan
+            gidiliyor olması: ProtectedAdoptionCreatePage/profile ile AYNI
+            "redirect" deseni) */}
+        <Route path="/ben-neyim" component={ProtectedBenNeyimPage} />
 
         {/* Buldum İlanı */}
         <Route

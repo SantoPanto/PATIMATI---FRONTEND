@@ -4,7 +4,6 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
-import { Link } from "wouter";
 import {
   AlertTriangle,
   Cake,
@@ -29,7 +28,6 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { useAuth } from "../contexts/AuthContext";
 import { ApiError } from "../services/api";
 import { hataNedeniMesaji, petRaporuAl } from "../services/petAnalizi";
 import type { PetReportResult } from "../services/types";
@@ -122,7 +120,6 @@ function SonucKarti({
 }
 
 export default function BenNeyimPage() {
-  const { isAuthenticated } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photo, setPhoto] = useState<File | null>(null);
@@ -132,14 +129,12 @@ export default function BenNeyimPage() {
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [rateLimited, setRateLimited] = useState(false);
   const [result, setResult] = useState<PetReportResult | null>(null);
 
   const openFilePicker = () => fileInputRef.current?.click();
 
   const handleFile = async (file: File) => {
     setErrorMessage("");
-    setRateLimited(false);
     setResult(null);
 
     if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
@@ -193,14 +188,12 @@ export default function BenNeyimPage() {
     setPreview(null);
     setResult(null);
     setErrorMessage("");
-    setRateLimited(false);
   };
 
   const handleSubmit = async () => {
     if (!photo) return;
     setIsSubmitting(true);
     setErrorMessage("");
-    setRateLimited(false);
     setResult(null);
 
     try {
@@ -208,7 +201,6 @@ export default function BenNeyimPage() {
       setResult(sonuc);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
-        setRateLimited(true);
         setErrorMessage(err.message);
       } else {
         setErrorMessage(getUserErrorMessage(err));
@@ -241,8 +233,7 @@ export default function BenNeyimPage() {
 
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#64748B] dark:text-slate-400">
               Kedi veya köpeğinin bir fotoğrafını yükle; ırkını, karakterini,
-              bakım ipuçlarını ve daha fazlasını öğren. Giriş yapmana gerek
-              yok.
+              bakım ipuçlarını ve daha fazlasını öğren.
             </p>
           </div>
         </section>
@@ -373,17 +364,7 @@ export default function BenNeyimPage() {
           {errorMessage && !result && (
             <div className="mt-4 flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-500/10 dark:text-rose-300">
               <AlertTriangle size={19} className="mt-0.5 shrink-0" />
-              <div>
-                <p>{errorMessage}</p>
-                {rateLimited && !isAuthenticated && (
-                  <Link
-                    href="/login"
-                    className="mt-2 inline-block font-bold underline underline-offset-2"
-                  >
-                    Giriş yap
-                  </Link>
-                )}
-              </div>
+              <p>{errorMessage}</p>
             </div>
           )}
 

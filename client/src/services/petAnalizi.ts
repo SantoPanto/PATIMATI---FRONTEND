@@ -35,10 +35,9 @@ export function hataNedeniMesaji(hataNedeni?: string | null): string {
 /**
  * "Ben Neyim?" — tek bir kedi/köpek fotoğrafından zengin bir analiz raporu.
  *
- * POST /api/public/pet-analiz — girişsiz erişilebilir (bkz. services/
- * sightings.ts::createSighting ile aynı desen); oturum varsa jeton
- * `request()` tarafından kendiliğinden eklenir ve backend'de daha yüksek
- * bir günlük limit uygulanır (misafir/kullanıcı ayrımı backend'de).
+ * POST /api/public/pet-analiz — yalnızca girişli kullanıcılar (backend
+ * misafir isteğini 401 ile reddeder); jeton `request()` tarafından
+ * kendiliğinden eklenir. Günlük istek limiti backend'de uygulanır.
  *
  * Gövde multipart: "file" (zorunlu) + "kullanici_notu" (opsiyonel).
  */

@@ -663,7 +663,7 @@ export default function HomePage() {
 
                 <p>
                   Bir fotoğraf yükle, türünü, ırkını ve daha fazlasını
-                  yapay zekâ ile öğren — giriş yapmana gerek yok.
+                  yapay zekâ ile öğren.
                 </p>
 
                 <span className="quick-action-card__link">
