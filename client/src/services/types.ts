@@ -583,3 +583,17 @@ export type UserStatusEvent = {
   status?: "ONLINE" | "OFFLINE" | string;
   lastSeen?: string | null;
 };
+
+// ==========================================
+// 10. Realtime Notification Event (/user/queue/notifications)
+// ==========================================
+
+export type WsNotificationEvent = {
+  id: number | string;
+  title: string;
+  body: string;
+  type: string;
+  data?: Record<string, unknown> | null;
+  read: boolean;
+  createdAt: string;
+};

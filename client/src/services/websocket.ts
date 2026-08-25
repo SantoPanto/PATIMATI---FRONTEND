@@ -3,7 +3,7 @@ import SockJS from "sockjs-client";
 
 import { API_BASE_URL, notifyUnauthorized } from "./api";
 import { clearAuthStorage, getStoredToken } from "./auth";
-import type { MessageResponse, UserStatusEvent } from "./types";
+import type { MessageResponse, UserStatusEvent, WsNotificationEvent } from "./types";
 
 let stompClient: Client | null = null;
 let clientInstanceCounter = 0;
@@ -12,6 +12,7 @@ let isReconnecting = false;
 
 const messageListeners = new Set<(message: MessageResponse) => void>();
 const userStatusListeners = new Set<(event: UserStatusEvent) => void>();
+const notificationListeners = new Set<(event: WsNotificationEvent) => void>();
 
 /*
  * BAĞLANTI DURUMU DİNLEYİCİLERİ — neden küme:
@@ -96,6 +97,23 @@ export function subscribeToUserStatus(
   userStatusListeners.add(listener);
   return () => {
     userStatusListeners.delete(listener);
+  };
+}
+
+/**
+ * `/user/queue/notifications` üzerinden gelen bildirimleri dinler.
+ *
+ * Bu, Firebase (FCM) push bildirimlerinden BAĞIMSIZ ikinci bir kanaldır --
+ * bildirim izni verilmemiş ya da service worker aktif olmayan tarayıcılarda
+ * da, kullanıcı siteye açıkken bildirimlerin F5 gerekmeden anlık düşmesini
+ * sağlar.
+ */
+export function subscribeToNotificationEvents(
+  listener: (event: WsNotificationEvent) => void,
+): () => void {
+  notificationListeners.add(listener);
+  return () => {
+    notificationListeners.delete(listener);
   };
 }
 
@@ -219,6 +237,17 @@ export function connectWebSocket(
         }
       });
       if (subStatus) activeSubscriptions.push(subStatus);
+
+      console.log(`[WS SUBSCRIBE] [Instance #${instanceId}] Subscribing to /user/queue/notifications`);
+      const subNotifications = stompClient?.subscribe("/user/queue/notifications", (notificationFrame) => {
+        try {
+          const notificationEvent: WsNotificationEvent = JSON.parse(notificationFrame.body);
+          notificationListeners.forEach((listener) => listener(notificationEvent));
+        } catch (parseErr) {
+          console.error("Bildirim ayrıştırma hatası:", parseErr);
+        }
+      });
+      if (subNotifications) activeSubscriptions.push(subNotifications);
     },
 
     onDisconnect: () => {
