@@ -16,12 +16,14 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChatPage from "./pages/ChatPage";
 import AiMatchPage from "./pages/AiMatchPage";
 import AiMatchResultsPage from "./pages/AiMatchResultsPage";
+import BenNeyimPage from "./pages/BenNeyimPage";
 import NotFound from "./pages/NotFound";
 import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
 import MyMatchesPage from "./pages/MyMatchesPage";
+import PotentialMatchesPage from "./pages/PotentialMatchesPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
@@ -69,6 +71,10 @@ function ProtectedAdoptionCreatePage() {
   return <RequireAuth component={AdoptionCreatePage} mode="redirect" />;
 }
 
+function ProtectedBenNeyimPage() {
+  return <RequireAuth component={BenNeyimPage} mode="redirect" />;
+}
+
 function ProtectedProfilePage() {
   return <RequireAuth component={ProfilePage} mode="redirect" />;
 }
@@ -79,6 +85,10 @@ function ProtectedMyListingsPage() {
 
 function ProtectedMyMatchesPage() {
   return <RequireAuth component={MyMatchesPage} mode="redirect" />;
+}
+
+function ProtectedPotentialMatchesPage() {
+  return <RequireAuth component={PotentialMatchesPage} mode="redirect" />;
 }
 
 function ProtectedSettingsPage() {
@@ -187,6 +197,11 @@ function App() {
         <Route path="/ai-match" component={AiMatchPage} />
         <Route path="/ai-match-results" component={AiMatchResultsPage} />
 
+        {/* Ben Neyim? -- yalnızca kayıtlı kullanıcılar (bkz. sayfaya doğrudan
+            gidiliyor olması: ProtectedAdoptionCreatePage/profile ile AYNI
+            "redirect" deseni) */}
+        <Route path="/ben-neyim" component={ProtectedBenNeyimPage} />
+
         {/* Buldum İlanı */}
         <Route
           path="/found/create"
@@ -203,6 +218,10 @@ function App() {
 
         {/* Kullanıcı */}
         <Route path="/my-matches" component={ProtectedMyMatchesPage} />
+        <Route
+          path="/potential-matches"
+          component={ProtectedPotentialMatchesPage}
+        />
         <Route path="/profile/listings" component={ProtectedMyListingsPage} />
         <Route path="/profile" component={ProtectedProfilePage} />
         <Route path="/settings" component={ProtectedSettingsPage} />

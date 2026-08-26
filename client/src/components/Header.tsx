@@ -1,20 +1,24 @@
 import {
   Bell,
   LogOut,
+  MessageCircle,
   Moon,
   PawPrint,
   ShieldAlert,
   Sun,
   UserRound,
 } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { getMyPotentialMatches } from "../services/potentialMatches";
 import {
   getNotificationSnapshot,
   subscribeToNotifications,
 } from "../services/notifications";
+
+const PENDING_MATCH_STATUSES = new Set(["PENDING", "NOTIFIED", "VIEWED"]);
 
 export default function Header() {
   const [location, navigate] = useLocation();
@@ -27,6 +31,41 @@ export default function Header() {
   const hasUnreadNotifications = notifications.some(
     (notification) => !notification.read,
   );
+
+  const [hasPendingMatch, setHasPendingMatch] = useState(false);
+
+  useEffect(() => {
+    // Rozet yalnızca aşağıdaki authenticated dalında render edilir, bu
+    // yüzden çıkış yapıldığında state'i senkron sıfırlamaya gerek yok.
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    // Tek seferlik, header mount olduğunda — global bir polling/state
+    // yönetimi bu kapsam için gereksiz. Bu, canlı bildirim mağazasının
+    // (yukarıdaki useSyncExternalStore) KAPSAMADIĞI durumu kapatır:
+    // oturum başlamadan ÖNCE zaten var olan, ön planda hiç görülmemiş
+    // olası eşleşmeler -- mağaza yalnızca uygulama açıkken gelen canlı
+    // FCM push'larını biriktirir, geçmişi geriye dönük çekmez.
+    getMyPotentialMatches()
+      .then((matches) => {
+        if (!cancelled) {
+          setHasPendingMatch(
+            matches.some((match) => PENDING_MATCH_STATUSES.has(match.status)),
+          );
+        }
+      })
+      .catch(() => {
+        // Sessizce yut — bildirim noktası ikincil bir göstergedir,
+        // başarısız olması header'ın geri kalanını bozmamalı.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -113,14 +152,14 @@ export default function Header() {
           </Link>
 
           <Link
-            href="/chat"
+            href="/ben-neyim"
             className={
-              isActive("/chat")
+              isActive("/ben-neyim")
                 ? "navigation-link active"
                 : "navigation-link"
             }
           >
-            Mesajlar
+            Ben neyim?
           </Link>
         </nav>
 
@@ -147,9 +186,18 @@ export default function Header() {
                 onClick={() => navigate("/notifications")}
               >
                 <Bell size={20} />
-                {hasUnreadNotifications && (
+                {(hasUnreadNotifications || hasPendingMatch) && (
                   <span className="notification-dot" />
                 )}
+              </button>
+
+              <button
+                className="header-notification-button"
+                type="button"
+                aria-label="Mesajları görüntüle"
+                onClick={() => navigate("/chat")}
+              >
+                <MessageCircle size={20} />
               </button>
 
               <Link

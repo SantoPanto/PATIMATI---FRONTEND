@@ -322,6 +322,7 @@ export default function Adoption() {
                     <img
                       src={getAdImage(ad)}
                       alt={`${ad.title} isimli ${getSpeciesLabel(ad.species)}`}
+                      loading="lazy"
                     />
                     <span className="adoption-card__type">
                       <PawPrint size={15} />

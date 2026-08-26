@@ -226,6 +226,14 @@ export type AdResponse = {
    * Ikisi de active=false uretiyor; ayirt eden tek alan bu.
    */
   suspended: boolean;
+  /**
+   * İlanın nasıl kapandığı -- bkz. yukarıdaki AdResolutionStatus tanımı.
+   * `active=false`'un TEK BAŞINA "sahibi kaldırdı" mı "hayvan bulundu" mu
+   * olduğunu ayırt eder. Opsiyonel: backend bu alanı henüz her durumda
+   * doldurmuyor, MyListingsPage bu yüzden değeri undefined iken eski
+   * davranışı (yayından kaldırıldı) koruyacak şekilde yazıldı.
+   */
+  resolutionStatus?: AdResolutionStatus;
   createdAt: string; // ISO-8601 UTC
   updatedAt: string; // ISO-8601 UTC
   aiStatus?: AiStatus;
@@ -235,7 +243,6 @@ export type AdResponse = {
   showPhoneOnPoster?: boolean;
   city?: string;
   district?: string;
-  resolutionStatus?: string;
 };
 
 /**
@@ -256,6 +263,52 @@ export type AiAnalysis = {
   embedding?: number[];
   labels?: string[];
   model_version?: string;
+};
+
+/**
+ * "Ben Neyim?" pet raporu yanıt DTO'su (POST /api/public/pet-analiz).
+ * Alan adları AI servisindeki `PetReportResult`in (pet_raporu_prompt.py'nin
+ * ÇIKTI FORMATI'yla) birebir aynı -- backend cevabı olduğu gibi aktarıyor.
+ */
+export type PetDegerGuven = {
+  deger: string;
+  guven: number; // 0-100 -- EKRANDA HAM GÖSTERİLMEZ, bkz. guvenEtiketi()
+};
+
+export type PetYasTahmini = {
+  aralik: string;
+  yasam_evresi: "Yavru" | "Genç" | "Yetişkin" | "Yaşlı" | string;
+  guven: number;
+};
+
+export type PetCinsiyetTahmini = {
+  tahmin: string;
+  guven: number;
+};
+
+export type PetBakimIpuclari = {
+  beslenme?: string | null;
+  tuy_bakimi?: string | null;
+  aktivite?: string | null;
+};
+
+export type PetReportResult = {
+  gecerli: boolean;
+  hata_nedeni?: string | null;
+  irka_ozel_icerik?: boolean | null;
+  renk_tarifi?: PetDegerGuven | null;
+  goz_rengi?: PetDegerGuven | null;
+  tahmini_yas?: PetYasTahmini | null;
+  cinsiyet?: PetCinsiyetTahmini | null;
+  tahmini_boyut?: PetDegerGuven | null;
+  ayirt_edici_isaretler?: string[];
+  genel_durum_gozlemi?: string | null;
+  karakter_profili?: string | null;
+  sasirtici_bilgiler?: string[];
+  dikkat_edilmesi_gerekenler?: string[];
+  bakim_ipuclari?: PetBakimIpuclari | null;
+  ek_hayvanlar?: string | null;
+  goruntu_kalite_notu?: string | null;
 };
 
 /**
@@ -356,6 +409,10 @@ export type MessageResponse = {
 // 5. Complaint Types (/api/complaints)
 // ==========================================
 
+// Backend'in tek ComplaintReason enum'uyla (Ad/Adoption/User şikayetlerinin
+// üçü de aynısını kullanır) birebir aynı olmalı -- bkz.
+// PATIMATI---BACKEND-social/.../entity/enums/ComplaintReason.java. Bunun
+// dışındaki bir değer backend'den 400 döner.
 export type ComplaintReason =
   | "SAHTE_ILAN"
   | "UYGUNSUZ_ICERIK"
@@ -403,6 +460,7 @@ export type AdminGetParams = {
   size?: number;
   search?: string;
   sort?: string;
+  signal?: AbortSignal;
 };
 
 /**
@@ -498,8 +556,80 @@ export type MatchResponseDTO = {
   createdAt?: string;
 };
 
+export type ExternalPostAdminResponse = {
+  id: number;
+  source: string;
+  sourcePostId: string;
+  canonicalUrl: string;
+  authorUsername: string | null;
+  caption: string | null;
+  detectedAt: string; // ISO-8601 UTC
+  processingStatus: string;
+  failureReason: string | null;
+  photoUrl: string | null;
+  category: string | null;
+  categoryConfidence: number | null;
+  species: string | null;
+  breed: string | null;
+  needsReview: boolean | null;
+  hasMatch: boolean;
+  matchedAdId: number | null;
+};
+
+export type InstagramPublishStatus = "PENDING" | "PUBLISHED" | "FAILED" | "SKIPPED";
+
+/** Backend karşılığı: dto/admin/InstagramPublishQueueAdminResponse. */
+export type InstagramQueueItemResponse = {
+  id: number;
+  adId: number;
+  adTitle: string;
+  adType: AdType;
+  ownerDisplayName: string | null;
+  photoUrl: string | null;
+  suggestedCaption: string | null;
+  status: InstagramPublishStatus;
+  failureReason: string | null;
+  createdAt: string; // ISO-8601 UTC
+};
+
 // ==========================================
-// 8. User Online Status Types (/api/users/{userId}/status)
+// 8. Potential Match Types (/api/me/potential-matches)
+// ==========================================
+
+export type PotentialMatchStatus =
+  | "PENDING"
+  | "NOTIFIED"
+  | "VIEWED"
+  | "REJECTED"
+  | "CONFIRMED"
+  | "EXPIRED"
+  | "NOTIFICATION_FAILED";
+
+export type PotentialMatchCounterparty = {
+  kind: "AD" | "EXTERNAL";
+  id: number;
+  title?: string | null;
+  photoUrl?: string | null;
+  adType?: AdType | null;
+  category?: "LOST" | "FOUND" | "ADOPTION" | "IRRELEVANT" | "UNCERTAIN" | null;
+  species?: string | null;
+  breed?: string | null;
+  sourceUrl?: string | null;
+};
+
+export type PotentialMatchSummaryResponse = {
+  recipientId: number;
+  matchId: number;
+  status: PotentialMatchStatus;
+  finalScore: number;
+  createdAt: string; // ISO-8601 UTC
+  counterparty: PotentialMatchCounterparty;
+};
+
+export type PotentialMatchDecision = "CONFIRMED" | "REJECTED";
+
+// ==========================================
+// 9. User Online Status Types (/api/users/{userId}/status)
 // ==========================================
 
 export type UserStatusResponse = {
@@ -516,3 +646,16 @@ export type UserStatusEvent = {
   lastSeen?: string | null;
 };
 
+// ==========================================
+// 10. Realtime Notification Event (/user/queue/notifications)
+// ==========================================
+
+export type WsNotificationEvent = {
+  id: number | string;
+  title: string;
+  body: string;
+  type: string;
+  data?: Record<string, unknown> | null;
+  read: boolean;
+  createdAt: string;
+};

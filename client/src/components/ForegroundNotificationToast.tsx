@@ -12,7 +12,26 @@ import {
   recordForegroundNotification,
 } from "../services/notifications";
 import { listenForForegroundMessages } from "../services/firebase";
+import { connectWebSocket, subscribeToNotificationEvents } from "../services/websocket";
 import type { InAppNotification } from "../services/notifications";
+
+function normalizeNotificationData(
+  data: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  if (!data) return {};
+
+  return Object.entries(data).reduce<Record<string, string>>(
+    (normalized, [key, value]) => {
+      if (typeof value === "string") {
+        normalized[key] = value;
+      } else if (value !== null && value !== undefined) {
+        normalized[key] = String(value);
+      }
+      return normalized;
+    },
+    {},
+  );
+}
 
 export default function ForegroundNotificationToast() {
   const { isAuthenticated } = useAuth();
@@ -26,6 +45,20 @@ export default function ForegroundNotificationToast() {
     void loadNotifications().catch((error: unknown) => {
       console.error("Bildirim geçmişi yüklenemedi:", error);
     });
+
+    /*
+     * Uygulama genelinde tek bir WebSocket bağlantısı burada başlatılır --
+     * yalnızca /chat sayfasında değil, giriş yapılan HER sayfada. Böylece:
+     * (1) kullanıcı sitede kaldığı sürece sunucu tarafında "çevrimiçi"
+     *     görünür (bkz. backend PresenceEventListener),
+     * (2) mesaj/bildirim rozetleri hangi sayfada olursa olsun F5 gerekmeden
+     *     anlık güncellenir.
+     * connectWebSocket() zaten etkin bir bağlantı varsa onu yeniden kullanır
+     * (bkz. dosyanın başındaki bağlantı-durumu açıklaması); çıkışta/401'de
+     * bağlantı AuthContext tarafından kapatılır, sekme kapandığında ise
+     * tarayıcı bağlantıyı zaten sonlandırır.
+     */
+    connectWebSocket();
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {
@@ -42,7 +75,7 @@ function AuthenticatedForegroundNotificationToast() {
 
   useEffect(() => {
     let isActive = true;
-    let unsubscribe: (() => void) | null = null;
+    let unsubscribeFcm: (() => void) | null = null;
 
     const handleMessage = (payload: MessagePayload) => {
       if (!isActive) return;
@@ -65,7 +98,7 @@ function AuthenticatedForegroundNotificationToast() {
           return;
         }
 
-        unsubscribe = cleanup;
+        unsubscribeFcm = cleanup;
       })
       .catch((error: unknown) => {
         console.error(
@@ -74,9 +107,33 @@ function AuthenticatedForegroundNotificationToast() {
         );
       });
 
+    /*
+     * İkinci, BAĞIMSIZ teslimat kanalı: WebSocket üzerinden gelen bildirim.
+     * FCM izni verilmemiş/service worker aktif olmayan tarayıcılarda da
+     * çalışır. recordForegroundNotification, notificationId'ye göre
+     * tekilleştirdiği için aynı bildirim hem FCM hem WS'ten gelse bile
+     * listede iki kez görünmez.
+     */
+    const unsubscribeWs = subscribeToNotificationEvents((event) => {
+      if (!isActive) return;
+
+      const nextNotification = recordForegroundNotification({
+        title: event.title,
+        body: event.body,
+        data: {
+          ...normalizeNotificationData(event.data),
+          type: event.type,
+          notificationId: String(event.id),
+        },
+      });
+
+      setNotification(nextNotification);
+    });
+
     return () => {
       isActive = false;
-      unsubscribe?.();
+      unsubscribeFcm?.();
+      unsubscribeWs();
     };
   }, []);
 

@@ -22,6 +22,7 @@ import {
   ChevronRight,
   CirclePlus,
   Heart,
+  Loader2,
   MapPin,
   PawPrint,
   Search,
@@ -361,15 +362,16 @@ export default function HomePage() {
 
   if (isAuthLoading) {
     return (
-      <div className="home-page">
-        <div
-          className="page-container"
-          style={{
-            padding: "80px 24px",
-          }}
-        >
-          Oturum kontrol ediliyor
+      <div
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 dark:bg-slate-950"
+        role="status"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400">
+          <Loader2 size={32} className="animate-spin" />
         </div>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Oturum kontrol ediliyor...
+        </p>
       </div>
     );
   }
@@ -542,7 +544,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="quick-actions-grid quick-actions-grid--three">
+          <div className="quick-actions-grid quick-actions-grid--four">
             <button
               type="button"
               className="quick-action-card quick-action-card--lost"
@@ -638,6 +640,39 @@ export default function HomePage() {
               </div>
 
               <PawPrint
+                className="quick-action-card__decoration"
+                size={120}
+              />
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-card quick-action-card--ben-neyim"
+              onClick={() => navigate("/ben-neyim")}
+            >
+              <div className="quick-action-card__icon">
+                <Sparkles size={28} />
+              </div>
+
+              <div className="quick-action-card__content">
+                <span className="quick-action-card__label">
+                  Yapay zekâ analizi
+                </span>
+
+                <h3>Ben neyim?</h3>
+
+                <p>
+                  Bir fotoğraf yükle, türünü, ırkını ve daha fazlasını
+                  yapay zekâ ile öğren.
+                </p>
+
+                <span className="quick-action-card__link">
+                  Analiz et
+                  <ChevronRight size={18} />
+                </span>
+              </div>
+
+              <Sparkles
                 className="quick-action-card__decoration"
                 size={120}
               />
@@ -744,6 +779,7 @@ export default function HomePage() {
                         <img
                           src={listing.image}
                           alt={listing.name}
+                          loading="lazy"
                         />
 
                         <span
@@ -876,6 +912,7 @@ export default function HomePage() {
                   <img
                     src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=700&q=85"
                     alt=""
+                    loading="lazy"
                   />
                 </div>
 
@@ -883,6 +920,7 @@ export default function HomePage() {
                   <img
                     src="https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=700&q=85"
                     alt=""
+                    loading="lazy"
                   />
 
                   <span className="ai-match-score">

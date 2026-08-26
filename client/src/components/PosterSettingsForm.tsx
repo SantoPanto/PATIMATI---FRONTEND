@@ -27,6 +27,9 @@ export default function PosterSettingsForm({
 
   useEffect(() => {
     if (ad) {
+      // `ad` degistiginde (dis sistemden gelen guncel veriyle) formu
+      // senkronlamak bu effect'in var olma sebebi.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsPosterAllowed(ad.isPosterAllowed ?? true);
       setShowEmailOnPoster(ad.showEmailOnPoster ?? true);
       setShowPhoneOnPoster(ad.showPhoneOnPoster ?? true);
