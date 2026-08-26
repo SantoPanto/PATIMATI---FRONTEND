@@ -223,6 +223,7 @@ export default function AddListingPage() {
 
   const matchingMachine = useAdMatchingMachine();
 
+  const [acceptResponsibility, setAcceptResponsibility] = useState(false);
   const [instagramShareConsent, setInstagramShareConsent] = useState(false);
 
   /* ---------------------------------------------------------------------- */
@@ -572,6 +573,10 @@ export default function AddListingPage() {
 
     if (lostDate > today) {
       return "Gelecekte bir tarih seçilemez.";
+    }
+
+    if (!acceptResponsibility) {
+      return "İlan yayınlamak için bilgilerin doğruluğunu onaylamalısınız.";
     }
 
     return null;
@@ -1681,6 +1686,27 @@ export default function AddListingPage() {
               </span>
             </div>
           )}
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <input
+              type="checkbox"
+              checked={acceptResponsibility}
+              onChange={(event) =>
+                setAcceptResponsibility(event.target.checked)
+              }
+              className="mt-1 h-4 w-4 accent-[#2563EB]"
+            />
+
+            <div>
+              <strong className="text-sm text-[#0F172A] dark:text-slate-100">
+                Bilgilerin doğruluğunu onaylıyorum.
+              </strong>
+
+              <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
+                İlanda verdiğim bilgilerin doğru olduğunu kabul ediyorum.
+              </p>
+            </div>
+          </label>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <input
