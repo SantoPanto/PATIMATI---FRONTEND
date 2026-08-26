@@ -20,6 +20,28 @@ const PENDING_AD_ID_KEY = "pendingMatchingAdId";
 const PENDING_AD_TIMESTAMP_KEY = "pendingMatchingAdTimestamp";
 const MAX_PENDING_MS = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * Checks if a candidate match passes the threshold criteria (score >= 0.75 / passedThreshold === true and not blocked).
+ */
+export function isQualifyingMatch(m: MatchResponseDTO): boolean {
+  const hasBlock = Boolean(m.blockReason && m.blockReason.trim().length > 0);
+  if (hasBlock) return false;
+
+  if (typeof m.passedThreshold === "boolean") {
+    return m.passedThreshold;
+  }
+
+  const rawScore = m.totalScore;
+  if (rawScore === undefined || rawScore === null || isNaN(rawScore)) return false;
+
+  const scorePct = rawScore <= 1 ? rawScore * 100 : rawScore;
+  const rawThreshold = m.thresholdAtTime ?? 0.75;
+  const thresholdPct = rawThreshold <= 1 ? rawThreshold * 100 : rawThreshold;
+
+  // Use Math.round to handle minor float imprecision (e.g. 74.999999999)
+  return Math.round(scorePct * 100) >= Math.round(thresholdPct * 100);
+}
+
 export function useAdMatchingMachine() {
   const [state, setState] = useState<MatchingState>("IDLE");
   const [adId, setAdId] = useState<number | null>(null);
@@ -57,16 +79,16 @@ export function useAdMatchingMachine() {
   const checkMatchingStatus = useCallback(
     async (targetAdId: number): Promise<boolean> => {
       try {
-        // 1. Fetch user's matches
+        // 1. Fetch user's matches and filter ONLY qualifying matches
         const allMatches = await getMyMatches();
         if (Array.isArray(allMatches)) {
-          const adMatches = allMatches.filter((m) => {
+          const qualifyingMatches = allMatches.filter((m) => {
             const matchAdId = m.myAdId ?? m.myAd?.id;
-            return matchAdId === targetAdId;
+            return matchAdId === targetAdId && isQualifyingMatch(m);
           });
 
-          if (adMatches.length > 0) {
-            setMatches(adMatches);
+          if (qualifyingMatches.length > 0) {
+            setMatches(qualifyingMatches);
             setState("MATCH_FOUND");
             try {
               sessionStorage.removeItem(PENDING_AD_ID_KEY);
@@ -86,7 +108,7 @@ export function useAdMatchingMachine() {
               status === "APPROVED" ||
               status === "NOT_APPLICABLE"
             ) {
-              // AI processing completed, but no match found in getMyMatches
+              // AI processing completed, but no qualifying match found
               setState("NO_MATCH");
               try {
                 sessionStorage.removeItem(PENDING_AD_ID_KEY);

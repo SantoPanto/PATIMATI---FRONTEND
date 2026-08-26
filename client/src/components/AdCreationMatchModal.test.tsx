@@ -80,7 +80,7 @@ describe("AdCreationMatchModal", () => {
     expect(screen.getByText("Tüm Eşleşmelerime Git")).toBeInTheDocument();
   });
 
-  it("NO_MATCH durumunda 'İlanınız Yayınlandı' ve 'Şu anda uygun bir eşleşme bulunamadı' mesajını göstermeli", () => {
+  it("NO_MATCH durumunda 'İlanınız Yayınlandı' ve istenen tam eşleşme eşiği metnini göstermeli", () => {
     render(
       <AdCreationMatchModal
         state="NO_MATCH"
@@ -91,7 +91,10 @@ describe("AdCreationMatchModal", () => {
 
     expect(screen.getByText("İlanınız Yayınlandı")).toBeInTheDocument();
     expect(
-      screen.getByText(/Şu anda uygun bir eşleşme bulunamadı/i),
+      screen.getByText(/Eşleşme eşiğini geçen bir ilan bulunamadı/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Düşük Eşleşme Oranlı İlanları İncele"),
     ).toBeInTheDocument();
   });
 

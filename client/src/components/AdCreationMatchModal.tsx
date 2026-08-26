@@ -136,18 +136,25 @@ export default function AdCreationMatchModal({
             </h2>
 
             <p className="text-base text-slate-600 dark:text-slate-400 max-w-md mb-8">
-              İlanınız başarıyla oluşturuldu. Şu anda uygun bir eşleşme
-              bulunamadı. Yeni bir eşleşme çıktığında size bildirim
-              gönderilecektir.
+              Eşleşme eşiğini geçen bir ilan bulunamadı. Eşleşmeyi geçen bir ilan yüklenirse size bildirim gönderilecektir. Eğer incelemek isterseniz düşük eşleşme oranlı ilanları inceleyebilirsiniz.
             </p>
 
-            <button
-              type="button"
-              onClick={handleFinish}
-              className="w-full max-w-xs rounded-xl bg-slate-900 py-3.5 font-bold text-white transition hover:bg-slate-800 dark:bg-orange-600 dark:hover:bg-orange-700 shadow-md"
-            >
-              Tamam
-            </button>
+            <div className="flex flex-wrap gap-3 justify-center w-full">
+              <button
+                type="button"
+                onClick={handleGoToMatches}
+                className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white transition hover:bg-orange-700 shadow-md text-sm"
+              >
+                Düşük Eşleşme Oranlı İlanları İncele
+              </button>
+              <button
+                type="button"
+                onClick={handleFinish}
+                className="rounded-xl bg-slate-100 px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-sm"
+              >
+                Tamam
+              </button>
+            </div>
           </div>
         )}
 
