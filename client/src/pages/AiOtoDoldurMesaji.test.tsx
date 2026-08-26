@@ -177,31 +177,41 @@ describe("kayıp formunda AI mesajı eşleşme sonrası", () => {
     fireEvent.click(dugme);
   }
 
-  it("hiçbir alan dolmadıysa uyarı eşleştirmeden SONRA da ekranda kalır", async () => {
-    istek
-      .mockResolvedValueOnce({ labels: [], species: "unknown", breed: null, pattern: null, colors: [], is_pet: true })
-      .mockResolvedValueOnce([]);
+  it("hiçbir alan dolmadıysa uyarı ekranda kalır", async () => {
+    istek.mockResolvedValueOnce({
+      labels: [],
+      species: "unknown",
+      breed: null,
+      pattern: null,
+      colors: [],
+      is_pet: true,
+    });
 
     const { container } = render(<AddListingPage />);
     await analizEt(container);
 
-    await waitFor(() => expect(istek).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(istek).toHaveBeenCalledTimes(1));
     await waitFor(() => {
       expect(screen.getByText(/çıkaramadı — alanları elle doldurun/i)).toBeInTheDocument();
     });
   });
 
-  it("alanlar dolduysa mesaj temizlenir (form zaten sonucu gösteriyor)", async () => {
-    istek
-      .mockResolvedValueOnce({ labels: [], species: "dog", breed: "Golden Retriever", pattern: null, colors: [], is_pet: true })
-      .mockResolvedValueOnce([]);
+  it("alanlar dolduysa 'AI analizi tamamlandı. Bilgiler forma aktarıldı.' mesajı gösterilir", async () => {
+    istek.mockResolvedValueOnce({
+      labels: [],
+      species: "dog",
+      breed: "Golden Retriever",
+      pattern: null,
+      colors: [],
+      is_pet: true,
+    });
 
     const { container } = render(<AddListingPage />);
     await analizEt(container);
 
-    await waitFor(() => expect(istek).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(istek).toHaveBeenCalledTimes(1));
     await waitFor(() => {
-      expect(screen.queryByText(/AI analizi tamamlandı/i)).toBeNull();
+      expect(screen.getByText(/Bilgiler forma aktarıldı/i)).toBeInTheDocument();
     });
     // Pozitif kontrol: gerçekten dolmuş.
     expect((screen.getByPlaceholderText(/AI tarafından otomatik doldurulur/i) as HTMLInputElement).value)

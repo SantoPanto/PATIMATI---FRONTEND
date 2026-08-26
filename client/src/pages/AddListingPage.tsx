@@ -20,9 +20,10 @@ import {
 
 import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
-import AiMatchModal from "../components/AiMatchModal";
+import AdCreationMatchModal from "../components/AdCreationMatchModal";
+import { useAdMatchingMachine } from "../hooks/useAdMatchingMachine";
 import { request } from "../services/api";
-import type { AdResponse, AiAnalysis, MatchedAdResponseDTO } from "../services/types";
+import type { AdResponse, AiAnalysis } from "../services/types";
 import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
@@ -220,8 +221,7 @@ export default function AddListingPage() {
   const [errorMessage, setErrorMessage] =
     useState("");
 
-  const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
-  const [showMatchModal, setShowMatchModal] = useState(false);
+  const matchingMachine = useAdMatchingMachine();
 
   const [instagramShareConsent, setInstagramShareConsent] = useState(false);
 
@@ -509,61 +509,11 @@ export default function AddListingPage() {
           "AI bu fotoğrafta hayvan tespit edemedi. Yine de ilanı oluşturabilirsiniz.",
         );
       } else {
-        /*
-         * "Tamamlandı" demek, iş yapıldığını söylemektir. AI hiçbir alan
-         * dolduramadıysa kullanıcıya doğruyu söylüyoruz — yoksa dolmayan
-         * formu kendi hatası sanıyor.
-         */
         setAnalysisMessage(
           parsed.appliedCount > 0
-            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
-            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
+            ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
         );
-
-        // Fetch matches concurrently
-        try {
-          const formData = new FormData();
-          formData.append("listingType", adType);
-          images.forEach((img) => formData.append("images", img.file));
-
-          // Konum girildiyse gönder: pop-up adayları asenkron eşleştirmeyle
-          // aynı 25 km süzgecinden geçer ve konum cezası uygulanır (B8).
-          // Boşsa göndermiyoruz — backend konumsuz yolu koruyor (analiz
-          // düğmesine konum girilmeden basılabiliyor).
-          if (latitude.trim() && longitude.trim()) {
-            formData.append("latitude", latitude.trim());
-            formData.append("longitude", longitude.trim());
-          }
-
-          const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
-            method: "POST",
-            body: formData,
-            requiresAuth: true,
-          });
-
-          if (matchesData && matchesData.length > 0) {
-            setMatches(matchesData);
-            setShowMatchModal(true);
-          }
-        } catch (matchError) {
-          console.error("Eşleştirme hatası:", matchError);
-        } finally {
-          setIsAnalyzing(false);
-
-          /*
-           * Mesaj SADECE iş gerçekten yapıldıysa siliniyor.
-           *
-           * Tarayıcıda ölçüldü (24.08, yerel): AI boş cevap döndüğünde doğru
-           * metin ekrana geliyor ama eşleştirme isteği bitince bu blok onu
-           * hemen siliyordu — kullanıcı "alanları elle doldurun" uyarısını
-           * hiç okuyamıyordu. Alanlar dolduysa metnin kalmasına gerek yok
-           * (sonuç zaten formda görünüyor); dolmadıysa kullanıcıya ne
-           * yapacağını söyleyen TEK yer bu satır.
-           */
-          if (parsed.appliedCount > 0) {
-            setAnalysisMessage("");
-          }
-        }
       }
     } catch (error) {
       console.error("AI analiz hatası:", error);
@@ -761,7 +711,8 @@ export default function AddListingPage() {
        * değeriyle birlikte kendisi oluşturur.
        */
       const url = adType === "ADOPTION" ? "/api/adoptions" : "/api/ads";
-      await request<AdResponse>(url, {
+      matchingMachine.startAdCreation();
+      const responseData = await request<AdResponse>(url, {
         method: "POST",
         requiresAuth: true,
         body: formData,
@@ -814,13 +765,13 @@ export default function AddListingPage() {
         "İlan başarıyla oluşturuldu.",
       );
 
-      /*
-       * Give the user a moment to see the
-       * success message before returning.
-       */
-      window.setTimeout(() => {
-        navigate("/");
-      }, 1200);
+      if (adType !== "ADOPTION" && responseData?.id) {
+        matchingMachine.onAdCreated(responseData.id);
+      } else {
+        window.setTimeout(() => {
+          navigate("/");
+        }, 1200);
+      }
     } catch (error) {
       console.error(
         "Create listing error:",
@@ -1793,10 +1744,11 @@ export default function AddListingPage() {
           </button>
         </form>
 
-        <AiMatchModal
-          isOpen={showMatchModal}
-          matches={matches}
-          onClose={() => setShowMatchModal(false)}
+        <AdCreationMatchModal
+          state={matchingMachine.state}
+          matches={matchingMachine.matches}
+          errorMessage={matchingMachine.errorMessage}
+          onClose={matchingMachine.reset}
         />
     </CreateAdLayout>
   );
