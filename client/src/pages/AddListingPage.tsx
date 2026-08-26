@@ -777,6 +777,7 @@ export default function AddListingPage() {
         "Create listing error:",
         error,
       );
+      matchingMachine.reset();
 
       setErrorMessage(
         getUserErrorMessage(error, "İlan oluşturulurken bir hata oluştu."),

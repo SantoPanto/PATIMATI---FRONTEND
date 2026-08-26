@@ -3,26 +3,33 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAdMatchingMachine } from "./useAdMatchingMachine";
 import type { MatchResponseDTO } from "../services/types";
 
-const { mockGetMyMatches } = vi.hoisted(() => ({
+const { mockGetMyMatches, mockGetAdById } = vi.hoisted(() => ({
   mockGetMyMatches: vi.fn(),
+  mockGetAdById: vi.fn(),
 }));
 
 vi.mock("../services/api", () => ({
   getMyMatches: () => mockGetMyMatches(),
 }));
 
+vi.mock("../services/ads", () => ({
+  getAdById: (id: number) => mockGetAdById(id),
+}));
+
 vi.mock("../services/notifications", () => ({
   subscribeToNotifications: vi.fn(() => () => {}),
+  getNotificationSnapshot: vi.fn(() => []),
 }));
 
 describe("useAdMatchingMachine", () => {
   beforeEach(() => {
     mockGetMyMatches.mockReset();
+    mockGetAdById.mockReset();
     sessionStorage.clear();
     vi.useRealTimers();
   });
 
-  it("bașlangıç durumu IDLE olmalı", () => {
+  it("başlangıç durumu IDLE olmalı", () => {
     const { result } = renderHook(() => useAdMatchingMachine());
     expect(result.current.state).toBe("IDLE");
     expect(result.current.adId).toBeNull();
@@ -41,6 +48,7 @@ describe("useAdMatchingMachine", () => {
 
   it("onAdCreated çağrıldığında SEARCHING durumuna geçmeli ve sessionStorage set etmeli", async () => {
     mockGetMyMatches.mockResolvedValue([]);
+    mockGetAdById.mockResolvedValue({ id: 42, aiStatus: "PENDING" });
 
     const { result } = renderHook(() => useAdMatchingMachine());
 
@@ -80,6 +88,36 @@ describe("useAdMatchingMachine", () => {
 
     expect(result.current.matches).toHaveLength(1);
     expect(result.current.matches[0].id).toBe(101);
+  });
+
+  it("AI durumu DONE olduğunda ancak eşleşme yoksa NO_MATCH olmalı", async () => {
+    mockGetMyMatches.mockResolvedValue([]);
+    mockGetAdById.mockResolvedValue({ id: 42, aiStatus: "DONE" });
+
+    const { result } = renderHook(() => useAdMatchingMachine());
+
+    act(() => {
+      result.current.onAdCreated(42);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state).toBe("NO_MATCH");
+    });
+  });
+
+  it("AI durumu FAILED olduğunda SEARCH_FAILED olmalı", async () => {
+    mockGetMyMatches.mockResolvedValue([]);
+    mockGetAdById.mockResolvedValue({ id: 42, aiStatus: "FAILED" });
+
+    const { result } = renderHook(() => useAdMatchingMachine());
+
+    act(() => {
+      result.current.onAdCreated(42);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state).toBe("SEARCH_FAILED");
+    });
   });
 
   it("hata alındığında state SEARCH_FAILED olmalı", async () => {

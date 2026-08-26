@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getAdById } from "../services/ads";
 import { getMyMatches } from "../services/api";
-import { subscribeToNotifications } from "../services/notifications";
+import {
+  getNotificationSnapshot,
+  subscribeToNotifications,
+} from "../services/notifications";
 import type { MatchResponseDTO } from "../services/types";
 
 export type MatchingState =
@@ -25,8 +29,10 @@ export function useAdMatchingMachine() {
   const pollCountRef = useRef<number>(0);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeAdIdRef = useRef<number | null>(null);
+  const stateRef = useRef<MatchingState>(state);
 
   activeAdIdRef.current = adId;
+  stateRef.current = state;
 
   const clearTimers = useCallback(() => {
     if (pollTimerRef.current) {
@@ -51,23 +57,57 @@ export function useAdMatchingMachine() {
   const checkMatchingStatus = useCallback(
     async (targetAdId: number): Promise<boolean> => {
       try {
+        // 1. Fetch user's matches
         const allMatches = await getMyMatches();
-        if (!Array.isArray(allMatches)) return false;
+        if (Array.isArray(allMatches)) {
+          const adMatches = allMatches.filter((m) => {
+            const matchAdId = m.myAdId ?? m.myAd?.id;
+            return matchAdId === targetAdId;
+          });
 
-        const adMatches = allMatches.filter((m) => {
-          const matchAdId = m.myAdId ?? m.myAd?.id;
-          return matchAdId === targetAdId;
-        });
-
-        if (adMatches.length > 0) {
-          setMatches(adMatches);
-          setState("MATCH_FOUND");
-          try {
-            sessionStorage.removeItem(PENDING_AD_ID_KEY);
-            sessionStorage.removeItem(PENDING_AD_TIMESTAMP_KEY);
-          } catch {}
-          return true;
+          if (adMatches.length > 0) {
+            setMatches(adMatches);
+            setState("MATCH_FOUND");
+            try {
+              sessionStorage.removeItem(PENDING_AD_ID_KEY);
+              sessionStorage.removeItem(PENDING_AD_TIMESTAMP_KEY);
+            } catch {}
+            return true;
+          }
         }
+
+        // 2. Recovery check via GET /api/ads/{targetAdId} to check AI processing status
+        try {
+          const adInfo = await getAdById(targetAdId);
+          if (adInfo) {
+            const status = adInfo.aiStatus;
+            if (
+              status === "DONE" ||
+              status === "APPROVED" ||
+              status === "NOT_APPLICABLE"
+            ) {
+              // AI processing completed, but no match found in getMyMatches
+              setState("NO_MATCH");
+              try {
+                sessionStorage.removeItem(PENDING_AD_ID_KEY);
+                sessionStorage.removeItem(PENDING_AD_TIMESTAMP_KEY);
+              } catch {}
+              return true;
+            }
+            if (status === "FAILED" || status === "REJECTED") {
+              setState("SEARCH_FAILED");
+              setErrorMessage("Yapay zeka analizi işlenirken hata oluştu.");
+              try {
+                sessionStorage.removeItem(PENDING_AD_ID_KEY);
+                sessionStorage.removeItem(PENDING_AD_TIMESTAMP_KEY);
+              } catch {}
+              return true;
+            }
+          }
+        } catch (adError) {
+          console.warn("Could not fetch ad status for recovery:", adError);
+        }
+
         return false;
       } catch (err) {
         console.error("Match status check error:", err);
@@ -87,34 +127,39 @@ export function useAdMatchingMachine() {
     [],
   );
 
+  const scheduleNextPoll = useCallback(
+    (targetAdId: number) => {
+      clearTimers();
+      pollCountRef.current += 1;
+
+      // Max 10 polls (approx 20 seconds)
+      if (pollCountRef.current > 10) {
+        if (stateRef.current === "SEARCHING") {
+          setState("NO_MATCH");
+          try {
+            sessionStorage.removeItem(PENDING_AD_ID_KEY);
+            sessionStorage.removeItem(PENDING_AD_TIMESTAMP_KEY);
+          } catch {}
+        }
+        return;
+      }
+
+      pollTimerRef.current = setTimeout(() => {
+        void checkMatchingStatus(targetAdId).then((foundOrFailed) => {
+          if (!foundOrFailed && activeAdIdRef.current === targetAdId) {
+            scheduleNextPoll(targetAdId);
+          }
+        });
+      }, 2000);
+    },
+    [clearTimers, checkMatchingStatus],
+  );
+
   const startAdCreation = useCallback(() => {
     clearTimers();
     setState("CREATING_AD");
     setErrorMessage("");
   }, [clearTimers]);
-
-  const scheduleNextPoll = useCallback((targetAdId: number) => {
-    clearTimers();
-    pollCountRef.current += 1;
-
-    // Max 6 polls (approx 15 seconds)
-    if (pollCountRef.current > 6) {
-      setState("NO_MATCH");
-      try {
-        sessionStorage.removeItem(PENDING_AD_ID_KEY);
-        sessionStorage.removeItem(PENDING_AD_TIMESTAMP_KEY);
-      } catch {}
-      return;
-    }
-
-    pollTimerRef.current = setTimeout(() => {
-      void checkMatchingStatus(targetAdId).then((foundOrFailed) => {
-        if (!foundOrFailed && activeAdIdRef.current === targetAdId) {
-          scheduleNextPoll(targetAdId);
-        }
-      });
-    }, 2500);
-  }, [clearTimers, checkMatchingStatus]);
 
   const onAdCreated = useCallback(
     (newAdId: number) => {
@@ -128,7 +173,7 @@ export function useAdMatchingMachine() {
         sessionStorage.setItem(PENDING_AD_TIMESTAMP_KEY, String(Date.now()));
       } catch {}
 
-      // Initial check
+      // Immediate status check
       void checkMatchingStatus(newAdId).then((foundOrFailed) => {
         if (foundOrFailed) return;
         scheduleNextPoll(newAdId);
@@ -165,18 +210,41 @@ export function useAdMatchingMachine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Real-time notification subscription
+  // Real-time notification subscription with STRICT adId filtering
   useEffect(() => {
     const unsubscribe = subscribeToNotifications(() => {
-      if (state === "SEARCHING" && adId) {
-        void checkMatchingStatus(adId);
+      if (stateRef.current === "SEARCHING" && activeAdIdRef.current) {
+        const targetId = activeAdIdRef.current;
+        const snapshot = getNotificationSnapshot();
+
+        // Check if there is an AI_MATCH notification matching targetId
+        const hasMatchingNotif = snapshot.some((n) => {
+          const type = n.data?.type || n.title;
+          const isAiMatch =
+            type === "AI_MATCH" ||
+            n.id.includes("AI_MATCH") ||
+            Boolean(n.data?.type === "AI_MATCH");
+
+          if (!isAiMatch) return false;
+
+          const notifAdId =
+            n.data?.adId ||
+            n.data?.myAdId ||
+            n.data?.referenceId;
+
+          return notifAdId ? String(notifAdId) === String(targetId) : true;
+        });
+
+        if (hasMatchingNotif) {
+          void checkMatchingStatus(targetId);
+        }
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [state, adId, checkMatchingStatus]);
+  }, [checkMatchingStatus]);
 
   // Clean up timers on unmount
   useEffect(() => {

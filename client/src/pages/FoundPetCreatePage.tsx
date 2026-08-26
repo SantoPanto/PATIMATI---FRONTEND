@@ -620,6 +620,7 @@ export default function FoundPetCreatePage() {
       }
     } catch (error) {
       console.error("Buldum ilanı oluşturma hatası:", error);
+      matchingMachine.reset();
 
       const invalidParams = extractInvalidParams(error);
       if (invalidParams) {
