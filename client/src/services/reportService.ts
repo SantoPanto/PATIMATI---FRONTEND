@@ -6,7 +6,7 @@ export interface ReportPayload {
 }
 
 export const reportService = {
-  async submitReport(data: ReportPayload): Promise<{ success: boolean; id: number }> {
+ async submitReport(_data: ReportPayload): Promise<{ success: boolean; id: number }> {
     // Sahte API çağrısı simülasyonu
     return new Promise((resolve) => {
       setTimeout(() => {
