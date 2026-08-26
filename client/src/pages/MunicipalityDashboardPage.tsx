@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function MunicipalityDashboardPage() {
   // Örnek başlangıç verileri (Backend /api/municipality/dashboard ucu bağlanacak)
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     lostCount: 12,
     foundCount: 8,
     resolvedCount: 15,
