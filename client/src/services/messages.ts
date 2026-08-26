@@ -55,6 +55,8 @@ export async function getUserStatus(userId: number): Promise<UserStatusResponse>
  * 4. Mesajlaşma & Chat (/api/messages ve WebSocket)
  */
 
+import { sendMessage as stompSendMessage } from "./websocket";
+
 /**
  * POST /api/messages/rooms/{partnerId} (Bearer)
  * Create or get chat room with a partner
@@ -66,6 +68,54 @@ export function createOrGetChatRoom(
     method: "POST",
     requiresAuth: true,
   });
+}
+
+/**
+ * Shares an ad in chat as an AD_SHARE message payload.
+ */
+export async function sendAdShareMessage(
+  recipientId: number,
+  adId: number,
+): Promise<MessageResponse | void> {
+  const payload = {
+    recipientId,
+    content: `[AD_SHARE:${adId}]`,
+    type: "AD_SHARE" as const,
+    sharedAdId: adId,
+    adId,
+  };
+
+  try {
+    return await request<MessageResponse>("/api/messages/share", {
+      method: "POST",
+      requiresAuth: true,
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn("REST ad share endpoint unavailable, using STOMP WebSocket fallback:", err);
+    try {
+      stompSendMessage(recipientId, payload.content, "AD_SHARE", adId);
+    } catch (wsErr) {
+      console.error("STOMP send failure for ad share:", wsErr);
+    }
+  }
+}
+
+export interface StartConversationParams {
+  targetUserId: number;
+  adId: number;
+}
+
+/**
+ * Resolves or creates a chat room with target user and posts an AD_SHARE message.
+ */
+export async function startConversationWithAd({
+  targetUserId,
+  adId,
+}: StartConversationParams): Promise<ChatRoomResponse> {
+  const room = await createOrGetChatRoom(targetUserId);
+  await sendAdShareMessage(targetUserId, adId);
+  return room;
 }
 
 /**

@@ -39,6 +39,7 @@ vi.mock('../services/ads', () => ({
 
 vi.mock('../services/messages', () => ({
   createOrGetChatRoom: odaAc,
+  startConversationWithAd: odaAc,
 }))
 
 vi.mock('../services/sightings', () => ({
@@ -143,10 +144,10 @@ describe('PetDetailPage — "Mesaj Gönder"', () => {
 
     // Ikizi: kosul yanlislikla "her zaman /login'e git" diye genisletilirse
     // bu vaka kirmizi yanar.
-    await waitFor(() => expect(odaAc).toHaveBeenCalledWith(7))
+    await waitFor(() => expect(odaAc).toHaveBeenCalledWith({ targetUserId: 7, adId: 74 }))
     const hedefler = navigate.mock.calls.map(([h]) => h as string)
     expect(hedefler.some((h) => h.includes('/login'))).toBe(false)
-    expect(hedefler).toContain('/chat/7?adId=74')
+    expect(hedefler).toContain('/chat/7')
   })
 })
 
