@@ -1,5 +1,6 @@
 import {
   Bell,
+  Landmark,
   LogOut,
   MessageCircle,
   Moon,
@@ -68,6 +69,7 @@ export default function Header() {
   }, [isAuthenticated]);
 
   const isAdmin = user?.role === "ADMIN";
+  const isInstitution = user?.role === "INSTITUTION";
 
   const handleLogout = async () => {
     await logout();
@@ -93,6 +95,17 @@ export default function Header() {
           >
             <ShieldAlert size={18} className="text-blue-600 dark:text-blue-400" />
             <span>Admin Panel</span>
+          </Link>
+        )}
+
+        {isInstitution && (
+          <Link
+            href="/municipality"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-emerald-400 dark:hover:text-emerald-300 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 dark:border-emerald-500/20"
+            aria-label="Belediye Paneli"
+          >
+            <Landmark size={18} className="text-emerald-700 dark:text-emerald-400" />
+            <span>Belediye Paneli</span>
           </Link>
         )}
 
@@ -160,6 +173,17 @@ export default function Header() {
             }
           >
             Ben neyim?
+          </Link>
+
+          <Link
+            href="/report"
+            className={
+              isActive("/report")
+                ? "navigation-link active"
+                : "navigation-link"
+            }
+          >
+            İhbar Et
           </Link>
         </nav>
 
