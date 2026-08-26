@@ -1,11 +1,13 @@
 import { Clock, MapPin, Phone, Stethoscope } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import type { VetClinicPublicResponse } from "../services/types";
 import { listVetClinics } from "../services/vet";
 
 export default function VetDirectoryPage() {
+  const [, navigate] = useLocation();
   const [clinics, setClinics] = useState<VetClinicPublicResponse[]>([]);
   const [city, setCity] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +91,18 @@ export default function VetDirectoryPage() {
         {!isLoading && !errorMessage && clinics.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {clinics.map((clinic) => (
-              <div key={clinic.id} className={cardClass}>
+              <div
+                key={clinic.id}
+                className={`${cardClass} cursor-pointer transition hover:border-[#2563EB]/40 hover:shadow-md`}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/hizmetler/veteriner/${clinic.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    navigate(`/hizmetler/veteriner/${clinic.id}`);
+                  }
+                }}
+              >
                 <div className="mb-3 h-36 w-full overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
                   {clinic.photoUrl && (
                     <img

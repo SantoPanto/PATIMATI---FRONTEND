@@ -11,6 +11,7 @@ import {
   Award,
   Bell,
   ChevronRight,
+  Dog,
   Heart,
   LockKeyhole,
   LogOut,
@@ -561,6 +562,13 @@ function ProfileContent() {
                 label="Favorilerim"
                 description="Kaydettiğiniz ilanları görüntüleyin"
                 onClick={() => navigate("/favorites")}
+              />
+
+              <ProfileMenuItem
+                icon={<Dog size={20} />}
+                label="Evcil Hayvanlarım"
+                description="Hayvanlarınızı ve tedavi notlarını yönetin"
+                onClick={() => navigate("/profile/pets")}
               />
 
               <ProfileMenuItem

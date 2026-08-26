@@ -46,6 +46,23 @@ export function upsertMyClinic(payload: VetClinicUpsertPayload): Promise<VetClin
 }
 
 /**
+ * GET /api/vet-clinics/{id} (herkese açık, kimlik gerekmez)
+ * Klinik bulunamazsa 404 döner -- çağıran bunu `null` olarak yorumlar.
+ */
+export async function getVetClinic(id: number): Promise<VetClinicPublicResponse | null> {
+  try {
+    return await request<VetClinicPublicResponse>(`/api/vet-clinics/${id}`, {
+      method: "GET",
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/**
  * GET /api/vet-clinics (herkese açık, kimlik gerekmez)
  */
 export function listVetClinics(params?: {

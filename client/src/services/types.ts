@@ -604,9 +604,18 @@ export type VetClinicResponse = {
   photoUrl: string | null;
 };
 
-/** Backend karşılığı: dto/vet/VetClinicPublicResponse (herkese açık dizin, GET /api/vet-clinics). */
+/**
+ * Backend karşılığı: dto/vet/VetClinicPublicResponse (herkese açık dizin,
+ * GET /api/vet-clinics ve GET /api/vet-clinics/{id}).
+ *
+ * `vetUserId`: müşteri isteği göndermek için gereken hedef (User.uid) --
+ * klinik kartının kendi `id`'si (VetClinic PK) DEĞİL. Backend'in bu alanı
+ * döndürdüğü varsayılıyor (VetClinic.user.uid) -- yoksa müşteri isteği
+ * gönderme akışı çalışmaz.
+ */
 export type VetClinicPublicResponse = {
   id: number;
+  vetUserId: number;
   name: string;
   address: string;
   city: string;
@@ -632,6 +641,110 @@ export type CreateVetAccountPayload = {
   lastName: string;
   email: string;
   password: string;
+};
+
+// ==========================================
+// 7b. Pet & Vet Customer Types (/api/pets, /api/vet-customer-requests, /api/vet/**)
+// ==========================================
+
+/** Backend karşılığı: dto/pet/PetResponse. */
+export type Pet = {
+  id: number;
+  name: string;
+  species: Species;
+  breed: string | null;
+  gender: Gender | null;
+  ageGroup: AgeGroup | null;
+  photoUrl: string | null;
+  /** Kapak dahil TÜM fotoğraflar, sıralı; photoUrl her zaman ilk eleman. */
+  photoUrls: string[];
+  birthDate: string | null;
+  sterilized: boolean | null;
+  microchipNumber: string | null;
+  chronicConditions: string | null;
+  allergies: string | null;
+  /** "Ben Neyim?" raporunun ham JSON'u — JSON.parse ile PetReportResult'a çevrilir. */
+  aiReport: string | null;
+  aiReportAt: string | null;
+  /** Vet panelindeki müşteri/hayvan listesi özeti. */
+  treatmentNoteCount: number;
+  lastTreatmentAt: string | null;
+};
+
+export type PetUpsertPayload = {
+  name: string;
+  species: Species;
+  breed?: string;
+  gender?: Gender;
+  ageGroup?: AgeGroup;
+  birthDate?: string;
+  sterilized?: boolean;
+  microchipNumber?: string;
+  chronicConditions?: string;
+  allergies?: string;
+  photo?: File;
+  extraPhotos?: File[];
+};
+
+export type NoteAuthorType = "VET" | "OWNER";
+
+export type PetVaccination = {
+  id: number;
+  vaccineName: string;
+  administeredDate: string;
+  nextDueDate: string | null;
+  notes: string | null;
+  recordedByName: string | null;
+  createdAt: string;
+};
+
+export type AddVaccinationPayload = {
+  vaccineName: string;
+  administeredDate: string;
+  nextDueDate?: string;
+  notes?: string;
+};
+
+export type PetWeightLog = {
+  id: number;
+  weightKg: number;
+  recordedAt: string;
+};
+
+export type AddWeightLogPayload = {
+  weightKg: number;
+  recordedAt: string;
+};
+
+export type VetCustomerRequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
+/** Backend karşılığı: dto/vetcustomer/VetCustomerRequestResponse. */
+export type VetCustomerRequestResponse = {
+  id: number;
+  requesterId: number;
+  requesterName: string;
+  status: VetCustomerRequestStatus;
+  createdAt: string;
+};
+
+/** Backend karşılığı: dto/vetcustomer/VetCustomerResponse -- ACCEPTED durumdaki istekler. */
+export type VetCustomerResponse = {
+  id: number;
+  requesterId: number;
+  requesterName: string;
+  status: VetCustomerRequestStatus;
+  createdAt: string;
+};
+
+/** Backend karşılığı: dto/pet/PetTreatmentNoteResponse. */
+export type PetTreatmentNoteResponse = {
+  id: number;
+  content: string;
+  vetName: string;
+  authorType: NoteAuthorType;
+  /** Çağıran bu notun ORİJİNAL yazarı mı — öyleyse düzenle/sil gösterilebilir. */
+  canEdit: boolean;
+  createdAt: string;
 };
 
 // ==========================================
@@ -700,4 +813,21 @@ export type WsNotificationEvent = {
   data?: Record<string, unknown> | null;
   read: boolean;
   createdAt: string;
+};
+
+// ==========================================
+// 11. POI Types (/api/public/pois) — veteriner, petshop, barınak
+// ==========================================
+
+export type PoiType = "VETERINARY" | "PET_SHOP" | "SHELTER";
+
+export type PoiResponse = {
+  id: number;
+  type: PoiType;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  phone: string | null;
+  openingHours: string | null;
 };
