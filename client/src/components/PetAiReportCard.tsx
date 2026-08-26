@@ -14,7 +14,7 @@ export default function PetAiReportCard({
     return null;
   }
 
-  let parsed: PetReportResult | null = null;
+  let parsed: PetReportResult;
   try {
     parsed = JSON.parse(aiReport) as PetReportResult;
   } catch {

@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ChevronRight, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
+import { ChevronRight, Home, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
 import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 import {
@@ -18,6 +18,8 @@ function getListingStatus(adType: AdType): string {
       return "Bulunan";
     case "ADOPTION":
       return "Sahiplendirme";
+    case "HELP":
+      return "Yardım";
     default:
       return "İlan";
   }
@@ -31,6 +33,8 @@ function getListingStatusClass(adType: AdType): string {
       return "found";
     case "ADOPTION":
       return "adoption";
+    case "HELP":
+      return "help";
     default:
       return "lost";
   }
@@ -107,9 +111,24 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
           </div>
         )}
 
-        <span className={`listing-status listing-status--${statusClass}`}>
-          {getListingStatus(ad.adType)}
-        </span>
+        <div className="absolute left-[14px] top-[14px] z-[2] flex flex-wrap gap-1.5">
+          <span
+            className={`listing-status listing-status--${statusClass}`}
+            style={{ position: "static" }}
+          >
+            {getListingStatus(ad.adType)}
+          </span>
+
+          {ad.adType === "ADOPTION" && ad.ownerRole === "BARINAK" && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold backdrop-blur-xs"
+              style={{ backgroundColor: "rgba(13, 148, 136, 0.92)", color: "#fff" }}
+            >
+              <Home size={12} />
+              Barınak
+            </span>
+          )}
+        </div>
 
         {ad.aiStatus === "DONE" && ad.aiIsPet === true && (
           <span className="listing-featured">

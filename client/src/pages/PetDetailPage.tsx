@@ -11,6 +11,7 @@ import {
   Eye,
   Flag,
   Heart,
+  Home,
   Info,
   MapPin,
   MessageCircle,
@@ -26,6 +27,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ComplaintModal from "../components/ComplaintModal";
 import AdEditModal from "../components/AdEditModal";
+import RoleBadge from "../components/RoleBadge";
 import SightingModal from "../components/SightingModal";
 import { useAuth } from "../contexts/AuthContext";
 import { getPublicAdById } from "../services/ads";
@@ -66,6 +68,11 @@ function getAdTypeBadge(adType: AdType) {
         label: "Sahiplendirme",
         className: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
       };
+    case "HELP":
+      return {
+        label: "Yardım Çağrısı",
+        className: "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30",
+      };
     default:
       return {
         label: "İlan",
@@ -93,6 +100,12 @@ function getPosterInfo(adType?: AdType) {
         title: "Sahiplendirme Afişi",
         description: "QR kodlu sahiplendirme afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
         buttonText: "Sahiplendirme Afişi İndir (PDF)",
+      };
+    case "HELP":
+      return {
+        title: "Yardım Afişi",
+        description: "QR kodlu yardım afişini PDF olarak indirip paylaşabilir veya yazdırabilirsin.",
+        buttonText: "Yardım Afişi İndir (PDF)",
       };
     default:
       return {
@@ -476,6 +489,13 @@ export default function PetDetailPage() {
                     {badgeInfo.label}
                   </span>
 
+                  {ad.adType === "ADOPTION" && ad.ownerRole === "BARINAK" && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0d9488]/30 bg-[#0d9488]/90 px-3 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
+                      <Home size={14} />
+                      Barınak
+                    </span>
+                  )}
+
                   {ad.aiStatus === "DONE" && ad.aiIsPet === true && (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-500/90 px-3 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
                       <Sparkles size={14} />
@@ -749,9 +769,12 @@ export default function PetDetailPage() {
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                       İLAN SAHİBİ
                     </span>
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-slate-50">
-                      {ad.ownerDisplayName || "Kullanıcı"}
-                    </h4>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-slate-50">
+                        {ad.ownerDisplayName || "Kullanıcı"}
+                      </h4>
+                      <RoleBadge role={ad.ownerRole} size="sm" />
+                    </div>
                   </div>
                 </div>
               </div>

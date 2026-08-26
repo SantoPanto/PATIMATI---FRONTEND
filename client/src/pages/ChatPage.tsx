@@ -23,11 +23,13 @@ import {
   getUserStatus,
   markMessageAsRead,
 } from "../services/messages";
-import type { ChatRoomResponse, MessageResponse, UserStatusEvent, UserStatusResponse } from "../services/types";
+import type { ChatRoomResponse, MessageResponse, Role, UserStatusEvent, UserStatusResponse } from "../services/types";
+import RoleBadge from "../components/RoleBadge";
 
 interface ChatContact {
   userId: number;
   userName: string;
+  userRole?: Role | null;
   lastMessage?: string;
   lastTimestamp?: string;
   unreadCount?: number;
@@ -96,7 +98,13 @@ export default function ChatPage() {
 
   // Helper to upsert a contact room in contacts list
   const upsertContact = useCallback(
-    (contactUserId: number, contactName: string, lastMsg: string, timestamp: string) => {
+    (
+      contactUserId: number,
+      contactName: string,
+      lastMsg: string,
+      timestamp: string,
+      role?: Role | null,
+    ) => {
       setContacts((prev) => {
         const index = prev.findIndex((c) => c.userId === contactUserId);
         const resolvedName =
@@ -105,12 +113,17 @@ export default function ChatPage() {
             : index >= 0 && prev[index].userName && !prev[index].userName.startsWith("Kullanıcı #")
             ? prev[index].userName
             : contactName || `Kullanıcı #${contactUserId}`;
+        // Rol bilgisi her çağrıda gelmiyor (ör. WebSocket'ten gelen anlık
+        // mesajlarda yok) -- verilmemişse mevcut rol korunur, sessizce null'a
+        // düşmez.
+        const resolvedRole = role !== undefined ? role : index >= 0 ? prev[index].userRole : undefined;
 
         if (index >= 0) {
           const updated = [...prev];
           updated[index] = {
             ...updated[index],
             userName: resolvedName,
+            userRole: resolvedRole,
             lastMessage: lastMsg || updated[index].lastMessage,
             lastTimestamp: timestamp || updated[index].lastTimestamp,
           };
@@ -122,6 +135,7 @@ export default function ChatPage() {
           {
             userId: contactUserId,
             userName: resolvedName,
+            userRole: resolvedRole,
             lastMessage: lastMsg,
             lastTimestamp: timestamp,
           },
@@ -267,6 +281,7 @@ export default function ChatPage() {
         const formattedContacts: ChatContact[] = (roomsData || []).map((room) => ({
           userId: room.partnerId,
           userName: room.partnerName || `Kullanıcı #${room.partnerId}`,
+          userRole: room.partnerRole,
           lastMessage: room.lastMessage || "",
           lastTimestamp: room.lastMessageTimestamp || "",
           unreadCount: room.unreadCount || 0,
@@ -318,7 +333,7 @@ export default function ChatPage() {
         if (cancelled) return;
 
         if (room.partnerName) {
-          upsertContact(currentActiveUserId, room.partnerName, "", "");
+          upsertContact(currentActiveUserId, room.partnerName, "", "", room.partnerRole);
         }
 
         const page = await getMessageHistory(currentActiveUserId, {
@@ -575,9 +590,12 @@ export default function ChatPage() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <h3 className="text-sm font-bold text-slate-900 truncate dark:text-slate-50">
-                            {c.userName || `Kullanıcı #${c.userId}`}
-                          </h3>
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <h3 className="text-sm font-bold text-slate-900 truncate dark:text-slate-50">
+                              {c.userName || `Kullanıcı #${c.userId}`}
+                            </h3>
+                            <RoleBadge role={c.userRole} size="sm" />
+                          </div>
                           {c.lastTimestamp && (
                             <span className="text-[11px] font-medium text-slate-400 shrink-0 dark:text-slate-500">
                               {new Date(c.lastTimestamp).toLocaleTimeString(
@@ -621,9 +639,12 @@ export default function ChatPage() {
                       <User size={20} />
                     </span>
                     <div>
-                      <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-50">
-                        {activePartnerName}
-                      </h2>
+                      <div className="flex items-center gap-1.5">
+                        <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-50">
+                          {activePartnerName}
+                        </h2>
+                        <RoleBadge role={activeContact?.userRole} size="sm" />
+                      </div>
                       {userStatus?.online ? (
                         <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 dark:text-emerald-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

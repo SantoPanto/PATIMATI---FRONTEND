@@ -33,6 +33,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import MapPicker from "../components/MapPicker";
 import ErrorBoundary from "../components/ErrorBoundary";
+import RoleBadge from "../components/RoleBadge";
 import { useAuth } from "../contexts/AuthContext";
 import { updateProfile } from "../services/auth";
 import type { AuthUser } from "../services/auth";
@@ -504,10 +505,7 @@ function ProfileContent() {
                 </p>
 
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-3 py-1 text-xs font-medium text-[#15803D] dark:bg-emerald-500/10 dark:text-emerald-400">
-                    <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
-                    {user?.role === "ADMIN" ? "Yönetici" : "Kullanıcı"}
-                  </span>
+                  <RoleBadge role={user?.role} />
 
                   {typeof user?.lostBadgeLevel === "number" && user.lostBadgeLevel > 0 && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">

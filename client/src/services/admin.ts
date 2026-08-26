@@ -4,6 +4,8 @@ import type {
   AdResponse,
   AdminGetParams,
   AdoptionComplaintAdminResponse,
+  CreatePetShopAccountPayload,
+  CreateShelterAccountPayload,
   CreateVetAccountPayload,
   ExternalPostAdminResponse,
   InstagramPublishStatus,
@@ -249,6 +251,28 @@ export function skipInstagramQueueItem(id: number): Promise<{ message: string }>
  */
 export function createVetAccount(payload: CreateVetAccountPayload): Promise<{ message: string }> {
   return request<{ message: string }>("/api/admin/vet-accounts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    requiresAuth: true,
+  });
+}
+
+/**
+ * POST /api/admin/petshop-accounts
+ */
+export function createPetShopAccount(payload: CreatePetShopAccountPayload): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/admin/petshop-accounts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    requiresAuth: true,
+  });
+}
+
+/**
+ * POST /api/admin/shelter-accounts
+ */
+export function createShelterAccount(payload: CreateShelterAccountPayload): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/admin/shelter-accounts", {
     method: "POST",
     body: JSON.stringify(payload),
     requiresAuth: true,

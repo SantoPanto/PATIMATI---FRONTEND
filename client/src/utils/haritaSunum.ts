@@ -11,6 +11,7 @@ export const HARITA_RENKLERI = {
   LOST: "#ef4444",
   FOUND: "#22c55e",
   ADOPTION: "#f59e0b",
+  HELP: "#0891b2",
 } as const;
 
 export function getMarkerType(adType: AdType) {
@@ -27,6 +28,14 @@ export function getMarkerType(adType: AdType) {
       label: "Bulunan",
       className: "found",
       fillColor: HARITA_RENKLERI.FOUND,
+    };
+  }
+
+  if (adType === "HELP") {
+    return {
+      label: "Yardım",
+      className: "help",
+      fillColor: HARITA_RENKLERI.HELP,
     };
   }
 
@@ -60,6 +69,25 @@ export function getPoiMarkerType(type: PoiType) {
     return { label: "Petshop", color: POI_RENKLERI.PET_SHOP };
   }
   return { label: "Barınak", color: POI_RENKLERI.SHELTER };
+}
+
+/*
+ * Platforma kayıtlı bir hizmet noktasının (source=PLATFORM, refId dolu)
+ * detay sayfası yolu -- "Hizmete Git" bağlantısı için. Saf OSM/MANUAL
+ * noktalarda gerçek bir hesap/detay sayfası olmadığından `null` döner,
+ * MapPage bu durumda butonu hiç göstermez.
+ */
+export function poiDetailPath(poi: { type: PoiType; source: string; refId: number | null }): string | null {
+  if (poi.source !== "PLATFORM" || poi.refId == null) {
+    return null;
+  }
+  if (poi.type === "VETERINARY") {
+    return `/hizmetler/veteriner/${poi.refId}`;
+  }
+  if (poi.type === "PET_SHOP") {
+    return `/hizmetler/petshop/${poi.refId}`;
+  }
+  return `/hizmetler/barinak/${poi.refId}`;
 }
 
 export type HaritaOdagi =
@@ -152,6 +180,7 @@ export function adLejantKalemleri(filtre: HaritaFiltresi): LejantKalemi[] {
     { label: "Kayıp", color: HARITA_RENKLERI.LOST },
     { label: "Bulunan", color: HARITA_RENKLERI.FOUND },
     { label: "Sahiplendirme", color: HARITA_RENKLERI.ADOPTION },
+    { label: "Yardım", color: HARITA_RENKLERI.HELP },
   ];
 
   if (filtre === "ALL") {

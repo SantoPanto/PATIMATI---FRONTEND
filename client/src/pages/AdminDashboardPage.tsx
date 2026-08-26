@@ -11,12 +11,14 @@ import {
   EyeOff,
   ExternalLink,
   Flag,
+  Home,
   LayoutGrid,
   Loader2,
   Megaphone,
   RefreshCw,
   Send,
   Shield,
+  ShoppingBag,
   Stethoscope,
   Trash2,
   UserCheck,
@@ -30,6 +32,8 @@ import InstagramPublishModal from "../components/InstagramPublishModal";
 import { ApiError } from "../services/api";
 import {
   banUser,
+  createPetShopAccount,
+  createShelterAccount,
   createVetAccount,
   deleteAdminAd,
   getAdminAdComplaints,
@@ -55,7 +59,15 @@ import type {
   UserDetailForAdminDTO,
 } from "../services/types";
 
-type AdminTab = "users" | "ads" | "complaints" | "instagram" | "instagramQueue" | "vetAccounts";
+type AdminTab =
+  | "users"
+  | "ads"
+  | "complaints"
+  | "instagram"
+  | "instagramQueue"
+  | "vetAccounts"
+  | "petshopAccounts"
+  | "shelterAccounts";
 type ComplaintSubTab = "ads" | "users" | "adoptions";
 
 export default function AdminDashboardPage() {
@@ -107,6 +119,21 @@ export default function AdminDashboardPage() {
   const [vetEmail, setVetEmail] = useState("");
   const [vetPassword, setVetPassword] = useState("");
   const [isCreatingVet, setIsCreatingVet] = useState(false);
+
+  // State for Petshop hesabı oluşturma formu (vetAccounts ile birebir aynı desen)
+  const [petshopFirstName, setPetshopFirstName] = useState("");
+  const [petshopLastName, setPetshopLastName] = useState("");
+  const [petshopEmail, setPetshopEmail] = useState("");
+  const [petshopPassword, setPetshopPassword] = useState("");
+  const [isCreatingPetshop, setIsCreatingPetshop] = useState(false);
+
+  // State for Barınak hesabı oluşturma formu (vetAccounts/petshopAccounts ile
+  // birebir aynı desenin 3. tekrarı -- kasıtlı, bkz. plan §19)
+  const [shelterFirstName, setShelterFirstName] = useState("");
+  const [shelterLastName, setShelterLastName] = useState("");
+  const [shelterEmail, setShelterEmail] = useState("");
+  const [shelterPassword, setShelterPassword] = useState("");
+  const [isCreatingShelter, setIsCreatingShelter] = useState(false);
 
   // General state
   const [loading, setLoading] = useState(false);
@@ -397,6 +424,56 @@ export default function AdminDashboardPage() {
       setError(err instanceof ApiError ? err.message : "Veteriner hesabı oluşturulamadı.");
     } finally {
       setIsCreatingVet(false);
+    }
+  };
+
+  const handleCreatePetShopAccount = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setFeedback(null);
+    setIsCreatingPetshop(true);
+
+    try {
+      await createPetShopAccount({
+        firstName: petshopFirstName.trim(),
+        lastName: petshopLastName.trim(),
+        email: petshopEmail.trim(),
+        password: petshopPassword,
+      });
+      setFeedback(`Petshop hesabı oluşturuldu: ${petshopEmail.trim()}`);
+      setPetshopFirstName("");
+      setPetshopLastName("");
+      setPetshopEmail("");
+      setPetshopPassword("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Petshop hesabı oluşturulamadı.");
+    } finally {
+      setIsCreatingPetshop(false);
+    }
+  };
+
+  const handleCreateShelterAccount = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setFeedback(null);
+    setIsCreatingShelter(true);
+
+    try {
+      await createShelterAccount({
+        firstName: shelterFirstName.trim(),
+        lastName: shelterLastName.trim(),
+        email: shelterEmail.trim(),
+        password: shelterPassword,
+      });
+      setFeedback(`Barınak hesabı oluşturuldu: ${shelterEmail.trim()}`);
+      setShelterFirstName("");
+      setShelterLastName("");
+      setShelterEmail("");
+      setShelterPassword("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Barınak hesabı oluşturulamadı.");
+    } finally {
+      setIsCreatingShelter(false);
     }
   };
 
@@ -759,10 +836,44 @@ export default function AdminDashboardPage() {
             <Stethoscope size={18} />
             <span>Veteriner Hesapları</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("petshopAccounts");
+              setError(null);
+              setFeedback(null);
+            }}
+            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "petshopAccounts"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
+            }`}
+          >
+            <ShoppingBag size={18} />
+            <span>Petshop Hesapları</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("shelterAccounts");
+              setError(null);
+              setFeedback(null);
+            }}
+            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "shelterAccounts"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
+            }`}
+          >
+            <Home size={18} />
+            <span>Barınak Hesapları</span>
+          </button>
         </div>
 
         {/* Filter Bar */}
-        {activeTab !== "vetAccounts" && (
+        {activeTab !== "vetAccounts" && activeTab !== "petshopAccounts" && activeTab !== "shelterAccounts" && (
         <div className="mb-6">
           <AdminFilterBar
             searchQuery={searchQuery}
@@ -1745,6 +1856,162 @@ export default function AdminDashboardPage() {
                 >
                   <Stethoscope size={16} />
                   {isCreatingVet ? "Oluşturuluyor..." : "Hesap Oluştur"}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* PETSHOP ACCOUNTS TAB */}
+          {activeTab === "petshopAccounts" && (
+            <div className="p-6">
+              <h2 className="mb-1 text-lg font-extrabold text-slate-900 dark:text-slate-50">
+                Yeni Petshop Hesabı Aç
+              </h2>
+              <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
+                Bu hesapla giriş yapan kullanıcı, "Petshop Paneli"nden kendi petshop kartını oluşturabilir.
+              </p>
+
+              <form onSubmit={handleCreatePetShopAccount} className="max-w-md space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Ad
+                    </label>
+                    <input
+                      value={petshopFirstName}
+                      onChange={(event) => setPetshopFirstName(event.target.value)}
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Soyad
+                    </label>
+                    <input
+                      value={petshopLastName}
+                      onChange={(event) => setPetshopLastName(event.target.value)}
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    E-posta
+                  </label>
+                  <input
+                    type="email"
+                    value={petshopEmail}
+                    onChange={(event) => setPetshopEmail(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Şifre
+                  </label>
+                  <input
+                    type="password"
+                    value={petshopPassword}
+                    onChange={(event) => setPetshopPassword(event.target.value)}
+                    required
+                    minLength={8}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                    En az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermeli.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingPetshop}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <ShoppingBag size={16} />
+                  {isCreatingPetshop ? "Oluşturuluyor..." : "Hesap Oluştur"}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* SHELTER ACCOUNTS TAB */}
+          {activeTab === "shelterAccounts" && (
+            <div className="p-6">
+              <h2 className="mb-1 text-lg font-extrabold text-slate-900 dark:text-slate-50">
+                Yeni Barınak Hesabı Aç
+              </h2>
+              <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
+                Bu hesapla giriş yapan kullanıcı, "Barınak Paneli"nden kendi barınak kartını oluşturabilir.
+              </p>
+
+              <form onSubmit={handleCreateShelterAccount} className="max-w-md space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Ad
+                    </label>
+                    <input
+                      value={shelterFirstName}
+                      onChange={(event) => setShelterFirstName(event.target.value)}
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Soyad
+                    </label>
+                    <input
+                      value={shelterLastName}
+                      onChange={(event) => setShelterLastName(event.target.value)}
+                      required
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    E-posta
+                  </label>
+                  <input
+                    type="email"
+                    value={shelterEmail}
+                    onChange={(event) => setShelterEmail(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Şifre
+                  </label>
+                  <input
+                    type="password"
+                    value={shelterPassword}
+                    onChange={(event) => setShelterPassword(event.target.value)}
+                    required
+                    minLength={8}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                    En az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermeli.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingShelter}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Home size={16} />
+                  {isCreatingShelter ? "Oluşturuluyor..." : "Hesap Oluştur"}
                 </button>
               </form>
             </div>

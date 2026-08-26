@@ -1,6 +1,10 @@
 import { Clock, MapPin, Phone, Send, Stethoscope } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
+import MapPicker from "../components/MapPicker";
+import ServiceHero from "../components/ServiceHero";
+import StarRating from "../components/StarRating";
+import VetClinicReviewsSection from "../components/VetClinicReviewsSection";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,6 +12,7 @@ import { ApiError } from "../services/api";
 import type { VetClinicPublicResponse, VetCustomerRequestStatus } from "../services/types";
 import { getVetClinic } from "../services/vet";
 import { getMyRequestStatus, sendVetCustomerRequest } from "../services/vetCustomers";
+import { getAnimalTypeLabel } from "../utils/animalTypeLabels";
 
 export default function VetDetailPage() {
   const { id } = useParams<{ id?: string }>();
@@ -93,6 +98,9 @@ export default function VetDetailPage() {
   const cardClass =
     "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900";
 
+  const hasLocation =
+    clinic !== null && clinic.latitude !== null && clinic.longitude !== null;
+
   const buttonLabel = !isAuthenticated
     ? "Giriş Yap"
     : requestStatus === "PENDING"
@@ -109,6 +117,13 @@ export default function VetDetailPage() {
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
+      <ServiceHero
+        icon={Stethoscope}
+        eyebrow="Veteriner Kliniği"
+        title={clinic?.name ?? "Veteriner Kliniği"}
+        color="#2563eb"
+      />
+
       <main className="mx-auto max-w-[700px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
         {isLoading ? (
           <div className={cardClass}>
@@ -120,20 +135,18 @@ export default function VetDetailPage() {
           </div>
         ) : clinic ? (
           <>
-            <div className="mb-6">
-              <p className="text-sm font-medium text-[#2563EB]">Veteriner Kliniği</p>
-              <h1 className="mt-1 flex items-center gap-2 text-[28px] font-bold leading-9 text-[#0F172A] dark:text-[#F1F5F9]">
-                <Stethoscope size={26} className="text-[#2563EB]" />
-                {clinic.name}
-              </h1>
-            </div>
-
             <div className={cardClass}>
               <div className="mb-4 h-52 w-full overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
                 {clinic.photoUrl && (
                   <img src={clinic.photoUrl} alt={clinic.name} className="h-full w-full object-cover" />
                 )}
               </div>
+
+              {hasLocation && (
+                <div className="mb-4">
+                  <MapPicker readOnly latitude={clinic.latitude} longitude={clinic.longitude} />
+                </div>
+              )}
 
               <div className="space-y-2 text-sm text-[#64748B] dark:text-[#94A3B8]">
                 <p className="flex items-start gap-2">
@@ -155,6 +168,30 @@ export default function VetDetailPage() {
                 )}
               </div>
 
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <StarRating value={clinic.averageRating ?? 0} readOnly size={16} />
+                  <span className="text-sm text-[#64748B] dark:text-[#94A3B8]">
+                    {clinic.reviewCount > 0 && clinic.averageRating !== null
+                      ? `${clinic.averageRating.toFixed(1)} (${clinic.reviewCount})`
+                      : "Henüz değerlendirme yok"}
+                  </span>
+                </div>
+              </div>
+
+              {clinic.animalTypes.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {clinic.animalTypes.map((type) => (
+                    <span
+                      key={type}
+                      className="rounded-full bg-[#2563EB]/10 px-3 py-1 text-xs font-semibold text-[#2563EB] dark:bg-[#2563EB]/20"
+                    >
+                      {getAnimalTypeLabel(type)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {errorMessage && (
                 <div
                   role="alert"
@@ -173,6 +210,13 @@ export default function VetDetailPage() {
                 <Send size={16} />
                 {buttonLabel}
               </button>
+            </div>
+
+            <div className={`${cardClass} mt-5`}>
+              <h2 className="mb-4 text-lg font-bold text-[#0F172A] dark:text-[#F1F5F9]">
+                Puanlar ve Yorumlar
+              </h2>
+              <VetClinicReviewsSection clinicId={clinic.id} />
             </div>
           </>
         ) : null}

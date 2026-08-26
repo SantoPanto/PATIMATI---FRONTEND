@@ -27,6 +27,7 @@ import {
   HARITA_RENKLERI,
   haritadaGorunur,
   haritaOdagi,
+  poiDetailPath,
   poiGorunur,
   poiLejantKalemleri,
   VARSAYILAN_MERKEZ,
@@ -441,6 +442,25 @@ export default function MapPage() {
             <MapPin size={16} />
             Sahiplendirme
           </button>
+
+          <button
+            type="button"
+            className={`map-filter-chip map-tinted-chip ${
+              filter === "HELP" ? "active" : ""
+            }`}
+            onClick={() => setFilter("HELP")}
+            style={
+              filter === "HELP"
+                ? {
+                    background: HARITA_RENKLERI.HELP,
+                    borderColor: HARITA_RENKLERI.HELP,
+                  }
+                : undefined
+            }
+          >
+            <MapPin size={16} />
+            Yardım
+          </button>
         </div>
 
         <div className="map-filter map-filter--poi">
@@ -592,6 +612,13 @@ export default function MapPage() {
 
                         {poi.address && <span>{poi.address}</span>}
                         {poi.phone && <span>{poi.phone}</span>}
+                        {poi.openingHours && <span>{poi.openingHours}</span>}
+
+                        {poiDetailPath(poi) && (
+                          <Link href={poiDetailPath(poi) as string}>
+                            Hizmete Git
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </Popup>
@@ -643,6 +670,9 @@ export default function MapPage() {
                       <div className="map-popup__content">
                         <span className="map-popup__type">
                           {marker.label}
+                          {ad.adType === "ADOPTION" && ad.ownerRole === "BARINAK"
+                            ? " · Barınak"
+                            : ""}
                         </span>
 
                         <strong>

@@ -23,6 +23,7 @@ const FILTERS: Array<{ value: FilterType; label: string }> = [
   { value: "LOST", label: "Kayıp" },
   { value: "FOUND", label: "Bulunan" },
   { value: "ADOPTION", label: "Sahiplendirme" },
+  { value: "HELP", label: "Yardım" },
 ];
 
 export default function ListingsPage() {

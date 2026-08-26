@@ -29,7 +29,7 @@ export type ApiResponse<T = unknown> = {
 // 1. User & Authentication Types (/api/auth)
 // ==========================================
 
-export type Role = "GUEST" | "USER" | "ADMIN" | "VET";
+export type Role = "GUEST" | "USER" | "ADMIN" | "VET" | "PETSHOP" | "BARINAK";
 
 export type UserResponseDTO = {
   uid: number;
@@ -109,7 +109,7 @@ export type AuthResponse = {
 // 2. Ads Types (/api/ads & /api/public/ads)
 // ==========================================
 
-export type AdType = "LOST" | "FOUND" | "ADOPTION";
+export type AdType = "LOST" | "FOUND" | "ADOPTION" | "HELP";
 export type Species = "CAT" | "DOG" | "UNKNOWN";
 export type Gender = "MALE" | "FEMALE" | "UNKNOWN";
 export type AgeGroup =
@@ -218,6 +218,8 @@ export type AdResponse = {
   longitude: number | null;
   ownerId: number;
   ownerDisplayName: string;
+  /** İlanı açan kullanıcının rolü -- barınak hesabından açılan sahiplendirme ilanlarında "Barınak" etiketi için. Sahip silinmişse (veya eski test/mock veride) null/undefined olabilir. */
+  ownerRole?: Role | null;
   active: boolean;
   /**
    * Yonetici moderasyonu. `active` ile KARISTIRILMAMALI:
@@ -385,6 +387,8 @@ export type ChatRoomResponse = {
   lastMessage?: string;
   lastMessageTimestamp?: string;
   unreadCount?: number;
+  /** Karşı tarafın rolü -- sohbette rol rozeti göstermek için. */
+  partnerRole?: Role | null;
 };
 
 export type MessageSendRequest = {
@@ -402,6 +406,8 @@ export type MessageResponse = {
   timestamp: string; // ISO-8601 UTC
   isRead: boolean;
   isOptimistic?: boolean;
+  /** Karşı tarafın rolü -- sohbette rol rozeti göstermek için. */
+  partnerRole?: Role | null;
 };
 
 
@@ -592,6 +598,24 @@ export type InstagramQueueItemResponse = {
   createdAt: string; // ISO-8601 UTC
 };
 
+/**
+ * Backend karşılığı: entity/enums/AnimalType.java.
+ *
+ * Bilerek `Species`'ten (yalnızca CAT/DOG/UNKNOWN, ilan eşleştirmesine bağlı)
+ * AYRI bir tip -- bir veterinerin baktığı tür yelpazesi çok daha geniş.
+ */
+export type AnimalType =
+  | "DOG"
+  | "CAT"
+  | "BIRD"
+  | "RABBIT"
+  | "RODENT"
+  | "REPTILE"
+  | "FISH"
+  | "FARM_ANIMAL"
+  | "EXOTIC"
+  | "OTHER";
+
 /** Backend karşılığı: dto/vet/VetClinicResponse (kendi kartı, GET/PUT /api/vet/clinic). */
 export type VetClinicResponse = {
   id: number;
@@ -602,6 +626,12 @@ export type VetClinicResponse = {
   phone: string;
   workingHours: string | null;
   photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  animalTypes: AnimalType[];
+  /** Yorum yoksa `null` -- 0.0 DEĞİL, "henüz değerlendirme yok" ayırt edilebilsin diye. */
+  averageRating: number | null;
+  reviewCount: number;
 };
 
 /**
@@ -611,11 +641,10 @@ export type VetClinicResponse = {
  * `vetUserId`: müşteri isteği göndermek için gereken hedef (User.uid) --
  * klinik kartının kendi `id`'si (VetClinic PK) DEĞİL. Backend'in bu alanı
  * döndürdüğü varsayılıyor (VetClinic.user.uid) -- yoksa müşteri isteği
- * gönderme akışı çalışmaz.
+ * gönderme akışı çalışmaz. Bilerek EN SONDA tutuluyor (plan §10).
  */
 export type VetClinicPublicResponse = {
   id: number;
-  vetUserId: number;
   name: string;
   address: string;
   city: string;
@@ -623,6 +652,12 @@ export type VetClinicPublicResponse = {
   phone: string;
   workingHours: string | null;
   photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  animalTypes: AnimalType[];
+  averageRating: number | null;
+  reviewCount: number;
+  vetUserId: number;
 };
 
 export type VetClinicUpsertPayload = {
@@ -633,6 +668,28 @@ export type VetClinicUpsertPayload = {
   phone: string;
   workingHours?: string;
   photo?: File;
+  latitude?: number;
+  longitude?: number;
+  animalTypes?: AnimalType[];
+};
+
+/** Backend karşılığı: dto/vet/VetClinicReviewResponse. */
+export type VetClinicReviewResponse = {
+  id: number;
+  authorId: number;
+  authorName: string;
+  rating: number;
+  comment: string | null;
+  /** Çağıran bu yorumun yazarı mı -- öyleyse düzenle/sil gösterilebilir. */
+  canEdit: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Backend karşılığı: dto/vet/VetClinicReviewUpsertRequest (PUT /api/vet-clinics/{id}/reviews/me). */
+export type VetClinicReviewUpsertPayload = {
+  rating: number;
+  comment?: string;
 };
 
 /** Backend karşılığı: dto/admin/CreateVetAccountRequest. */
@@ -821,6 +878,8 @@ export type WsNotificationEvent = {
 
 export type PoiType = "VETERINARY" | "PET_SHOP" | "SHELTER";
 
+export type PoiSource = "OSM" | "MANUAL" | "PLATFORM";
+
 export type PoiResponse = {
   id: number;
   type: PoiType;
@@ -830,4 +889,235 @@ export type PoiResponse = {
   address: string | null;
   phone: string | null;
   openingHours: string | null;
+  source: PoiSource;
+  /** `source === "PLATFORM"` iken ilgili VetClinic/PetShop/Shelter'ın kendi kimliği -- "Hizmete Git" bağlantısı için. OSM/MANUAL noktalarda null. */
+  refId: number | null;
+};
+
+// ==========================================
+// 12. Petshop Types (/api/petshop/**, /api/petshops/**, /api/petshop-products/**)
+// ==========================================
+
+/**
+ * Backend karşılığı: dto/petshop/PetShopResponse (kendi kartı, GET/PUT
+ * /api/petshop/card). `VetClinicResponse`'un aynısı eksi `animalTypes`.
+ * Dükkan seviyesinde puanlama eklendi -- `ShelterResponse` ile AYNI desen
+ * (`averageRating`/`reviewCount`), ürün bazlı puanlamadan (`PetShopProductResponse`)
+ * BAĞIMSIZ.
+ */
+export type PetShopResponse = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Yorum yoksa `null` -- 0.0 DEĞİL, "henüz değerlendirme yok" ayırt edilebilsin diye. */
+  averageRating: number | null;
+  reviewCount: number;
+};
+
+/**
+ * Backend karşılığı: dto/petshop/PetShopPublicResponse (herkese açık
+ * dizin, GET /api/petshops ve GET /api/petshops/{id}). `vetUserId`'nin
+ * karşılığı YOK: dizin kartından hedeflenen bir "müşteri isteği" eylemi
+ * yok (YAGNI, plan §5).
+ */
+export type PetShopPublicResponse = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Yorum yoksa `null` -- 0.0 DEĞİL, "henüz değerlendirme yok" ayırt edilebilsin diye. */
+  averageRating: number | null;
+  reviewCount: number;
+};
+
+export type PetShopUpsertPayload = {
+  name: string;
+  address: string;
+  city: string;
+  district?: string;
+  phone: string;
+  workingHours?: string;
+  photo?: File;
+  latitude?: number;
+  longitude?: number;
+};
+
+/**
+ * Backend karşılığı: dto/petshop/PetShopProductResponse. `petShopId` --
+ * dükkan detay sayfasından ürün detay/inceleme sayfasının rotasını
+ * (`/hizmetler/petshop/{shopId}/urun/{productId}`) kurmak için gerekli.
+ */
+export type PetShopProductResponse = {
+  id: number;
+  petShopId: number;
+  name: string;
+  description: string | null;
+  price: number;
+  photoUrl: string | null;
+  /** Yorum yoksa `null` -- 0.0 DEĞİL, "henüz değerlendirme yok" ayırt edilebilsin diye. */
+  averageRating: number | null;
+  reviewCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PetShopProductUpsertPayload = {
+  name: string;
+  description?: string;
+  price: number;
+  photo?: File;
+};
+
+/** Backend karşılığı: dto/petshop/PetShopReviewResponse (dükkan seviyesi -- ürün YORUMU DEĞİL). */
+export type PetShopReviewResponse = {
+  id: number;
+  authorId: number;
+  authorName: string;
+  rating: number;
+  comment: string | null;
+  /** Çağıran bu yorumun yazarı mı -- öyleyse düzenle/sil gösterilebilir. */
+  canEdit: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Backend karşılığı: dto/petshop/PetShopReviewUpsertRequest
+ * (PUT /api/petshops/{id}/reviews/me).
+ */
+export type PetShopReviewUpsertPayload = {
+  rating: number;
+  comment?: string;
+};
+
+/** Backend karşılığı: dto/petshop/PetShopProductReviewResponse. */
+export type PetShopProductReviewResponse = {
+  id: number;
+  authorId: number;
+  authorName: string;
+  rating: number;
+  comment: string | null;
+  /** Çağıran bu yorumun yazarı mı -- öyleyse düzenle/sil gösterilebilir. */
+  canEdit: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Backend karşılığı: dto/petshop/PetShopProductReviewUpsertRequest
+ * (PUT /api/petshop-products/{id}/reviews/me).
+ */
+export type PetShopProductReviewUpsertPayload = {
+  rating: number;
+  comment?: string;
+};
+
+/** Backend karşılığı: dto/admin/CreatePetShopAccountRequest. */
+export type CreatePetShopAccountPayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+};
+
+// ==========================================
+// 13. Barınak Types (/api/shelter/**, /api/shelters/**)
+// ==========================================
+
+/**
+ * Backend karşılığı: dto/shelter/ShelterResponse (kendi kartı, GET/PUT
+ * /api/shelter/card). `PetShopResponse`'un aynısı + `averageRating`/
+ * `reviewCount` -- Petshop'un aksine barınakta VetClinic gibi barınak
+ * seviyesinde puanlama VAR (plan "Bilinçli kapsam sınırları").
+ */
+export type ShelterResponse = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Yorum yoksa `null` -- 0.0 DEĞİL, "henüz değerlendirme yok" ayırt edilebilsin diye. */
+  averageRating: number | null;
+  reviewCount: number;
+};
+
+/**
+ * Backend karşılığı: dto/shelter/ShelterPublicResponse (herkese açık dizin,
+ * GET /api/shelters ve GET /api/shelters/{id}). `PetShopPublicResponse` gibi
+ * sahip-hedefli bir alan YOK -- barınak kartından yönlendirilecek bir
+ * "müşteri isteği" eylemi yok (plan §10).
+ */
+export type ShelterPublicResponse = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  averageRating: number | null;
+  reviewCount: number;
+};
+
+export type ShelterUpsertPayload = {
+  name: string;
+  address: string;
+  city: string;
+  district?: string;
+  phone: string;
+  workingHours?: string;
+  photo?: File;
+  latitude?: number;
+  longitude?: number;
+};
+
+/** Backend karşılığı: dto/shelter/ShelterReviewResponse. */
+export type ShelterReviewResponse = {
+  id: number;
+  authorId: number;
+  authorName: string;
+  rating: number;
+  comment: string | null;
+  /** Çağıran bu yorumun yazarı mı -- öyleyse düzenle/sil gösterilebilir. */
+  canEdit: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Backend karşılığı: dto/shelter/ShelterReviewUpsertRequest
+ * (PUT /api/shelters/{id}/reviews/me).
+ */
+export type ShelterReviewUpsertPayload = {
+  rating: number;
+  comment?: string;
+};
+
+/** Backend karşılığı: dto/admin/CreateShelterAccountRequest. */
+export type CreateShelterAccountPayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 };

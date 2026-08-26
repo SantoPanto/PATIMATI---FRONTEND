@@ -5,6 +5,8 @@ import {
   ChevronLeft,
   Inbox,
   Info,
+  MapPin,
+  PawPrint,
   Scale,
   Sparkles,
   Stethoscope,
@@ -13,13 +15,16 @@ import {
   X,
 } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import AnimalTypeSelector from "../components/AnimalTypeSelector";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import MapPicker from "../components/MapPicker";
 import PetAiReportCard from "../components/PetAiReportCard";
 import PetHealthInfo from "../components/PetHealthInfo";
 import PetNotesSection from "../components/PetNotesSection";
 import PetVaccinationsSection from "../components/PetVaccinationsSection";
 import PetWeightSection from "../components/PetWeightSection";
+import ServiceHero from "../components/ServiceHero";
 import { ApiError } from "../services/api";
 import { getMyClinic, upsertMyClinic } from "../services/vet";
 import {
@@ -40,6 +45,7 @@ import {
   updatePetTreatmentNote,
 } from "../services/pets";
 import type {
+  AnimalType,
   Pet,
   PetTreatmentNoteResponse,
   PetVaccination,
@@ -47,7 +53,7 @@ import type {
   VetCustomerRequestResponse,
   VetCustomerResponse,
 } from "../services/types";
-import { getAgeLabel, getGenderLabel, getSpeciesLabel } from "../utils/adPresentation";
+import { getAgeLabel, getGenderLabel, getOwnerInitials, getSpeciesLabel } from "../utils/adPresentation";
 
 const MAX_FILE_SIZE_MB = 5;
 
@@ -60,30 +66,24 @@ export default function VetPanelPage() {
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
-      <main className="mx-auto max-w-[900px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-        <div className="mb-6">
-          <p className="text-sm font-medium text-[#2563EB]">Veteriner Paneli</p>
-          <h1 className="mt-1 flex items-center gap-2 text-[32px] font-bold leading-10 text-[#0F172A] dark:text-[#F1F5F9]">
-            <Stethoscope size={28} className="text-[#2563EB]" />
-            Veteriner Paneli
-          </h1>
-        </div>
+      <ServiceHero icon={Stethoscope} eyebrow="Veteriner Paneli" title="Veteriner Paneli" color="#2563eb" />
 
+      <main className="mx-auto max-w-[900px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
         <div className="mb-6 flex gap-2 border-b border-gray-200 dark:border-slate-800">
           <TabButton active={activeTab === "clinic"} onClick={() => setActiveTab("clinic")} icon={<Stethoscope size={16} />}>
             Klinik Kartı
           </TabButton>
-          <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")} icon={<Inbox size={16} />}>
-            Gelen İstekler
-          </TabButton>
           <TabButton active={activeTab === "customers"} onClick={() => setActiveTab("customers")} icon={<Users size={16} />}>
             Müşterilerim
+          </TabButton>
+          <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")} icon={<Inbox size={16} />}>
+            Gelen İstekler
           </TabButton>
         </div>
 
         {activeTab === "clinic" && <ClinicCardTab />}
-        {activeTab === "requests" && <IncomingRequestsTab />}
         {activeTab === "customers" && <CustomersTab />}
+        {activeTab === "requests" && <IncomingRequestsTab />}
       </main>
 
       <Footer />
@@ -136,6 +136,9 @@ function ClinicCardTab() {
   const [district, setDistrict] = useState("");
   const [phone, setPhone] = useState("");
   const [workingHours, setWorkingHours] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [animalTypes, setAnimalTypes] = useState<AnimalType[]>([]);
 
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
   const [newPhoto, setNewPhoto] = useState<File | null>(null);
@@ -157,6 +160,9 @@ function ClinicCardTab() {
         setPhone(clinic.phone);
         setWorkingHours(clinic.workingHours ?? "");
         setExistingPhotoUrl(clinic.photoUrl);
+        setLatitude(clinic.latitude);
+        setLongitude(clinic.longitude);
+        setAnimalTypes(clinic.animalTypes ?? []);
       })
       .catch(() => {
         setErrorMessage("Klinik bilgileri yüklenirken bir hata oluştu.");
@@ -208,6 +214,11 @@ function ClinicCardTab() {
         phone: phone.trim(),
         workingHours: workingHours.trim() || undefined,
         photo: newPhoto ?? undefined,
+        // Yalnızca ikisi BİRDEN seçiliyse gönderilir -- konum ayarlanmadan
+        // kart kaydedilebilmeli, tek biri gönderilirse backend'in
+        // doğrulaması reddeder (plan §6).
+        ...(latitude !== null && longitude !== null ? { latitude, longitude } : {}),
+        animalTypes,
       });
 
       setExistingPhotoUrl(updated.photoUrl);
@@ -342,6 +353,29 @@ function ClinicCardTab() {
         </div>
       </section>
 
+      <section className={cardClass}>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+          <MapPin size={20} className="text-[#2563EB]" />
+          Konum
+        </h2>
+        <MapPicker
+          latitude={latitude}
+          longitude={longitude}
+          onChange={(lat, lng) => {
+            setLatitude(lat);
+            setLongitude(lng);
+          }}
+        />
+      </section>
+
+      <section className={cardClass}>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
+          <PawPrint size={20} className="text-[#2563EB]" />
+          Baktığınız Hayvan Türleri
+        </h2>
+        <AnimalTypeSelector value={animalTypes} onChange={setAnimalTypes} />
+      </section>
+
       {errorMessage && (
         <div
           role="alert"
@@ -433,17 +467,26 @@ function IncomingRequestsTab() {
       )}
 
       {requests.length === 0 ? (
-        <div className={cardClass}>
+        <div className={`${cardClass} flex flex-col items-center justify-center gap-2 py-10 text-center`}>
+          <Inbox size={28} className="text-gray-300 dark:text-slate-600" />
           <p className="text-sm text-gray-500 dark:text-slate-400">Bekleyen bir istek yok.</p>
         </div>
       ) : (
         requests.map((req) => (
-          <div key={req.id} className={`${cardClass} flex items-center justify-between gap-4`}>
-            <div>
-              <p className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">{req.requesterName}</p>
-              <p className="text-xs text-gray-400 dark:text-slate-500">
-                {new Date(req.createdAt).toLocaleDateString("tr-TR")}
-              </p>
+          <div
+            key={req.id}
+            className={`${cardClass} flex items-center justify-between gap-4 transition hover:border-[#2563EB]/30 hover:shadow-md`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2563EB]/10 text-sm font-bold text-[#2563EB] dark:bg-[#2563EB]/20">
+                {getOwnerInitials(req.requesterName)}
+              </div>
+              <div>
+                <p className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">{req.requesterName}</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">
+                  {new Date(req.createdAt).toLocaleDateString("tr-TR")}
+                </p>
+              </div>
             </div>
             <div className="flex shrink-0 gap-2">
               <button
@@ -572,13 +615,26 @@ function CustomersTab() {
         </button>
 
         <div className={cardClass}>
-          <h2 className="mb-1 text-lg font-bold">{selectedPet.name}</h2>
-          <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">
-            {getSpeciesLabel(selectedPet.species)}
-            {selectedPet.breed ? ` · ${selectedPet.breed}` : ""}
-            {selectedPet.gender ? ` · ${getGenderLabel(selectedPet.gender)}` : ""}
-            {selectedPet.ageGroup ? ` · ${getAgeLabel(selectedPet.ageGroup)}` : ""}
-          </p>
+          <div className="mb-4 flex items-center gap-4">
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
+              {selectedPet.photoUrl && (
+                <img
+                  src={selectedPet.photoUrl}
+                  alt={selectedPet.name}
+                  className="h-full w-full object-cover"
+                />
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">{selectedPet.name}</h2>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                {getSpeciesLabel(selectedPet.species)}
+                {selectedPet.breed ? ` · ${selectedPet.breed}` : ""}
+                {selectedPet.gender ? ` · ${getGenderLabel(selectedPet.gender)}` : ""}
+                {selectedPet.ageGroup ? ` · ${getAgeLabel(selectedPet.ageGroup)}` : ""}
+              </p>
+            </div>
+          </div>
 
           <div className="mb-4">
             <PetHealthInfo pet={selectedPet} />
@@ -689,7 +745,7 @@ function CustomersTab() {
               key={pet.id}
               type="button"
               onClick={() => openPet(pet)}
-              className={`${cardClass} flex w-full items-center gap-4 text-left`}
+              className={`${cardClass} flex w-full items-center gap-4 text-left transition hover:border-[#2563EB]/30 hover:shadow-md`}
             >
               <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
                 {pet.photoUrl && (
@@ -697,10 +753,14 @@ function CustomersTab() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">{pet.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">{pet.name}</p>
+                  <span className="rounded-full bg-[#2563EB]/10 px-2 py-0.5 text-[11px] font-semibold text-[#2563EB] dark:bg-[#2563EB]/20">
+                    {getSpeciesLabel(pet.species)}
+                  </span>
+                </div>
                 <p className="text-sm text-gray-500 dark:text-slate-400">
-                  {getSpeciesLabel(pet.species)}
-                  {pet.breed ? ` · ${pet.breed}` : ""}
+                  {pet.breed || "Cins belirtilmemiş"}
                 </p>
                 <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">
                   {pet.lastTreatmentAt
@@ -738,9 +798,14 @@ function CustomersTab() {
             key={customer.id}
             type="button"
             onClick={() => openCustomer(customer)}
-            className={`${cardClass} flex w-full items-center justify-between text-left`}
+            className={`${cardClass} flex w-full items-center justify-between text-left transition hover:border-[#2563EB]/30 hover:shadow-md`}
           >
-            <p className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">{customer.requesterName}</p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2563EB]/10 text-sm font-bold text-[#2563EB] dark:bg-[#2563EB]/20">
+                {getOwnerInitials(customer.requesterName)}
+              </div>
+              <p className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">{customer.requesterName}</p>
+            </div>
             <ChevronLeft size={18} className="rotate-180 text-gray-400" />
           </button>
         ))

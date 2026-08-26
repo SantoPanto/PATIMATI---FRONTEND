@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import ServiceHero from "../components/ServiceHero";
+import StarRating from "../components/StarRating";
 import type { VetClinicPublicResponse } from "../services/types";
 import { listVetClinics } from "../services/vet";
 
@@ -47,17 +49,15 @@ export default function VetDirectoryPage() {
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#F1F5F9]">
       <Header />
 
+      <ServiceHero
+        icon={Stethoscope}
+        eyebrow="Hizmetler"
+        title="Veteriner Klinikleri"
+        subtitle="PatiMati'ye kayıtlı veteriner kliniklerinin bilgilerine buradan ulaşabilirsiniz."
+        color="#2563eb"
+      />
+
       <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-        <div className="mb-6">
-          <p className="text-sm font-medium text-[#2563EB]">Hizmetler</p>
-          <h1 className="mt-1 flex items-center gap-2 text-[32px] font-bold leading-10 text-[#0F172A] dark:text-[#F1F5F9]">
-            <Stethoscope size={28} className="text-[#2563EB]" />
-            Veteriner Klinikleri
-          </h1>
-          <p className="mt-2 text-base leading-6 text-[#64748B] dark:text-[#94A3B8]">
-            PatiMati'ye kayıtlı veteriner kliniklerinin bilgilerine buradan ulaşabilirsiniz.
-          </p>
-        </div>
 
         <div className="mb-6 max-w-xs">
           <input
@@ -93,7 +93,7 @@ export default function VetDirectoryPage() {
             {clinics.map((clinic) => (
               <div
                 key={clinic.id}
-                className={`${cardClass} cursor-pointer transition hover:border-[#2563EB]/40 hover:shadow-md`}
+                className={`${cardClass} cursor-pointer transition duration-300 hover:-translate-y-1 hover:border-[#2563EB]/40 hover:shadow-lg`}
                 role="button"
                 tabIndex={0}
                 onClick={() => navigate(`/hizmetler/veteriner/${clinic.id}`)}
@@ -117,6 +117,15 @@ export default function VetDirectoryPage() {
                 <h2 className="text-lg font-bold text-[#0F172A] dark:text-[#F1F5F9]">
                   {clinic.name}
                 </h2>
+
+                <div className="mt-1 flex items-center gap-1.5">
+                  <StarRating value={clinic.averageRating ?? 0} readOnly size={13} />
+                  <span className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+                    {clinic.reviewCount > 0 && clinic.averageRating !== null
+                      ? `${clinic.averageRating.toFixed(1)} (${clinic.reviewCount})`
+                      : "Henüz değerlendirme yok"}
+                  </span>
+                </div>
 
                 <div className="mt-3 space-y-2 text-sm text-[#64748B] dark:text-[#94A3B8]">
                   <p className="flex items-start gap-2">
