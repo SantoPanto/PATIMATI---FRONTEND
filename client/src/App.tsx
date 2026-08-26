@@ -37,6 +37,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import MunicipalityDashboardPage from "./pages/MunicipalityDashboardPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
@@ -127,6 +128,12 @@ function ProtectedAdminUsersPage() {
   );
 }
 
+function ProtectedMunicipalityDashboardPage() {
+  return (
+    <RequireAuth component={MunicipalityDashboardPage} mode="redirect" requiredRole="ADMIN" />
+  );
+}
+
 function ProtectedNotificationsPage() {
   return <RequireAuth component={NotificationsPage} mode="redirect" />;
 }
@@ -197,9 +204,7 @@ function App() {
         <Route path="/ai-match" component={AiMatchPage} />
         <Route path="/ai-match-results" component={AiMatchResultsPage} />
 
-        {/* Ben Neyim? -- yalnızca kayıtlı kullanıcılar (bkz. sayfaya doğrudan
-            gidiliyor olması: ProtectedAdoptionCreatePage/profile ile AYNI
-            "redirect" deseni) */}
+        {/* Ben Neyim? */}
         <Route path="/ben-neyim" component={ProtectedBenNeyimPage} />
 
         {/* Buldum İlanı */}
@@ -210,6 +215,10 @@ function App() {
         <Route path="/about" component={AboutPage} />
         <Route path="/safety" component={SafetyPage} />
         <Route path="/privacy" component={GizlilikPage} />
+
+        {/* Belediye Paneli (Korumalı) */}
+        <Route path="/municipality/queue" component={ProtectedMunicipalityDashboardPage} />
+        <Route path="/municipality" component={ProtectedMunicipalityDashboardPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
@@ -231,6 +240,7 @@ function App() {
           component={ProtectedNotificationsPage}
         />
         <Route path="/complaints" component={ProtectedComplaintPage} />
+        
         {/* Sahiplendirme */}
         <Route
           path="/adopt/create"
