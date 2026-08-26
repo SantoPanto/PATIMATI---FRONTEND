@@ -756,9 +756,7 @@ export default function PetDetailPage() {
                 className={`mt-6 grid gap-3 ${
                   isOwner
                     ? "sm:grid-cols-2"
-                    : ad.adType === "LOST"
-                      ? "sm:grid-cols-2"
-                      : "sm:grid-cols-3"
+                    : "sm:grid-cols-3"
                 }`}
               >
                 {/* Kayıp ilanında en görünür eylem: afiş QR'ından gelen
@@ -778,7 +776,7 @@ export default function PetDetailPage() {
                     {isChatLoading ? "Açılıyor..." : "Bu Hayvanı Gördüm"}
                   </button>
                 )}
-                {!isOwner ? (
+                {!isOwner && ad.adType !== "LOST" ? (
                   <button
                     type="button"
                     onClick={openChat}
@@ -796,7 +794,7 @@ export default function PetDetailPage() {
                       ? "Sahiplenmek İçin İletişime Geç"
                       : "Mesaj Gönder"}
                   </button>
-                ) : (
+                ) : isOwner ? (
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(true)}
@@ -805,7 +803,7 @@ export default function PetDetailPage() {
                     <Edit3 size={19} />
                     İlanı Düzenle
                   </button>
-                )}
+                ) : null}
 
                 <button
                   type="button"
