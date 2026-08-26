@@ -131,7 +131,21 @@ function ProtectedAdminUsersPage() {
 
 function ProtectedMunicipalityDashboardPage() {
   return (
-    <RequireAuth component={MunicipalityDashboardPage} mode="redirect" requiredRole="ADMIN" />
+    <RequireAuth
+      component={MunicipalityDashboardPage}
+      mode="redirect"
+      requiredRole={["INSTITUTION", "ADMIN"]}
+    />
+  );
+}
+
+function ProtectedMunicipalityReportQueuePage() {
+  return (
+    <RequireAuth
+      component={MunicipalityReportQueuePage}
+      mode="redirect"
+      requiredRole={["INSTITUTION", "ADMIN"]}
+    />
   );
 }
 
@@ -218,8 +232,11 @@ function App() {
         <Route path="/privacy" component={GizlilikPage} />
 
         {/* Belediye Paneli (Korumalı) */}
-        <Route path="/municipality/queue" component={ProtectedMunicipalityDashboardPage} />
+        <Route path="/municipality/queue" component={ProtectedMunicipalityReportQueuePage} />
         <Route path="/municipality" component={ProtectedMunicipalityDashboardPage} />
+
+        {/* Halka acik ihbar formu -- giris istemez (C1) */}
+        <Route path="/report" component={PublicReportPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
@@ -278,11 +295,6 @@ function App() {
         />
         {/* 404 */}
         <Route component={NotFound} />
-        {/* Halka Açık İhbar Formu */}
-<Route path="/report" component={PublicReportPage} />
-
-{/* Belediye İhbar Kuyruk Sayfası (Korumalı) */}
-<Route path="/municipality/queue" component={MunicipalityReportQueuePage} />
       </Switch>
       <BottomNav />
     </ErrorBoundary>
