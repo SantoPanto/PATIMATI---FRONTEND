@@ -1,7 +1,8 @@
 import "./App.css";
 
 import { Route, Switch } from "wouter";
-
+import PublicReportPage from "./pages/PublicReportPage";
+import MunicipalityReportQueuePage from "./pages/MunicipalityReportQueuePage";
 import HomePage from "./pages/HomePage";
 import ListingsPage from "./pages/listingpage";
 import AddListingPage from "./pages/AddListingPage"; 
@@ -277,6 +278,11 @@ function App() {
         />
         {/* 404 */}
         <Route component={NotFound} />
+        {/* Halka Açık İhbar Formu */}
+<Route path="/report" component={PublicReportPage} />
+
+{/* Belediye İhbar Kuyruk Sayfası (Korumalı) */}
+<Route path="/municipality/queue" component={MunicipalityReportQueuePage} />
       </Switch>
       <BottomNav />
     </ErrorBoundary>
