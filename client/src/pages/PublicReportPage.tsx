@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import LocationPicker from "../components/LocationPicker"; // Veya projedeki doğru import yolu
 import { reportService } from "../services/reportService";
 
 export default function PublicReportPage() {
@@ -55,17 +54,13 @@ export default function PublicReportPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Konum Seçimi</label>
-            {/* LocationPicker Entegrasyonu */}
-            <LocationPicker
-              onLocationSelect={(loc: string) => setFormData({ ...formData, location: loc })}
-            />
+            <label className="block text-sm font-medium mb-1">Konum</label>
             <input
               type="text"
-              className="w-full border p-2 rounded mt-2 bg-gray-50"
-              placeholder="Seçilen konum..."
+              className="w-full border p-2 rounded"
+              placeholder="Örn: Nilüfer, Bursa"
               value={formData.location}
-              readOnly
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               required
             />
           </div>
