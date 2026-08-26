@@ -29,7 +29,7 @@ export type ApiResponse<T = unknown> = {
 // 1. User & Authentication Types (/api/auth)
 // ==========================================
 
-export type Role = "GUEST" | "USER" | "ADMIN";
+export type Role = "GUEST" | "USER" | "ADMIN" | "INSTITUTION";
 
 export type UserResponseDTO = {
   uid: number;
