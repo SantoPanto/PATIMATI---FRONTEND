@@ -387,9 +387,13 @@ export type ChatRoomResponse = {
   unreadCount?: number;
 };
 
+export type MessageType = "TEXT" | "AD_SHARE";
+
 export type MessageSendRequest = {
   recipientId: number;
   content: string;
+  type?: MessageType;
+  sharedAdId?: number;
 };
 
 export type MessageResponse = {
@@ -402,6 +406,9 @@ export type MessageResponse = {
   timestamp: string; // ISO-8601 UTC
   isRead: boolean;
   isOptimistic?: boolean;
+  type?: MessageType;
+  sharedAdId?: number;
+  sharedAd?: AdResponse | AdSummaryDTO;
 };
 
 

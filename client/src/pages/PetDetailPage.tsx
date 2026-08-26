@@ -12,6 +12,7 @@ import {
   Flag,
   Heart,
   Info,
+  Loader2,
   MapPin,
   MessageCircle,
   PawPrint,
@@ -32,7 +33,7 @@ import { getPublicAdById } from "../services/ads";
 import { getSightings, type Sighting } from "../services/sightings";
 import { request } from "../services/api";
 import { downloadLostPoster } from "../services/posters";
-import { createOrGetChatRoom } from "../services/messages";
+import { startConversationWithAd } from "../services/messages";
 import { sanitizeRedirectPath } from "../services/auth";
 import type { AdResponse, AdType, Page } from "../services/types";
 import {
@@ -140,6 +141,7 @@ export default function PetDetailPage() {
   const [sightingsError, setSightingsError] = useState<string | null>(null);
   const [isPosterDownloading, setIsPosterDownloading] = useState(false);
   const [posterError, setPosterError] = useState<string | null>(null);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const adId = id ? Number(id) : NaN;
   const isValidId = !Number.isNaN(adId) && adId > 0;
@@ -281,15 +283,6 @@ export default function PetDetailPage() {
   const openChat = async () => {
     if (!ad || !ad.ownerId) return;
 
-    // Girissiz kullanicida akis TAM BURADA kopuyordu: createOrGetChatRoom
-    // istemci tarafinda firlatiyor (services/api.ts), catch blogu bir alert
-    // basiyor ve kullanici ayni sayfada kaliyordu — donusumun olacagi yerde.
-    //
-    // Desen RequireAuth.goToLogin ile AYNI, bilerek: donus adresi tasinir,
-    // LoginPage onu okuyup giris sonrasi bu ilana geri getirir.
-    // `replace` KULLANILMIYOR — RequireAuth korumali sayfayi gecmiste
-    // birakmamak icin degistirir, burada ilan sayfasi zaten girissiz
-    // gorulebilir; geri tusu kullaniciyi ilana dondurmeli.
     if (!isAuthenticated) {
       const requestedPath = sanitizeRedirectPath(
         `${window.location.pathname}${window.location.search}`,
@@ -305,11 +298,14 @@ export default function PetDetailPage() {
     }
 
     try {
-      await createOrGetChatRoom(partnerId);
-      navigate(`/chat/${partnerId}?adId=${ad.id}`);
+      setIsChatLoading(true);
+      await startConversationWithAd({ targetUserId: partnerId, adId: ad.id });
+      navigate(`/chat/${partnerId}`);
     } catch (err) {
       console.error("Sohbet odası oluşturulamadı:", err);
       alert(getUserErrorMessage(err, "Sohbet odası oluşturulurken bir hata oluştu."));
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -770,21 +766,35 @@ export default function PetDetailPage() {
                 {!isOwner && ad.adType === "LOST" && (
                   <button
                     type="button"
-                    onClick={() => setIsSightingModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-emerald-700"
+                    onClick={openChat}
+                    disabled={isChatLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    <Eye size={19} />
-                    Bu Hayvanı Gördüm
+                    {isChatLoading ? (
+                      <Loader2 size={19} className="animate-spin text-white" />
+                    ) : (
+                      <Eye size={19} />
+                    )}
+                    {isChatLoading ? "Açılıyor..." : "Bu Hayvanı Gördüm"}
                   </button>
                 )}
                 {!isOwner ? (
                   <button
                     type="button"
                     onClick={openChat}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C]"
+                    disabled={isChatLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F97316] px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-[#EA580C] disabled:opacity-60"
                   >
-                    <MessageCircle size={19} />
-                    {ad.adType === "ADOPTION" ? "Sahiplenmek İçin İletişime Geç" : "Mesaj Gönder"}
+                    {isChatLoading ? (
+                      <Loader2 size={19} className="animate-spin text-white" />
+                    ) : (
+                      <MessageCircle size={19} />
+                    )}
+                    {isChatLoading
+                      ? "Açılıyor..."
+                      : ad.adType === "ADOPTION"
+                      ? "Sahiplenmek İçin İletişime Geç"
+                      : "Mesaj Gönder"}
                   </button>
                 ) : (
                   <button

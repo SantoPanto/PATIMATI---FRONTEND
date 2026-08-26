@@ -3,7 +3,7 @@ import SockJS from "sockjs-client";
 
 import { API_BASE_URL, notifyUnauthorized } from "./api";
 import { clearAuthStorage, getStoredToken } from "./auth";
-import type { MessageResponse, UserStatusEvent, WsNotificationEvent } from "./types";
+import type { MessageResponse, MessageType, UserStatusEvent, WsNotificationEvent } from "./types";
 
 let stompClient: Client | null = null;
 let clientInstanceCounter = 0;
@@ -287,18 +287,23 @@ export function connectWebSocket(
 export function sendMessage(
   recipientId: number,
   content: string,
+  type?: MessageType,
+  sharedAdId?: number,
 ) {
   if (!stompClient?.connected) {
     console.error(`[WS SEND ERROR] Cannot publish /app/chat. Client connected=${stompClient?.connected}, active=${stompClient?.active}`);
     throw new Error("WebSocket bağlantısı yok.");
   }
 
-  console.log(`[WS SEND] Publishing /app/chat to recipientId=${recipientId}, content="${content}"`);
+  console.log(`[WS SEND] Publishing /app/chat to recipientId=${recipientId}, content="${content}", type=${type}, sharedAdId=${sharedAdId}`);
   stompClient.publish({
     destination: "/app/chat",
     body: JSON.stringify({
       recipientId,
       content,
+      type: type || "TEXT",
+      sharedAdId,
+      adId: sharedAdId,
     }),
   });
 }
