@@ -27,8 +27,6 @@ import PotentialMatchesPage from "./pages/PotentialMatchesPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
-import PublicReportPage from "./pages/PublicReportPage";
-import MunicipalityReportQueuePage from "./pages/MunicipalityReportQueuePage"; 
 import SafetyPage from "./pages/SafetyPage";
 import GizlilikPage from "./pages/GizlilikPage";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -39,6 +37,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import MunicipalityDashboardPage from "./pages/MunicipalityDashboardPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
@@ -129,16 +128,18 @@ function ProtectedAdminUsersPage() {
   );
 }
 
+function ProtectedMunicipalityDashboardPage() {
+  return (
+    <RequireAuth component={MunicipalityDashboardPage} mode="redirect" requiredRole="ADMIN" />
+  );
+}
+
 function ProtectedNotificationsPage() {
   return <RequireAuth component={NotificationsPage} mode="redirect" />;
 }
 
 function ProtectedComplaintPage() {
   return <RequireAuth component={ComplaintPage} mode="redirect" />;
-}
-
-function ProtectedMunicipalityReportQueuePage() {
-  return <RequireAuth component={MunicipalityReportQueuePage} mode="redirect" requiredRole="ADMIN" />;
 }
 
 function GuestLoginPage() {
@@ -215,11 +216,9 @@ function App() {
         <Route path="/safety" component={SafetyPage} />
         <Route path="/privacy" component={GizlilikPage} />
 
-        {/* Halka Açık İhbar Formu */}
-        <Route path="/report" component={PublicReportPage} />
-
-        {/* Belediye Paneli Kuyruk Sayfası (Korumalı) */}
-        <Route path="/municipality/queue" component={ProtectedMunicipalityReportQueuePage} />
+        {/* Belediye Paneli (Korumalı) */}
+        <Route path="/municipality/queue" component={ProtectedMunicipalityDashboardPage} />
+        <Route path="/municipality" component={ProtectedMunicipalityDashboardPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
