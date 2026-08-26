@@ -127,7 +127,8 @@
       "degerler": [
         "GUEST",
         "USER",
-        "ADMIN"
+        "ADMIN",
+        "INSTITUTION"
       ]
     },
     "Species": {
