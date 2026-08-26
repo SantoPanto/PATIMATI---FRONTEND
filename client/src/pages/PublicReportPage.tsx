@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
+import LocationPicker from "../components/LocationPicker"; // Veya projedeki doğru import yolu
+import { reportService } from "../services/reportService";
 
 export default function PublicReportPage() {
   const [, setLocation] = useLocation();
@@ -11,12 +13,17 @@ export default function PublicReportPage() {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setLocation("/");
-    }, 2000);
+    try {
+      await reportService.submitReport(formData);
+      setSubmitted(true);
+      setTimeout(() => {
+        setLocation("/");
+      }, 2000);
+    } catch (error) {
+      console.error("İhbar gönderilemedi", error);
+    }
   };
 
   return (
@@ -48,13 +55,17 @@ export default function PublicReportPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Konum</label>
+            <label className="block text-sm font-medium mb-1">Konum Seçimi</label>
+            {/* LocationPicker Entegrasyonu */}
+            <LocationPicker
+              onLocationSelect={(loc: string) => setFormData({ ...formData, location: loc })}
+            />
             <input
               type="text"
-              className="w-full border p-2 rounded"
-              placeholder="Konum seçiniz veya giriniz"
+              className="w-full border p-2 rounded mt-2 bg-gray-50"
+              placeholder="Seçilen konum..."
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              readOnly
               required
             />
           </div>
