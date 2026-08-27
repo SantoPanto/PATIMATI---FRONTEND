@@ -20,7 +20,6 @@ import {
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import PetReportView from "../components/PetReportView";
 import { ApiError } from "../services/api";
 import { petRaporuAl } from "../services/petAnalizi";
 import type { AiAnalysis } from "../services/types";

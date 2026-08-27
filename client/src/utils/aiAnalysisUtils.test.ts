@@ -105,4 +105,21 @@ describe("parseAiAnalysis", () => {
     expect(result.breedConfidence).toBe(0.3344);
     expect(result.modelVersion).toBe("siglip2-animal/v2");
   });
+
+  it("pattern null ve breed null olduğunda analiz başarılıdır ve hata oluşturmaz", () => {
+    const mockResponse: AiAnalysis = {
+      species: "cat",
+      species_confidence: 0.98,
+      is_pet: true,
+      breed: null,
+      pattern: null,
+    };
+
+    const result = parseAiAnalysis(mockResponse);
+
+    expect(result.isPet).toBe(true);
+    expect(result.species).toBe("CAT");
+    expect(result.breed).toBeNull();
+    expect(result.coatPattern).toBe("UNKNOWN");
+  });
 });
