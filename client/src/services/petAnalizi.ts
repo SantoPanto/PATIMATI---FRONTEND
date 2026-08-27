@@ -1,5 +1,5 @@
 import { request } from "./api";
-import type { AiAnalysis } from "./types";
+import type { PetReportResult } from "./types";
 
 /**
  * `hata_nedeni`'nin her değeri için kullanıcıya gösterilecek Türkçe mesaj.
@@ -30,21 +30,24 @@ export function hataNedeniMesaji(hataNedeni?: string | null): string {
 }
 
 /**
- * "Ben Neyim?" — tek bir kedi/köpek fotoğrafından analiz raporu al.
+ * "Ben Neyim?" — tek bir kedi/köpek fotoğrafından zengin pet raporu al.
  *
- * POST /api/public/pet-analiz — /api/ai/analyze OpenAPI sözleşmesini döndürür.
+ * POST /api/public/pet-analiz — 2026-08-27'den beri AI'nın LLM tabanlı
+ * /analyze_pet ucuna gider (AI #33+#37, BE #185); cevap PetReportResult
+ * sözleşmesidir (karakter profili, bakım ipuçları, kimlik alanları...).
+ * kullanici_notu LLM prompt'una bağlam olarak eklenir.
  */
 export function petRaporuAl(
   file: File,
   kullaniciNotu?: string,
-): Promise<AiAnalysis> {
+): Promise<PetReportResult> {
   const formData = new FormData();
   formData.append("file", file);
   if (kullaniciNotu && kullaniciNotu.trim()) {
     formData.append("kullanici_notu", kullaniciNotu.trim());
   }
 
-  return request<AiAnalysis>("/api/public/pet-analiz", {
+  return request<PetReportResult>("/api/public/pet-analiz", {
     method: "POST",
     body: formData,
     requiresAuth: true,
