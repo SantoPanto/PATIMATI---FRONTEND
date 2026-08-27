@@ -85,7 +85,7 @@ describe("MunicipalityDashboardPage", () => {
     render(<MunicipalityDashboardPage />);
 
     expect(
-      await screen.findByText(/Belediye Yönetim Paneli — Osmangazi/),
+      await screen.findByText(/Yönetim Paneli — Osmangazi/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Nilüfer/)).not.toBeInTheDocument();
   });
