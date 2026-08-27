@@ -8,6 +8,7 @@ import {
   getAdDetailPath,
   getAdImage,
   getAdLocation,
+  getBreedLabel,
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
@@ -79,7 +80,7 @@ function toPetListing(
     id: ad.id,
     name: ad.title,
     animal: getSpeciesLabel(ad.species),
-    breed: ad.breed || "Cins belirtilmemiş",
+    breed: getBreedLabel(ad.breed),
     location: getAdLocation(ad),
     distance:
       distanceKm == null
@@ -617,6 +618,38 @@ export default function HomePage() {
               </div>
 
               <Heart
+                className="quick-action-card__decoration"
+                size={120}
+              />
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-card quick-action-card--adoption"
+              onClick={() => requireAuth("/adopt/create")}
+            >
+              <div className="quick-action-card__icon">
+                <Heart size={28} />
+              </div>
+
+              <div className="quick-action-card__content">
+                <span className="quick-action-card__label">
+                  Sahiplendirme
+                </span>
+
+                <h3>Yeni yuva arıyorum</h3>
+
+                <p>
+                  Sahiplendirilecek dostun için güvenilir bir yuva bul.
+                </p>
+
+                <span className="quick-action-card__link">
+                  Sahiplendirme ilanı oluştur
+                  <ChevronRight size={18} />
+                </span>
+              </div>
+
+              <PawPrint
                 className="quick-action-card__decoration"
                 size={120}
               />

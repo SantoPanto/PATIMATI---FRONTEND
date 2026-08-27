@@ -42,6 +42,7 @@ import {
   getAdImage,
   getAdLocation,
   getAgeLabel,
+  getBreedLabel,
   getGenderLabel,
   getImageUrl,
   getOwnerInitials,
@@ -567,7 +568,7 @@ export default function PetDetailPage() {
             {/* Ana Başlık & Özeti */}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
               <span className="text-xs font-bold uppercase tracking-wider text-[#F97316]">
-                {getSpeciesLabel(ad.species)} · {ad.breed || "Cins Belirtilmemiş"}
+                {getSpeciesLabel(ad.species)} · {getBreedLabel(ad.breed)}
               </span>
 
               <h1 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl dark:text-slate-50">

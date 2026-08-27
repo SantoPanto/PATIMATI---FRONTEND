@@ -460,7 +460,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleDeleteBusinessApplication = async (id: number) => {
-    if (!window.confirm("Bu onaylanmış başvuru kaydını silmek istediğinize emin misiniz? (Kullanıcının rolü ve iş kartı etkilenmez.)")) {
+    if (!window.confirm("Bu kurumu tamamen silmek istediğinize emin misiniz? İş kartı silinir ve sahibinin rolü tekrar kullanıcıya döner.")) {
       return;
     }
 
@@ -468,7 +468,7 @@ export default function AdminDashboardPage() {
       setActionLoadingId(`business-application-${id}`);
       setFeedback(null);
       await deleteBusinessApplication(id);
-      setFeedback(`Başvuru #${id} silindi.`);
+      setFeedback(`Kurum #${id} silindi.`);
       await fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Başvuru silinemedi.");
@@ -1874,7 +1874,7 @@ export default function AdminDashboardPage() {
                               className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-60 dark:bg-slate-800 dark:text-slate-300"
                             >
                               <Trash2 size={14} />
-                              Başvuruyu Sil
+                              Kurumu Sil
                             </button>
                           </div>
                         )}

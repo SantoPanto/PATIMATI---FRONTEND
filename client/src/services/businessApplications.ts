@@ -101,8 +101,8 @@ export function rejectBusinessApplication(
 
 /**
  * DELETE /api/admin/business-applications/{id} (Bearer, ROLE_ADMIN)
- * Yalnızca ONAYLANDI durumundaki başvurular silinebilir -- kullanıcının
- * rolünü veya oluşturulmuş iş kartını ETKİLEMEZ, yalnızca başvuru kaydını siler.
+ * Yalnızca ONAYLANDI durumundaki başvurular silinebilir -- kurumu (iş kartı +
+ * sahibinin rolü) da birlikte tamamen kaldırır, yalnızca başvuru kaydını değil.
  */
 export function deleteBusinessApplication(id: number): Promise<{ message: string }> {
   return request<{ message: string }>(`/api/admin/business-applications/${id}`, {

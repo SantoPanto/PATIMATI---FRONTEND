@@ -14,6 +14,7 @@ import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 import {
   getAdLocation,
+  getBreedLabel,
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
@@ -138,7 +139,7 @@ export default function AdCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider text-[#F97316]">
-                {getSpeciesLabel(ad.species)} · {ad.breed || "Cins Belirtilmemiş"}
+                {getSpeciesLabel(ad.species)} · {getBreedLabel(ad.breed)}
               </p>
 
               <h3 className="mt-1 truncate text-lg font-bold text-[#0F172A] dark:text-slate-50">

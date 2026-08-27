@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Edit3, Loader2, X } from "lucide-react";
 import { updateAd } from "../services/ads";
+import { hasKnownBreed } from "../utils/adPresentation";
 import type {
   AdResponse,
   AdType,
@@ -69,7 +70,7 @@ export default function AdEditModal({
       setTitle(ad.title || "");
       setDescription(ad.description || "");
       setSpecies(ad.species || "UNKNOWN");
-      setBreed(ad.breed || "");
+      setBreed(hasKnownBreed(ad.breed) ? ad.breed! : "");
       setGender(ad.gender || "UNKNOWN");
       setAgeGroup(ad.ageGroup || "UNKNOWN");
       setCoatPattern(ad.coatPattern || "UNKNOWN");

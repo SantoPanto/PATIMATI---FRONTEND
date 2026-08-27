@@ -21,6 +21,7 @@ import {
   getMyPotentialMatches,
 } from "../services/potentialMatches";
 import type { PotentialMatchSummaryResponse } from "../services/types";
+import { hasKnownBreed } from "../utils/adPresentation";
 import { getImageUrl } from "../utils/imageUrl";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
@@ -233,7 +234,10 @@ function PotentialMatchCard({
   const title =
     counterparty.title ||
     (isExternal ? "Instagram'da tespit edilen gönderi" : `İlan #${counterparty.id}`);
-  const subtitle = [counterparty.species, counterparty.breed]
+  const subtitle = [
+    counterparty.species,
+    hasKnownBreed(counterparty.breed) ? counterparty.breed : null,
+  ]
     .filter(Boolean)
     .join(" • ");
 
