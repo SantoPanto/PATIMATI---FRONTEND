@@ -14,7 +14,8 @@
       "degerler": [
         "LOST",
         "FOUND",
-        "ADOPTION"
+        "ADOPTION",
+        "HELP"
       ]
     },
     "AgeGroup": {
@@ -128,6 +129,9 @@
         "GUEST",
         "USER",
         "ADMIN",
+        "VET",
+        "PETSHOP",
+        "BARINAK",
         "INSTITUTION"
       ]
     },

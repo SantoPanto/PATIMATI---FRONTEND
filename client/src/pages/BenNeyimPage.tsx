@@ -6,38 +6,28 @@ import {
 } from "react";
 import {
   AlertTriangle,
-  Cake,
-  Dumbbell,
   Eye,
   Fingerprint,
-  Heart,
   ImagePlus,
-  Lightbulb,
   Loader2,
   Palette,
   PawPrint,
-  Ruler,
-  ShieldAlert,
   Sparkles,
-  Stethoscope,
-  Utensils,
+  Tag,
   VenetianMask,
-  Wind,
   X,
 } from "lucide-react";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import PetReportView from "../components/PetReportView";
 import { ApiError } from "../services/api";
-import { hataNedeniMesaji, petRaporuAl } from "../services/petAnalizi";
-import type { PetReportResult } from "../services/types";
+import { petRaporuAl } from "../services/petAnalizi";
+import type { AiAnalysis } from "../services/types";
+import { parseAiAnalysis, type NormalizedAiAnalysis } from "../utils/aiAnalysisUtils";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
-// Java tarafının gerçek sınırı (application.yml:
-// spring.servlet.multipart.max-file-size) -- AI servisinin kendi 10 MB'ı
-// asla görülmez, Java ondan önce 413 döner (bkz. AiMatchPage.tsx'in aynı
-// ölçülmüş sınırı).
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 const SUPPORTED_IMAGE_TYPES = [
@@ -47,23 +37,54 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const COLOR_MAP: Record<string, string> = {
+  BLACK: "Siyah",
+  WHITE: "Beyaz",
+  GRAY: "Gri",
+  BROWN: "Kahverengi",
+  ORANGE: "Turuncu",
+  CREAM: "Krem",
+  GOLDEN: "Altın",
+  BEIGE: "Bej",
+  OTHER: "Diğer",
+};
+
+const PATTERN_MAP: Record<string, string> = {
+  UNKNOWN: "Belirsiz / Düz",
+  SOLID: "Tek Renk / Düz",
+  STRIPED: "Tekir / Çizgili",
+  SPOTTED: "Benekli",
+  PATCHED: "Parçalı Renkli",
+  CALICO: "Kaliko (Üç Renkli)",
+  TORTOISESHELL: "Kaplombağa Kabuğu",
+  OTHER: "Diğer",
+};
+
+const EYE_COLOR_MAP: Record<string, string> = {
+  UNKNOWN: "Belirsiz",
+  BROWN: "Kahverengi",
+  BLUE: "Mavi",
+  GREEN: "Yeşil",
+  AMBER: "Kehribar",
+  HAZEL: "Ela",
+  HETEROCHROMIA: "Farklı Renkli (Heterokromi)",
+};
+
 type GuvenSeviyesi = {
   etiket: string;
   className: string;
 };
 
-// prompt'un kendi GÜVEN SKORU KURALLARI eşikleriyle (80+ / 50-79 / altı)
-// birebir aynı -- ham sayı yerine anlaşılır bir etiket gösteriliyor
-// (kullanıcı kararı).
 function guvenSeviyesi(guven: number): GuvenSeviyesi {
-  if (guven >= 80) {
+  const skore = guven <= 1.0 ? guven * 100 : guven;
+  if (skore >= 80) {
     return {
       etiket: "Yüksek güven",
       className:
         "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
     };
   }
-  if (guven >= 50) {
+  if (skore >= 50) {
     return {
       etiket: "Orta güven",
       className:
@@ -96,7 +117,7 @@ function SonucKarti({
 }: {
   icon: React.ReactNode;
   baslik: string;
-  guven?: number;
+  guven?: number | null;
   children: React.ReactNode;
 }) {
   return (
@@ -129,13 +150,15 @@ export default function BenNeyimPage() {
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [result, setResult] = useState<PetReportResult | null>(null);
+  const [result, setResult] = useState<NormalizedAiAnalysis | null>(null);
+  const [, setRawAnalysis] = useState<AiAnalysis | null>(null);
 
   const openFilePicker = () => fileInputRef.current?.click();
 
   const handleFile = async (file: File) => {
     setErrorMessage("");
     setResult(null);
+    setRawAnalysis(null);
 
     if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
       setErrorMessage("Yalnızca JPG, PNG veya WEBP dosyaları kabul edilir.");
@@ -187,6 +210,7 @@ export default function BenNeyimPage() {
     setPhoto(null);
     setPreview(null);
     setResult(null);
+    setRawAnalysis(null);
     setErrorMessage("");
   };
 
@@ -195,10 +219,13 @@ export default function BenNeyimPage() {
     setIsSubmitting(true);
     setErrorMessage("");
     setResult(null);
+    setRawAnalysis(null);
 
     try {
-      const sonuc = await petRaporuAl(photo, kullaniciNotu);
-      setResult(sonuc);
+      const response = await petRaporuAl(photo, kullaniciNotu);
+      setRawAnalysis(response);
+      const normalized = parseAiAnalysis(response);
+      setResult(normalized);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setErrorMessage(err.message);
@@ -232,8 +259,8 @@ export default function BenNeyimPage() {
             </h1>
 
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#64748B] dark:text-slate-400">
-              Kedi veya köpeğinin bir fotoğrafını yükle; ırkını, karakterini,
-              bakım ipuçlarını ve daha fazlasını öğren.
+              Kedi veya köpeğinin bir fotoğrafını yükle; türünü, ırkını, rengini
+              ve görsel özelliklerini öğren.
             </p>
           </div>
         </section>
@@ -368,13 +395,13 @@ export default function BenNeyimPage() {
             </div>
           )}
 
-          {result && !result.gecerli && (
+          {result && (!result.isPet || !result.species) && (
             <div className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-6 text-center dark:border-slate-800 dark:bg-slate-900">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
                 <AlertTriangle size={26} />
               </div>
               <p className="mt-4 text-sm leading-6 text-[#334155] dark:text-slate-300">
-                {hataNedeniMesaji(result.hata_nedeni)}
+                Fotoğrafta bir evcil hayvan (kedi veya köpek) tespit edilemedi. Kedi veya köpeğinizin net göründüğü başka bir fotoğraf deneyin.
               </p>
               <button
                 type="button"
@@ -386,178 +413,90 @@ export default function BenNeyimPage() {
             </div>
           )}
 
-          {result && result.gecerli && (
+          {result && result.isPet && result.species && (
             <div className="mt-6 space-y-4">
-              {result.goruntu_kalite_notu && (
-                <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-                  <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-                  <span>{result.goruntu_kalite_notu}</span>
+              <div className="rounded-2xl border border-[#DDD6FE] bg-[#FAF5FF] p-5 dark:border-violet-500/20 dark:bg-violet-500/10">
+                <div className="mb-2 flex items-center gap-2.5">
+                  <PawPrint size={18} className="text-[#7C3AED] dark:text-violet-300" />
+                  <h3 className="text-sm font-bold text-[#1E293B] dark:text-slate-100">
+                    Analiz Özeti
+                  </h3>
                 </div>
-              )}
-
-              {result.karakter_profili && (
-                <div className="rounded-2xl border border-[#DDD6FE] bg-[#FAF5FF] p-5 dark:border-violet-500/20 dark:bg-violet-500/10">
-                  <div className="mb-2 flex items-center gap-2.5">
-                    <Heart size={18} className="text-[#7C3AED] dark:text-violet-300" />
-                    <h3 className="text-sm font-bold text-[#1E293B] dark:text-slate-100">
-                      Karakter Profili
-                    </h3>
-                  </div>
-                  <p className="text-sm leading-6 text-[#334155] dark:text-slate-300">
-                    {result.karakter_profili}
+                <p className="text-sm font-semibold leading-6 text-[#334155] dark:text-slate-300">
+                  {result.species === "CAT" ? "Kedi" : "Köpek"}
+                  {result.breed ? ` — ${result.breed}` : " — Melez / Irk Belirlenemedi"}
+                </p>
+                {result.breed === null && (
+                  <p className="mt-2 text-xs italic text-[#64748B] dark:text-slate-500">
+                    Belirgin bir ırk tespit edilemediği için genel tür özellikleri esas alındı.
                   </p>
-                  {result.irka_ozel_icerik === false && (
-                    <p className="mt-2 text-xs italic text-[#64748B] dark:text-slate-500">
-                      Irk belirlenemediği için genel tür özellikleri esas
-                      alındı.
-                    </p>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {result.renk_tarifi && (
-                  <SonucKarti
-                    icon={<Palette size={18} />}
-                    baslik="Renk ve Desen"
-                    guven={result.renk_tarifi.guven}
-                  >
-                    {result.renk_tarifi.deger}
-                  </SonucKarti>
-                )}
+                <SonucKarti
+                  icon={<PawPrint size={18} />}
+                  baslik="Tür"
+                  guven={result.speciesConfidence}
+                >
+                  {result.species === "CAT" ? "Kedi" : "Köpek"}
+                </SonucKarti>
 
-                {result.goz_rengi && (
+                <SonucKarti
+                  icon={<Tag size={18} />}
+                  baslik="Irk"
+                  guven={result.breedConfidence}
+                >
+                  {result.breed ?? "Belirlenemedi / Melez"}
+                </SonucKarti>
+
+                <SonucKarti
+                  icon={<Palette size={18} />}
+                  baslik="Renk ve Desen"
+                >
+                  <div>
+                    <span className="font-semibold">Renkler: </span>
+                    {result.colors.length > 0
+                      ? result.colors.map((c) => COLOR_MAP[c] || c).join(", ")
+                      : "Belirlenemedi"}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Desen: </span>
+                    {PATTERN_MAP[result.coatPattern] || result.coatPattern}
+                  </div>
+                </SonucKarti>
+
+                {result.eyeColor !== "UNKNOWN" && (
                   <SonucKarti
                     icon={<Eye size={18} />}
                     baslik="Göz Rengi"
-                    guven={result.goz_rengi.guven}
                   >
-                    {result.goz_rengi.deger}
+                    {EYE_COLOR_MAP[result.eyeColor] || result.eyeColor}
                   </SonucKarti>
                 )}
 
-                {result.tahmini_yas && (
-                  <SonucKarti
-                    icon={<Cake size={18} />}
-                    baslik="Tahmini Yaş"
-                    guven={result.tahmini_yas.guven}
-                  >
-                    {result.tahmini_yas.aralik}
-                    <span className="ml-2 inline-block rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#475569] dark:bg-slate-800 dark:text-slate-400">
-                      {result.tahmini_yas.yasam_evresi}
-                    </span>
-                  </SonucKarti>
-                )}
-
-                {result.cinsiyet && (
+                {result.collarStatus !== "UNKNOWN" && (
                   <SonucKarti
                     icon={<VenetianMask size={18} />}
-                    baslik="Cinsiyet"
-                    guven={result.cinsiyet.guven}
+                    baslik="Tasma Durumu"
                   >
-                    {result.cinsiyet.tahmin}
+                    {result.collarStatus === "YES" ? "Tasma Var" : "Tasma Görünmüyor"}
                   </SonucKarti>
                 )}
 
-                {result.tahmini_boyut && (
+                {result.earTagStatus !== "UNKNOWN" && (
                   <SonucKarti
-                    icon={<Ruler size={18} />}
-                    baslik="Tahmini Boyut"
-                    guven={result.tahmini_boyut.guven}
+                    icon={<Fingerprint size={18} />}
+                    baslik="Kulak Küpesi"
                   >
-                    {result.tahmini_boyut.deger}
+                    {result.earTagStatus === "YES" ? "Kulak Küpesi Var" : "Kulak Küpesi Yok"}
                   </SonucKarti>
                 )}
               </div>
 
-              {result.ayirt_edici_isaretler &&
-                result.ayirt_edici_isaretler.length > 0 && (
-                  <SonucKarti
-                    icon={<Fingerprint size={18} />}
-                    baslik="Ayırt Edici İşaretler"
-                  >
-                    <ul className="list-disc space-y-1 pl-4">
-                      {result.ayirt_edici_isaretler.map((isaret) => (
-                        <li key={isaret}>{isaret}</li>
-                      ))}
-                    </ul>
-                  </SonucKarti>
-                )}
-
-              {result.genel_durum_gozlemi && (
-                <SonucKarti
-                  icon={<Stethoscope size={18} />}
-                  baslik="Genel Durum Gözlemi"
-                >
-                  {result.genel_durum_gozlemi}
-                </SonucKarti>
-              )}
-
-              {result.sasirtici_bilgiler &&
-                result.sasirtici_bilgiler.length > 0 && (
-                  <SonucKarti
-                    icon={<Lightbulb size={18} />}
-                    baslik="Şaşırtıcı Bilgiler"
-                  >
-                    <ul className="list-disc space-y-1.5 pl-4">
-                      {result.sasirtici_bilgiler.map((bilgi) => (
-                        <li key={bilgi}>{bilgi}</li>
-                      ))}
-                    </ul>
-                  </SonucKarti>
-                )}
-
-              {result.dikkat_edilmesi_gerekenler &&
-                result.dikkat_edilmesi_gerekenler.length > 0 && (
-                  <SonucKarti
-                    icon={<ShieldAlert size={18} />}
-                    baslik="Dikkat Edilmesi Gerekenler"
-                  >
-                    <ul className="list-disc space-y-1.5 pl-4">
-                      {result.dikkat_edilmesi_gerekenler.map((madde) => (
-                        <li key={madde}>{madde}</li>
-                      ))}
-                    </ul>
-                  </SonucKarti>
-                )}
-
-              {result.bakim_ipuclari && (
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F3FF] text-[#7C3AED] dark:bg-violet-500/15 dark:text-violet-300">
-                      <PawPrint size={18} />
-                    </div>
-                    <h3 className="text-sm font-bold text-[#1E293B] dark:text-slate-100">
-                      Bakım İpuçları
-                    </h3>
-                  </div>
-                  <div className="space-y-3 text-sm leading-6 text-[#334155] dark:text-slate-300">
-                    {result.bakim_ipuclari.beslenme && (
-                      <div className="flex items-start gap-2.5">
-                        <Utensils size={16} className="mt-0.5 shrink-0 text-[#64748B] dark:text-slate-500" />
-                        <span>{result.bakim_ipuclari.beslenme}</span>
-                      </div>
-                    )}
-                    {result.bakim_ipuclari.tuy_bakimi && (
-                      <div className="flex items-start gap-2.5">
-                        <Wind size={16} className="mt-0.5 shrink-0 text-[#64748B] dark:text-slate-500" />
-                        <span>{result.bakim_ipuclari.tuy_bakimi}</span>
-                      </div>
-                    )}
-                    {result.bakim_ipuclari.aktivite && (
-                      <div className="flex items-start gap-2.5">
-                        <Dumbbell size={16} className="mt-0.5 shrink-0 text-[#64748B] dark:text-slate-500" />
-                        <span>{result.bakim_ipuclari.aktivite}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {result.ek_hayvanlar && (
-                <div className="rounded-2xl bg-[#F1F5F9] p-4 text-sm text-[#475569] dark:bg-slate-800/60 dark:text-slate-400">
-                  <strong className="font-bold">Diğer hayvanlar: </strong>
-                  {result.ek_hayvanlar}
+              {result.modelVersion && (
+                <div className="rounded-2xl bg-[#F1F5F9] p-4 text-xs text-[#64748B] dark:bg-slate-800/60 dark:text-slate-400">
+                  Model Sürümü: {result.modelVersion}
                 </div>
               )}
 

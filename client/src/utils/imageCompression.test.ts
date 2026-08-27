@@ -9,7 +9,7 @@ import {
 // Mock browser-image-compression
 vi.mock("browser-image-compression", () => {
   return {
-    default: vi.fn(async (_file: File, options?: any) => {
+    default: vi.fn(async (_file: File, options?: { fileType?: string }) => {
       // Return a dummy blob representing compressed image
       const type = options?.fileType || "image/jpeg";
       return new Blob(["compressed-content"], { type });

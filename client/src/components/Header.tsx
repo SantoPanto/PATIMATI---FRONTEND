@@ -1,16 +1,20 @@
 import {
   Bell,
+  Home,
   Landmark,
   LogOut,
   MessageCircle,
   Moon,
   PawPrint,
   ShieldAlert,
+  ShoppingBag,
+  Stethoscope,
   Sun,
   UserRound,
 } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
+import ServicesDropdown from "./ServicesDropdown";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { getMyPotentialMatches } from "../services/potentialMatches";
@@ -69,6 +73,9 @@ export default function Header() {
   }, [isAuthenticated]);
 
   const isAdmin = user?.role === "ADMIN";
+  const isVet = user?.role === "VET";
+  const isPetShop = user?.role === "PETSHOP";
+  const isShelter = user?.role === "BARINAK";
   const isInstitution = user?.role === "INSTITUTION";
 
   const handleLogout = async () => {
@@ -98,6 +105,36 @@ export default function Header() {
           </Link>
         )}
 
+        {isVet && (
+          <Link
+            href="/vet/panel"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
+            aria-label="Veteriner Paneli"
+          >
+            <Stethoscope size={18} className="text-blue-600 dark:text-blue-400" />
+            <span>Veteriner Paneli</span>
+          </Link>
+        )}
+
+        {isPetShop && (
+          <Link
+            href="/petshop/panel"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
+            aria-label="Petshop Paneli"
+          >
+            <ShoppingBag size={18} className="text-blue-600 dark:text-blue-400" />
+            <span>Petshop Paneli</span>
+          </Link>
+        )}
+
+        {isShelter && (
+          <Link
+            href="/barinak/panel"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
+            aria-label="Barınak Paneli"
+          >
+            <Home size={18} className="text-blue-600 dark:text-blue-400" />
+            <span>Barınak Paneli</span>
         {(isInstitution || isAdmin) && (
           <Link
             href="/municipality"
@@ -188,6 +225,8 @@ export default function Header() {
         </nav>
 
         <div className="home-header__actions">
+          <ServicesDropdown />
+
           <button
             className="header-notification-button"
             type="button"

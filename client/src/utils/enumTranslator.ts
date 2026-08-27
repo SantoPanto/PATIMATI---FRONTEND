@@ -59,6 +59,7 @@ export const AD_TYPE_TRANSLATIONS: Record<string, string> = {
   LOST: "Kayıp",
   FOUND: "Bulundu",
   ADOPTION: "Sahiplendirme",
+  HELP: "Yardım",
 };
 
 export const PRESENCE_STATUS_TRANSLATIONS: Record<string, string> = {

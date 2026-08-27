@@ -193,3 +193,32 @@ describe("request(): 413 mesajı", () => {
     expect(hata.message).toBe("Tarih formatı yyyy-MM-dd olmalıdır");
   });
 });
+
+describe("request(): 200 ama JSON olmayan gövde", () => {
+  afterEach(() => {
+    globalThis.fetch = gercekFetch;
+  });
+
+  /**
+   * Yanlış yapılandırılmış bir ters vekil/CDN (ör. VITE_API_URL yanlışlıkla
+   * ön yüzün kendi alan adına ayarlanmış ve /api/** backend'e YÖNLENDİRİLMİYORSA)
+   * istek backend'e hiç ulaşmadan ön yüzün SPA fallback'i olan index.html'e
+   * düşer -- durum kodu 200'dür ama gövde JSON değil HTML'dir. Eskiden bu
+   * durumda `data` sessizce `null` olup BAŞARILI bir cevap gibi dönüyordu;
+   * çağıran `response.content` gibi bir alana erişince anlaşılmaz bir
+   * "Cannot read properties of null" hatası alıyordu (örn. "ilanlar
+   * gözükmüyor" saha şikayeti). Artık AÇIK bir ApiError fırlatılır.
+   */
+  it("200 + HTML gövdede sessizce null dönmez, açık ApiError fırlatır", async () => {
+    globalThis.fetch = cevapVerenFetch(
+      200,
+      "<!doctype html><html><body>index.html fallback</body></html>",
+      "text/html",
+    ) as unknown as typeof fetch;
+
+    const hata = (await request("/api/public/ads").catch((e) => e)) as ApiError;
+
+    expect(hata).toBeInstanceOf(ApiError);
+    expect(hata.status).toBe(200);
+  });
+});

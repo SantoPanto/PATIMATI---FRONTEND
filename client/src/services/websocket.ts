@@ -202,7 +202,9 @@ export function connectWebSocket(
         try {
           console.log(`[WS UNSUBSCRIBE] [Instance #${instanceId}] Cleaning up stale subscription`);
           sub.unsubscribe();
-        } catch {}
+        } catch {
+          // best-effort: soket zaten kapanmışsa unsubscribe hata verebilir, önemsiz
+        }
       });
       activeSubscriptions = [];
 
@@ -323,7 +325,11 @@ export function disconnectWebSocket() {
   console.log(`[WS DISCONNECT] disconnectWebSocket called. Deactivating global STOMP client.`);
   connectionCallbacks.clear();
   activeSubscriptions.forEach((sub) => {
-    try { sub.unsubscribe(); } catch {}
+    try {
+      sub.unsubscribe();
+    } catch {
+      // best-effort: soket zaten kapanmışsa unsubscribe hata verebilir, önemsiz
+    }
   });
   activeSubscriptions = [];
   if (stompClient) {

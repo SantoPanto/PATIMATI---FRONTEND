@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { AdType } from "../services/types";
+import type { AdType, PoiType } from "../services/types";
 import {
+  adLejantKalemleri,
   getMarkerType,
+  getPoiMarkerType,
   haritadaGorunur,
   haritaOdagi,
+  poiDetailPath,
+  poiGorunur,
+  poiLejantKalemleri,
   VARSAYILAN_MERKEZ,
 } from "./haritaSunum";
 
@@ -14,11 +19,11 @@ import {
  * kadraj dışında kalıyordu). Bu testler renk/odak sözleşmesini kilitler.
  */
 describe("getMarkerType", () => {
-  it("üç ilan tipi üç AYRI dolgu rengi taşır", () => {
-    const tipler: AdType[] = ["LOST", "FOUND", "ADOPTION"];
+  it("dört ilan tipi dört AYRI dolgu rengi taşır", () => {
+    const tipler: AdType[] = ["LOST", "FOUND", "ADOPTION", "HELP"];
     const renkler = tipler.map((tip) => getMarkerType(tip).fillColor);
 
-    expect(new Set(renkler).size).toBe(3);
+    expect(new Set(renkler).size).toBe(4);
     renkler.forEach((renk) => expect(renk).toMatch(/^#[0-9a-f]{6}$/i));
   });
 
@@ -26,6 +31,7 @@ describe("getMarkerType", () => {
     expect(getMarkerType("LOST").label).toBe("Kayıp");
     expect(getMarkerType("FOUND").label).toBe("Bulunan");
     expect(getMarkerType("ADOPTION").label).toBe("Sahiplendirme");
+    expect(getMarkerType("HELP").label).toBe("Yardım");
   });
 });
 
@@ -57,6 +63,19 @@ describe("haritaOdagi", () => {
       nokta: VARSAYILAN_MERKEZ,
       yakinlik: 12,
     });
+  });
+
+  it("seçili ilan yoksa ve konum biliniyorsa ilan sınırından ÖNCE konuma yaklaşır", () => {
+    const konum: [number, number] = [40.85, 29.88]; // Kocaeli
+
+    const odak = haritaOdagi(null, [nokta1, nokta2], konum);
+
+    expect(odak).toEqual({ tip: "nokta", nokta: konum, yakinlik: 14 });
+  });
+
+  it("konum yoksa (null/undefined) eskisi gibi ilanları kadraja alır", () => {
+    expect(haritaOdagi(null, [nokta1, nokta2], null).tip).toBe("sinir");
+    expect(haritaOdagi(null, [nokta1, nokta2]).tip).toBe("sinir");
   });
 });
 
@@ -98,5 +117,77 @@ describe("haritadaGorunur", () => {
     expect(haritadaGorunur(tekir, "LOST", "tekir")).toBe(false);
     // Hiçbir alan tutmuyor.
     expect(haritadaGorunur(tekir, "ALL", "papağan")).toBe(false);
+  });
+});
+
+/*
+ * 26.08 talebi: hizmet süzgeci artık bağımsız aç/kapa çip değil, ilan
+ * süzgeciyle AYNI Tümü|tek-tip mantığında çalışıyor.
+ */
+describe("poiGorunur", () => {
+  it("ALL üç tipi de geçirir", () => {
+    const tipler: PoiType[] = ["VETERINARY", "PET_SHOP", "SHELTER"];
+
+    tipler.forEach((tip) => {
+      expect(poiGorunur({ type: tip }, "ALL")).toBe(true);
+    });
+  });
+
+  it("tek tip seçiliyken yalnız o tip kalır", () => {
+    expect(poiGorunur({ type: "VETERINARY" }, "VETERINARY")).toBe(true);
+    expect(poiGorunur({ type: "PET_SHOP" }, "VETERINARY")).toBe(false);
+    expect(poiGorunur({ type: "SHELTER" }, "VETERINARY")).toBe(false);
+  });
+});
+
+/*
+ * 26.08 talebi: sağ alt lejant artık sabit değil, o an açık olan
+ * ilan/hizmet süzgeçlerine göre üretiliyor — "sadece kayıp açınca sağ
+ * altta sadece kayıp yazsın".
+ */
+describe("adLejantKalemleri / poiLejantKalemleri", () => {
+  it("ilan süzgeci ALL iken dört kalem de döner", () => {
+    expect(adLejantKalemleri("ALL")).toHaveLength(4);
+  });
+
+  it("ilan süzgeci tek tipe daralınca lejant da daralır", () => {
+    const kalemler = adLejantKalemleri("LOST");
+
+    expect(kalemler).toEqual([
+      { label: "Kayıp", color: getMarkerType("LOST").fillColor },
+    ]);
+  });
+
+  it("hizmet süzgeci ALL iken üç kalem de döner", () => {
+    expect(poiLejantKalemleri("ALL")).toHaveLength(3);
+  });
+
+  it("hizmet süzgeci tek tipe daralınca lejant da daralır", () => {
+    expect(poiLejantKalemleri("SHELTER")).toEqual([
+      getPoiMarkerType("SHELTER"),
+    ]);
+  });
+});
+
+describe("poiDetailPath", () => {
+  it("PLATFORM kaynaklı ve refId'li noktalar için türe göre doğru rotayı döner", () => {
+    expect(poiDetailPath({ type: "VETERINARY", source: "PLATFORM", refId: 5 })).toBe(
+      "/hizmetler/veteriner/5",
+    );
+    expect(poiDetailPath({ type: "PET_SHOP", source: "PLATFORM", refId: 9 })).toBe(
+      "/hizmetler/petshop/9",
+    );
+    expect(poiDetailPath({ type: "SHELTER", source: "PLATFORM", refId: 3 })).toBe(
+      "/hizmetler/barinak/3",
+    );
+  });
+
+  it("OSM/MANUAL kaynaklı (refId'siz) noktalarda null döner", () => {
+    expect(poiDetailPath({ type: "VETERINARY", source: "OSM", refId: null })).toBeNull();
+    expect(poiDetailPath({ type: "PET_SHOP", source: "MANUAL", refId: null })).toBeNull();
+  });
+
+  it("source PLATFORM olsa bile refId yoksa null döner", () => {
+    expect(poiDetailPath({ type: "SHELTER", source: "PLATFORM", refId: null })).toBeNull();
   });
 });

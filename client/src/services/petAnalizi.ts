@@ -1,11 +1,8 @@
 import { request } from "./api";
-import type { PetReportResult } from "./types";
+import type { AiAnalysis } from "./types";
 
 /**
- * `hata_nedeni`'nin (pet_raporu_prompt.py::ALAN KURALLARI) her değeri için
- * kullanıcıya gösterilecek Türkçe mesaj. Kod ASLA ekrana sızdırılmaz.
- * `SERVIS_KULLANILAMIYOR` LLM'den değil, AI servisinin kendi dahili
- * yedeğinden gelir (bkz. pet_raporu.py) -- burada da ele alınır.
+ * `hata_nedeni`'nin her değeri için kullanıcıya gösterilecek Türkçe mesaj.
  */
 const HATA_NEDENI_MESAJLARI: Record<string, string> = {
   HAYVAN_YOK:
@@ -33,26 +30,23 @@ export function hataNedeniMesaji(hataNedeni?: string | null): string {
 }
 
 /**
- * "Ben Neyim?" — tek bir kedi/köpek fotoğrafından zengin bir analiz raporu.
+ * "Ben Neyim?" — tek bir kedi/köpek fotoğrafından analiz raporu al.
  *
- * POST /api/public/pet-analiz — yalnızca girişli kullanıcılar (backend
- * misafir isteğini 401 ile reddeder); jeton `request()` tarafından
- * kendiliğinden eklenir. Günlük istek limiti backend'de uygulanır.
- *
- * Gövde multipart: "file" (zorunlu) + "kullanici_notu" (opsiyonel).
+ * POST /api/public/pet-analiz — /api/ai/analyze OpenAPI sözleşmesini döndürür.
  */
 export function petRaporuAl(
   file: File,
   kullaniciNotu?: string,
-): Promise<PetReportResult> {
+): Promise<AiAnalysis> {
   const formData = new FormData();
   formData.append("file", file);
   if (kullaniciNotu && kullaniciNotu.trim()) {
     formData.append("kullanici_notu", kullaniciNotu.trim());
   }
 
-  return request<PetReportResult>("/api/public/pet-analiz", {
+  return request<AiAnalysis>("/api/public/pet-analiz", {
     method: "POST",
     body: formData,
+    requiresAuth: true,
   });
 }

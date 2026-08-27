@@ -77,4 +77,32 @@ describe("parseAiAnalysis", () => {
     expect(result.breed).toBeNull();
     expect(result.appliedCount).toBe(0);
   });
+
+  it("species mevcut, breed null, pattern mevcut, colors mevcut, is_pet true, embedding dolu olan cevabı başarılı kabul eder", () => {
+    const mockResponse: AiAnalysis = {
+      embedding: new Array(768).fill(0.0123),
+      labels: ["soft:color_gray"],
+      species: "cat",
+      species_confidence: 0.9898,
+      is_pet: true,
+      breed: null,
+      breed_confidence: 0.3344,
+      pattern: "tabby",
+      colors: ["gray", "white"],
+      model_version: "siglip2-animal/v2",
+      is_designed_graphic: false,
+      graphic_confidence: 0.9994,
+    };
+
+    const result = parseAiAnalysis(mockResponse);
+
+    expect(result.isPet).toBe(true);
+    expect(result.species).toBe("CAT");
+    expect(result.breed).toBeNull();
+    expect(result.coatPattern).toBe("STRIPED");
+    expect(result.colors).toEqual(["GRAY", "WHITE"]);
+    expect(result.speciesConfidence).toBe(0.9898);
+    expect(result.breedConfidence).toBe(0.3344);
+    expect(result.modelVersion).toBe("siglip2-animal/v2");
+  });
 });

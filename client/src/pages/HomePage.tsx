@@ -21,6 +21,7 @@ import {
   Camera,
   ChevronRight,
   CirclePlus,
+  HandHeart,
   Heart,
   Loader2,
   MapPin,
@@ -33,7 +34,7 @@ import {
   X,
 } from "lucide-react";
 
-type ListingType = "lost" | "found" | "adoption";
+type ListingType = "lost" | "found" | "adoption" | "help";
 type FilterType = "all" | ListingType;
 
 interface PetListing {
@@ -274,6 +275,7 @@ export default function HomePage() {
   const getListingStatus = (type: ListingType) => {
     if (type === "lost") return "Kayıp";
     if (type === "found") return "Bulundu";
+    if (type === "help") return "Yardım";
 
     return "Sahiplendirme";
   };
@@ -550,7 +552,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="quick-actions-grid quick-actions-grid--four">
+          <div className="quick-actions-grid quick-actions-grid--five">
             <button
               type="button"
               className="quick-action-card quick-action-card--lost"
@@ -646,6 +648,39 @@ export default function HomePage() {
               </div>
 
               <PawPrint
+                className="quick-action-card__decoration"
+                size={120}
+              />
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-card quick-action-card--help"
+              onClick={() => requireAuth("/help/create")}
+            >
+              <div className="quick-action-card__icon">
+                <HandHeart size={28} />
+              </div>
+
+              <div className="quick-action-card__content">
+                <span className="quick-action-card__label">
+                  Yardım
+                </span>
+
+                <h3>Yardıma İhtiyacı Var</h3>
+
+                <p>
+                  Yardıma muhtaç bir hayvan mı gördün? Fotoğrafını çek,
+                  durumunu paylaş.
+                </p>
+
+                <span className="quick-action-card__link">
+                  Yardım ilanı oluştur
+                  <ChevronRight size={18} />
+                </span>
+              </div>
+
+              <HandHeart
                 className="quick-action-card__decoration"
                 size={120}
               />
@@ -749,6 +784,16 @@ export default function HomePage() {
                 onClick={() => setActiveFilter("adoption")}
               >
                 Sahiplendirme
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === "help"}
+                className={activeFilter === "help" ? "active" : ""}
+                onClick={() => setActiveFilter("help")}
+              >
+                Yardım
               </button>
             </div>
 
@@ -1122,6 +1167,7 @@ export default function HomePage() {
                     ["lost", "Kayıp"],
                     ["found", "Bulunan"],
                     ["adoption", "Sahiplendirme"],
+                    ["help", "Yardım"],
                   ] as const
                 ).map(([type, label]) => (
                   <label key={type}>

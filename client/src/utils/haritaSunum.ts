@@ -1,4 +1,4 @@
-import type { AdResponse, AdType } from "../services/types";
+import type { AdResponse, AdType, PoiType } from "../services/types";
 import { getSpeciesLabel } from "./adPresentation";
 
 /*
@@ -11,6 +11,7 @@ export const HARITA_RENKLERI = {
   LOST: "#ef4444",
   FOUND: "#22c55e",
   ADOPTION: "#f59e0b",
+  HELP: "#0891b2",
 } as const;
 
 export function getMarkerType(adType: AdType) {
@@ -30,6 +31,14 @@ export function getMarkerType(adType: AdType) {
     };
   }
 
+  if (adType === "HELP") {
+    return {
+      label: "Yardım",
+      className: "help",
+      fillColor: HARITA_RENKLERI.HELP,
+    };
+  }
+
   return {
     label: "Sahiplendirme",
     className: "adoption",
@@ -39,23 +48,74 @@ export function getMarkerType(adType: AdType) {
 
 export const VARSAYILAN_MERKEZ: [number, number] = [40.195, 29.06]; // Bursa
 
+/*
+ * POI (veteriner/petshop/barınak) işaretçi renk+etiket paleti — ilan
+ * renklerinden (kırmızı/yeşil/turuncu) BİLEREK farklı, harita tek bakışta
+ * ilan mı hizmet noktası mı ayırt edilsin diye. Veteriner rengi
+ * VetDirectoryPage'deki (#2563EB) ile BİLEREK aynı — sitede "veteriner"
+ * kavramı zaten o maviyle temsil ediliyor.
+ */
+export const POI_RENKLERI: Record<PoiType, string> = {
+  VETERINARY: "#2563eb",
+  PET_SHOP: "#7c3aed",
+  SHELTER: "#0d9488",
+};
+
+export function getPoiMarkerType(type: PoiType) {
+  if (type === "VETERINARY") {
+    return { label: "Veteriner", color: POI_RENKLERI.VETERINARY };
+  }
+  if (type === "PET_SHOP") {
+    return { label: "Petshop", color: POI_RENKLERI.PET_SHOP };
+  }
+  return { label: "Barınak", color: POI_RENKLERI.SHELTER };
+}
+
+/*
+ * Platforma kayıtlı bir hizmet noktasının (source=PLATFORM, refId dolu)
+ * detay sayfası yolu -- "Hizmete Git" bağlantısı için. Saf OSM/MANUAL
+ * noktalarda gerçek bir hesap/detay sayfası olmadığından `null` döner,
+ * MapPage bu durumda butonu hiç göstermez.
+ */
+export function poiDetailPath(poi: { type: PoiType; source: string; refId: number | null }): string | null {
+  if (poi.source !== "PLATFORM" || poi.refId == null) {
+    return null;
+  }
+  if (poi.type === "VETERINARY") {
+    return `/hizmetler/veteriner/${poi.refId}`;
+  }
+  if (poi.type === "PET_SHOP") {
+    return `/hizmetler/petshop/${poi.refId}`;
+  }
+  return `/hizmetler/barinak/${poi.refId}`;
+}
+
 export type HaritaOdagi =
   | { tip: "nokta"; nokta: [number, number]; yakinlik: number }
   | { tip: "sinir"; noktalar: [number, number][] }
   | { tip: "varsayilan"; nokta: [number, number]; yakinlik: number };
 
 /*
- * Filtre/arama sonucu değişince görünüm kuralı: seçili ilan varsa ona
- * yaklaş; yoksa kalan işaretçilerin TÜMÜNÜ kadraja al (fitBounds) — "filtreye
- * bastım ama haritada bir şey değişmedi" hissinin ve kadraj dışında kalan
- * şehirlerin (22.08: Bulunan'daki Bursa ilanı görünmüyordu) çözümü.
+ * Görünüm önceliği: seçili ilan > kullanıcının konumu > kalan işaretçilerin
+ * TÜMÜ (fitBounds) > varsayılan merkez.
+ *
+ * Konum, ilan sınırından ÖNCE gelir (26.08 talebi: "harita açılınca direkt
+ * konumumuza yakınlaşmış olsun") — eskiden ilan varsa harita her zaman TÜM
+ * ilanları kadraja alıyordu, konum bilinse bile kullanıcı kendi çevresini
+ * göremiyordu. Konum yoksa (izin verilmedi/alınamadı) eski davranışa
+ * (ilanları kadraja al) döner.
  */
 export function haritaOdagi(
   secili: [number, number] | null,
   noktalar: [number, number][],
+  konum?: [number, number] | null,
 ): HaritaOdagi {
   if (secili) {
     return { tip: "nokta", nokta: secili, yakinlik: 13 };
+  }
+
+  if (konum) {
+    return { tip: "nokta", nokta: konum, yakinlik: 14 };
   }
 
   if (noktalar.length > 0) {
@@ -94,4 +154,48 @@ export function haritadaGorunur(
       (ad.breed && normalize(ad.breed).includes(aranan)) ||
       normalize(getSpeciesLabel(ad.species)).includes(aranan),
   );
+}
+
+/*
+ * Hizmet noktası süzgeci — ilan süzgeciyle AYNI desen (Tümü | tek tip),
+ * bağımsız aç/kapa çipler yerine (26.08 talebi: iki grup aynı mantıkla
+ * çalışsın, sağ alt lejant da buradan tek kaynaktan üretilebilsin).
+ */
+export type PoiFiltresi = "ALL" | PoiType;
+
+export function poiGorunur(poi: { type: PoiType }, filtre: PoiFiltresi): boolean {
+  return filtre === "ALL" || poi.type === filtre;
+}
+
+type LejantKalemi = { label: string; color: string };
+
+/*
+ * Sağ alt lejant artık sabit değil — o an açık olan ilan/hizmet süzgeçlerine
+ * göre üretilir (26.08 talebi: "sadece kayıp açınca sağ altta sadece kayıp
+ * yazsın"). İki liste ayrı tutulur ki MapPage ihtiyaç duyarsa (ör. hizmet
+ * sonucu sıfırsa) ayrı ayrı gizleyebilsin.
+ */
+export function adLejantKalemleri(filtre: HaritaFiltresi): LejantKalemi[] {
+  const tumu: LejantKalemi[] = [
+    { label: "Kayıp", color: HARITA_RENKLERI.LOST },
+    { label: "Bulunan", color: HARITA_RENKLERI.FOUND },
+    { label: "Sahiplendirme", color: HARITA_RENKLERI.ADOPTION },
+    { label: "Yardım", color: HARITA_RENKLERI.HELP },
+  ];
+
+  if (filtre === "ALL") {
+    return tumu;
+  }
+
+  return tumu.filter((kalem) => kalem.label === getMarkerType(filtre).label);
+}
+
+export function poiLejantKalemleri(filtre: PoiFiltresi): LejantKalemi[] {
+  const tumu: PoiType[] = ["VETERINARY", "PET_SHOP", "SHELTER"];
+
+  if (filtre === "ALL") {
+    return tumu.map((tip) => getPoiMarkerType(tip));
+  }
+
+  return [getPoiMarkerType(filtre)];
 }

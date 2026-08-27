@@ -73,13 +73,16 @@ const AI_PATTERN_MAP: Record<string, CoatPattern> = {
 export type NormalizedAiAnalysis = {
   isPet: boolean;
   species: Species | null;
+  speciesConfidence: number | null;
   breed: string | null;
+  breedConfidence: number | null;
   coatPattern: CoatPattern;
   colors: PetColor[];
   eyeColor: EyeColor;
   collarStatus: PresenceStatus;
   earTagStatus: PresenceStatus;
   appliedCount: number;
+  modelVersion: string | null;
 };
 
 /**
@@ -214,15 +217,22 @@ export function parseAiAnalysis(analysis: AiAnalysis): NormalizedAiAnalysis {
     }
   }
 
+  const speciesConfidence = analysis.speciesConfidence ?? analysis.species_confidence ?? null;
+  const breedConfidence = analysis.breedConfidence ?? analysis.breed_confidence ?? null;
+  const modelVersion = analysis.model_version ?? null;
+
   return {
     isPet,
     species,
+    speciesConfidence,
     breed,
+    breedConfidence,
     coatPattern,
     colors,
     eyeColor,
     collarStatus,
     earTagStatus,
     appliedCount,
+    modelVersion,
   };
 }
