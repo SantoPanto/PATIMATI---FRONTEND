@@ -132,25 +132,58 @@ describe("MunicipalityDashboardPage", () => {
     expect(istatistikGetir.mock.calls.length).toBe(oncekiCagriSayisi);
   });
 
-  it("yoğunluk noktalarını türe göre renklendirir", async () => {
+  it("yoğunluk noktalarını kategoriye göre renklendirir (ihbar ve kavuşan dahil)", async () => {
     haritaGetir.mockResolvedValue([
       nokta({ type: "LOST" }),
       nokta({ type: "FOUND", latitude: 40.19 }),
-      nokta({ type: "ADOPTION", latitude: 40.2 }),
+      nokta({ type: "REUNION", latitude: 40.2 }),
+      nokta({ type: "YARALI", latitude: 40.21 }),
+      nokta({ type: "SIGHTING", latitude: 40.22 }),
     ]);
 
     render(<MunicipalityDashboardPage />);
 
     await waitFor(() => {
       const noktalar = screen.getAllByTestId("yogunluk-noktasi");
-      expect(noktalar).toHaveLength(3);
+      expect(noktalar).toHaveLength(5);
       expect(noktalar.map((n) => n.dataset.renk)).toEqual([
-        "#DC2626",
+        "#DB2777",
         "#2563EB",
-        "#9333EA",
+        "#16A34A",
+        "#EA580C",
+        "#0891B2",
       ]);
     });
-    expect(screen.getByText("3 nokta")).toBeInTheDocument();
+    expect(screen.getByText("5 nokta")).toBeInTheDocument();
+    // Lejant, sayaç kartlarında olmayan yeni kategorileri de adlandırıyor.
+    expect(screen.getByText(/Yaralı ihbarı · 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Kavuşan · 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Görülme · 1/)).toBeInTheDocument();
+  });
+
+  it("lejant tıklanınca kategori haritadan gizlenir, tekrar tıklanınca döner", async () => {
+    haritaGetir.mockResolvedValue([
+      nokta({ type: "LOST" }),
+      nokta({ type: "LOST", latitude: 40.19 }),
+      nokta({ type: "YARALI", latitude: 40.2 }),
+    ]);
+
+    render(<MunicipalityDashboardPage />);
+    await screen.findByText("3 nokta");
+
+    const kayipDugmesi = screen.getByRole("button", { name: /Kayıp · 2/ });
+    fireEvent.click(kayipDugmesi);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("yogunluk-noktasi")).toHaveLength(1);
+    });
+    expect(screen.getByText("1 nokta")).toBeInTheDocument();
+    expect(kayipDugmesi).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(kayipDugmesi);
+    await waitFor(() => {
+      expect(screen.getAllByTestId("yogunluk-noktasi")).toHaveLength(3);
+    });
   });
 
   it("sunucu hatasında sunucunun kendi mesajını gösterir", async () => {

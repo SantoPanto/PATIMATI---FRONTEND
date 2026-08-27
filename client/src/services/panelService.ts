@@ -1,5 +1,6 @@
 import { request } from "./api";
 import type { AdType } from "./types";
+import type { ReportType } from "./reportService";
 
 /**
  * Belediye paneli (belediye modülü, A parçası) — sayaçlar ve ısı haritası.
@@ -29,12 +30,19 @@ export type PanelIstatistikleri = {
   reunionCount: number;
 };
 
+/**
+ * Yoğunluk haritası kategorisi — sunucunun üç kaynağı birleştirmesinin
+ * karşılığı (27.08 genişletmesi): ilan türleri + {@code REUNION} (kavuşmuş
+ * ilan) + vatandaş ihbar türleri + {@code SIGHTING} ("gördüm" bildirimi).
+ */
+export type IsiKategorisi = AdType | "REUNION" | ReportType | "SIGHTING";
+
 /** {@code HeatmapPointDto} ile birebir. */
 export type IsiHaritasiNoktasi = {
   latitude: number;
   longitude: number;
-  /** Noktanın geldiği ilan türü. Kaynak {@code ads.ad_type}. */
-  type: AdType;
+  /** Kaynak: ads / animal_reports / ad_sightings birleşimi. */
+  type: IsiKategorisi;
   createdAt: string;
 };
 
