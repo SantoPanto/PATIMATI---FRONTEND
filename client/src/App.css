@@ -1559,6 +1559,17 @@ img {
 /* Küçük telefonlar */
 
 @media (max-width: 380px) {
+  /* Çok dar telefonlarda header'ın son birkaç pikseli: boşluk ve rozet
+     dolgusu mikro sıkışır (393px cihazlarda gerek yok, 360px'te fark eder). */
+  .home-header__actions {
+    gap: 2px;
+  }
+
+  .home-header__content a[aria-label$=" Paneli"] {
+    padding: 5px 6px;
+    margin-right: 2px;
+  }
+
   .hero-badge span {
     max-width: 230px;
     overflow: hidden;
