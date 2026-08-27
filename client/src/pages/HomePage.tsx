@@ -24,6 +24,7 @@ import {
   Heart,
   Loader2,
   MapPin,
+  Megaphone,
   PawPrint,
   Search,
   ShieldCheck,
@@ -460,6 +461,11 @@ export default function HomePage() {
                 <Link href="/map" className="hero-secondary-action">
                   <MapPin size={20} />
                   Haritada ara
+                </Link>
+
+                <Link href="/report" className="hero-secondary-action">
+                  <Megaphone size={20} />
+                  İhbar et
                 </Link>
               </div>
 

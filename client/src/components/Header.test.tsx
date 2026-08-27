@@ -130,3 +130,33 @@ describe("Header zil noktası", () => {
     expect(noktayiBul()).toBeNull();
   });
 });
+
+/**
+ * Belediye modulu linkleri. /municipality ve /report uzun sure YALNIZ adres
+ * yazilarak acilabiliyordu — rota vardi, uygulamada gorunur giris yoktu.
+ * Bu blok o girislerin varligini kilitler.
+ */
+describe("Header belediye linkleri", () => {
+  it("kurum hesabinda Belediye Paneli rozeti gorunur", () => {
+    oturum.user = { role: "INSTITUTION" };
+    renderHeader();
+
+    const rozet = screen.getByLabelText("Belediye Paneli");
+    expect(rozet).toHaveAttribute("href", "/municipality");
+  });
+
+  it("siradan kullanicida Belediye Paneli rozeti YOK", () => {
+    oturum.user = { role: "USER" };
+    renderHeader();
+
+    expect(screen.queryByLabelText("Belediye Paneli")).toBeNull();
+  });
+
+  it("Ihbar Et navigasyon linki girissiz de gorunur ve /report'a gider", () => {
+    oturum.isAuthenticated = false;
+    oturum.user = null;
+    renderHeader();
+
+    expect(screen.getByText("İhbar Et")).toHaveAttribute("href", "/report");
+  });
+});
