@@ -20,6 +20,8 @@ import "../App.css";
 import {
   Camera,
   ChevronRight,
+  Landmark,
+  Stethoscope,
   CirclePlus,
   HandHeart,
   Heart,
@@ -981,6 +983,78 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section
+          className="page-container kesfet-section"
+          aria-labelledby="kesfet-baslik"
+        >
+          <div className="section-heading">
+            <span className="section-eyebrow">Bunları da keşfet</span>
+            <h2 id="kesfet-baslik">PATIMATI yalnız ilanlardan ibaret değil</h2>
+          </div>
+
+          <div className="kesfet-grid">
+            <Link href="/ben-neyim" className="kesfet-karti">
+              <span className="kesfet-karti__ikon">
+                <Sparkles size={22} />
+              </span>
+              <h3>Ben Neyim?</h3>
+              <p>
+                Bir fotoğraf yükle; karakter profili, bakım ipuçları ve
+                şaşırtıcı bilgilerle dolu yapay zekâ raporu al.
+              </p>
+              <span className="kesfet-karti__link">
+                Dostunu tanı
+                <ChevronRight size={16} />
+              </span>
+            </Link>
+
+            <Link href="/report" className="kesfet-karti">
+              <span className="kesfet-karti__ikon kesfet-karti__ikon--yesil">
+                <Landmark size={22} />
+              </span>
+              <h3>Belediyeye İhbar</h3>
+              <p>
+                Yaralı ya da sahipsiz bir hayvan gördüysen bildir; ihbarın
+                doğrudan o ilçenin belediyesine düşer. Giriş gerekmez.
+              </p>
+              <span className="kesfet-karti__link">
+                İhbar et
+                <ChevronRight size={16} />
+              </span>
+            </Link>
+
+            <Link href="/hizmetler" className="kesfet-karti">
+              <span className="kesfet-karti__ikon kesfet-karti__ikon--mavi">
+                <Stethoscope size={22} />
+              </span>
+              <h3>Hizmetler</h3>
+              <p>
+                Veteriner, petshop ve barınakları puanlarıyla keşfet;
+                işletmen varsa başvurunu buradan yap.
+              </p>
+              <span className="kesfet-karti__link">
+                Hizmetlere göz at
+                <ChevronRight size={16} />
+              </span>
+            </Link>
+
+            <Link href="/map" className="kesfet-karti">
+              <span className="kesfet-karti__ikon kesfet-karti__ikon--turuncu">
+                <MapPin size={22} />
+              </span>
+              <h3>Harita</h3>
+              <p>
+                Çevrendeki kayıp, bulunan ve sahiplendirme ilanlarını harita
+                üzerinde gör.
+              </p>
+              <span className="kesfet-karti__link">
+                Haritayı aç
+                <ChevronRight size={16} />
+              </span>
+            </Link>
           </div>
         </section>
 
