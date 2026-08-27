@@ -621,40 +621,6 @@ export default function HomePage() {
 
             <button
               type="button"
-              className="quick-action-card quick-action-card--adoption"
-              onClick={() =>
-                requireAuth("/adopt/create")
-              }
-            >
-              <div className="quick-action-card__icon">
-                <Heart size={28} />
-              </div>
-
-              <div className="quick-action-card__content">
-                <span className="quick-action-card__label">
-                  Sahiplendirme
-                </span>
-
-                <h3>Yeni yuva arıyorum</h3>
-
-                <p>
-                  Sahiplendirilecek dostun için güvenilir bir yuva bul.
-                </p>
-
-                <span className="quick-action-card__link">
-                  Sahiplendirme ilanı oluştur
-                  <ChevronRight size={18} />
-                </span>
-              </div>
-
-              <PawPrint
-                className="quick-action-card__decoration"
-                size={120}
-              />
-            </button>
-
-            <button
-              type="button"
               className="quick-action-card quick-action-card--help"
               onClick={() => requireAuth("/help/create")}
             >

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Megaphone } from "lucide-react";
+import { Landmark } from "lucide-react";
 import MapPicker from "../components/MapPicker";
 import { ApiError, YUK_COK_BUYUK_MESAJI } from "../services/api";
 import { createReport, type ReportType } from "../services/reportService";
@@ -119,15 +119,24 @@ export default function PublicReportPage() {
       <div className="pm-container max-w-xl">
         <header className="pm-page-heading">
           <span className="pm-eyebrow">
-            <Megaphone size={14} className="mr-1 inline-block align-[-2px]" />
-            İhbar
+            <Landmark size={14} className="mr-1 inline-block align-[-2px]" />
+            Belediye İhbar Hattı
           </span>
-          <h1>Hayvan İhbarı</h1>
+          <h1>Belediyeye Hayvan İhbarı</h1>
           <p>
             Yaralı ya da sahipsiz bir hayvan gördüyseniz buradan bildirin.
             Giriş yapmanız gerekmiyor.
           </p>
         </header>
+
+        <div className="pm-card mb-5 flex items-start gap-3 border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
+          <Landmark size={18} className="mt-0.5 shrink-0" />
+          <p>
+            Bu form uygulama ekibine değil, doğrudan <strong>belediyeye</strong>{" "}
+            gider: ihbarınız, haritada seçtiğiniz konumun ilçesindeki belediyenin
+            ihbar kuyruğuna düşer.
+          </p>
+        </div>
 
         <form onSubmit={gonder} className="pm-card space-y-5 p-5">
           <fieldset>
