@@ -253,16 +253,26 @@ export default function MunicipalityDashboardPage() {
       endDate: `${bitis}T23:59:59`,
     };
 
+    // İhbar analizi AYRI çekilir: uç yeni (BE #189) — FE, ucu olmayan bir
+    // BE'yle karşılaşırsa (dağıtım sırası/eski sürüm) yalnız analiz bölümü
+    // gizlenir, panelin kalanı ÇALIŞMAYA DEVAM EDER. Promise.all'a katmak
+    // tek 404'le tüm paneli düşürüyordu.
+    getIhbarIstatistikleri(aralik)
+      .then((ihbarlar) => {
+        if (!iptal) setIhbarIstatistik(ihbarlar);
+      })
+      .catch(() => {
+        if (!iptal) setIhbarIstatistik(null);
+      });
+
     Promise.all([
       getPanelIstatistikleri(aralik),
       getIsiHaritasi(aralik, EN_COK_ISI_NOKTASI),
-      getIhbarIstatistikleri(aralik),
     ])
-      .then(([sayilar, harita, ihbarlar]) => {
+      .then(([sayilar, harita]) => {
         if (iptal) return;
         setIstatistik(sayilar);
         setNoktalar(harita);
-        setIhbarIstatistik(ihbarlar);
         setHata(null);
       })
       .catch((e) => {
