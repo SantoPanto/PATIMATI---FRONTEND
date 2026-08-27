@@ -204,4 +204,19 @@ describe("MunicipalityReportQueuePage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Kapat" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("Fotoğrafı aç bağlantısı getImageUrl ile medya domain URL'sine yönlendirir", async () => {
+    kuyrukGetir.mockResolvedValue(
+      sayfaCevabi([ihbar({ id: 1, photoUrl: "reports/2026/08/28/test.jpg" })]),
+    );
+
+    render(<MunicipalityReportQueuePage />);
+
+    const link = await screen.findByRole("link", { name: "Fotoğrafı aç" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://media.patimati.me/reports/2026/08/28/test.jpg",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
 });
