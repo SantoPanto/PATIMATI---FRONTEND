@@ -33,7 +33,7 @@ import { konumAl, konumHataMesaji } from "../utils/konum";
 /* Types                                                                      */
 /* -------------------------------------------------------------------------- */
 
-type AdType = "LOST" | "FOUND" | "ADOPTION";
+type AdType = "LOST" | "FOUND" | "ADOPTION" | "HELP";
 type Species = "CAT" | "DOG";
 
 type PetColor =

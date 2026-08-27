@@ -227,9 +227,24 @@ export async function request<T>(
     return {} as T;
   }
 
-  const data = await response
-    .json()
-    .catch(() => null);
+  /*
+   * `response.ok` iken JSON ayrıştırma başarısız olursa (ör. yanlış
+   * yapılandırılmış bir reverse proxy/CDN, API isteğini kendi statik
+   * `index.html`'ine düşürüp 200 ile HTML döndürürse) `data` SESSİZCE
+   * `null` olurdu ve çağıran bunu geçerli (ama boş) bir cevap sanırdı --
+   * `response.content` gibi bir alana erişince anlaşılmaz bir
+   * "Cannot read properties of null" hatasıyla patlardı. `jsonParseHatasi`
+   * ile ayrıştırma hatasını "geçerli null gövde" (204 zaten yukarıda ele
+   * alındı) durumundan ayırt edip AÇIK bir ApiError'a çeviriyoruz.
+   */
+  let data: unknown = null;
+  let jsonParseHatasi = false;
+
+  try {
+    data = await response.json();
+  } catch {
+    jsonParseHatasi = true;
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -240,6 +255,14 @@ export async function request<T>(
       getErrorMessage(data, response.status),
       response.status,
       data,
+    );
+  }
+
+  if (jsonParseHatasi) {
+    throw new ApiError(
+      "Sunucudan beklenmeyen bir yanıt geldi. Lütfen daha sonra tekrar deneyin.",
+      response.status,
+      null,
     );
   }
 

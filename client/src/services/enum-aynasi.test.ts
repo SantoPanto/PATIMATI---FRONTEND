@@ -146,6 +146,7 @@ describe('enum aynası — ön yüz ↔ arka yüz', () => {
       'LOST',
       'FOUND',
       'ADOPTION',
+      'HELP',
     ])
     expect(
       sozlukDegerleri('src/pages/AdoptionCreatePage.tsx', 'CINSIYET_KARSILIGI'),

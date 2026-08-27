@@ -130,3 +130,50 @@ describe("Header zil noktası", () => {
     expect(noktayiBul()).toBeNull();
   });
 });
+
+/**
+ * Rol bazlı panel kısayol linkleri -- VET/ADMIN için zaten vardı, ancak
+ * PETSHOP ve BARINAK rolleri eklenirken bu linkler hiç eklenmemişti (canlı
+ * testte fark edildi: petshop hesabıyla girişte "Petshop Paneli" butonu
+ * görünmüyordu). Her rol yalnızca KENDİ linkini görmeli, başkasının linkini
+ * DEĞİL.
+ */
+describe("Header rol bazlı panel linki", () => {
+  it("PETSHOP rolünde 'Petshop Paneli' linki görünür, diğerleri görünmez", () => {
+    oturum.user = { role: "PETSHOP" };
+    renderHeader();
+
+    expect(screen.getByLabelText("Petshop Paneli")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Veteriner Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Barınak Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Yönetim Paneli")).toBeNull();
+  });
+
+  it("BARINAK rolünde 'Barınak Paneli' linki görünür, diğerleri görünmez", () => {
+    oturum.user = { role: "BARINAK" };
+    renderHeader();
+
+    expect(screen.getByLabelText("Barınak Paneli")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Veteriner Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Petshop Paneli")).toBeNull();
+  });
+
+  it("VET rolünde 'Veteriner Paneli' linki görünür (regresyon)", () => {
+    oturum.user = { role: "VET" };
+    renderHeader();
+
+    expect(screen.getByLabelText("Veteriner Paneli")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Petshop Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Barınak Paneli")).toBeNull();
+  });
+
+  it("USER rolünde hiçbir panel linki görünmez", () => {
+    oturum.user = { role: "USER" };
+    renderHeader();
+
+    expect(screen.queryByLabelText("Veteriner Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Petshop Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Barınak Paneli")).toBeNull();
+    expect(screen.queryByLabelText("Yönetim Paneli")).toBeNull();
+  });
+});

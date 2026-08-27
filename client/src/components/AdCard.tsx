@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChevronRight,
   Heart,
+  Home,
   MapPin,
   PawPrint,
   Sparkles,
@@ -21,6 +22,7 @@ const categoryStyles: Record<AdType, { label: string; classNames: string }> = {
   LOST: { label: "Kayıp", classNames: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30" },
   FOUND: { label: "Bulundu", classNames: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30" },
   ADOPTION: { label: "Sahiplendirme", classNames: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" },
+  HELP: { label: "Yardım", classNames: "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30" },
 };
 
 interface AdCardProps {
@@ -79,9 +81,17 @@ export default function AdCard({
 
           {/* Top Badges & Favorite Action */}
           <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3.5">
-            <span className={`rounded-full border px-3 py-1 text-xs font-bold shadow-xs ${badgeConfig.classNames}`}>
-              {badgeConfig.label}
-            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <span className={`rounded-full border px-3 py-1 text-xs font-bold shadow-xs ${badgeConfig.classNames}`}>
+                {badgeConfig.label}
+              </span>
+              {ad?.adType === "ADOPTION" && ad?.ownerRole === "BARINAK" && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#0d9488]/30 bg-[#0d9488]/10 px-3 py-1 text-xs font-bold text-[#0d9488] shadow-xs">
+                  <Home size={12} />
+                  Barınak
+                </span>
+              )}
+            </div>
 
             {onRemoveFavorite ? (
               <button

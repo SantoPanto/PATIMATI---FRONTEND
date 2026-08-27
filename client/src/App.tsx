@@ -25,6 +25,7 @@ import MyListingsPage from "./pages/MyListingsPage";
 import MyMatchesPage from "./pages/MyMatchesPage";
 import PotentialMatchesPage from "./pages/PotentialMatchesPage";
 import AdoptionCreatePage from "./pages/AdoptionCreatePage";
+import HelpCreatePage from "./pages/HelpCreatePage";
 import FoundPetCreatePage from "./pages/FoundPetCreatePage";
 import AboutPage from "./pages/AboutPage";
 import SafetyPage from "./pages/SafetyPage";
@@ -37,6 +38,20 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import ServicesPage from "./pages/ServicesPage";
+import VetDirectoryPage from "./pages/VetDirectoryPage";
+import VetDetailPage from "./pages/VetDetailPage";
+import VetPanelPage from "./pages/VetPanelPage";
+import PetShopDirectoryPage from "./pages/PetShopDirectoryPage";
+import PetShopDetailPage from "./pages/PetShopDetailPage";
+import PetShopProductDetailPage from "./pages/PetShopProductDetailPage";
+import PetShopProductsPage from "./pages/PetShopProductsPage";
+import PetShopPanelPage from "./pages/PetShopPanelPage";
+import ShelterDirectoryPage from "./pages/ShelterDirectoryPage";
+import ShelterDetailPage from "./pages/ShelterDetailPage";
+import ShelterAdoptionsPage from "./pages/ShelterAdoptionsPage";
+import ShelterPanelPage from "./pages/ShelterPanelPage";
+import MyPetsPage from "./pages/MyPetsPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
@@ -69,6 +84,10 @@ function ProtectedChatDetailPage() {
 
 function ProtectedAdoptionCreatePage() {
   return <RequireAuth component={AdoptionCreatePage} mode="redirect" />;
+}
+
+function ProtectedHelpCreatePage() {
+  return <RequireAuth component={HelpCreatePage} mode="redirect" />;
 }
 
 function ProtectedBenNeyimPage() {
@@ -125,6 +144,28 @@ function ProtectedAdminUsersPage() {
   return (
     <RequireAuth component={AdminUsersPage} mode="redirect" requiredRole="ADMIN" />
   );
+}
+
+function ProtectedVetPanelPage() {
+  return (
+    <RequireAuth component={VetPanelPage} mode="redirect" requiredRole="VET" />
+  );
+}
+
+function ProtectedPetShopPanelPage() {
+  return (
+    <RequireAuth component={PetShopPanelPage} mode="redirect" requiredRole="PETSHOP" />
+  );
+}
+
+function ProtectedShelterPanelPage() {
+  return (
+    <RequireAuth component={ShelterPanelPage} mode="redirect" requiredRole="BARINAK" />
+  );
+}
+
+function ProtectedMyPetsPage() {
+  return <RequireAuth component={MyPetsPage} mode="redirect" />;
 }
 
 function ProtectedNotificationsPage() {
@@ -241,6 +282,9 @@ function App() {
           component={ProtectedAdoptionCreatePage}
         />
 
+        {/* Yardım (yardıma muhtaç hayvanlar) */}
+        <Route path="/help/create" component={ProtectedHelpCreatePage} />
+
         <Route
           path="/adoption/:id"
           component={PetDetailPage}
@@ -259,6 +303,37 @@ function App() {
           component={ProtectedAdminListingsPage}
         />
         <Route path="/admin/users" component={ProtectedAdminUsersPage} />
+
+        {/* Hizmetler -- Tümü/Veteriner/Petshop/Barınak filtreli toplu sayfa
+            (Header'daki "Hizmetler" ikonu artık üç seçenekli bir açılır menü
+            değil, doğrudan buraya götürüyor). */}
+        <Route path="/hizmetler" component={ServicesPage} />
+
+        {/* Hizmetler / Veteriner */}
+        <Route path="/hizmetler/veteriner/:id" component={VetDetailPage} />
+        <Route path="/hizmetler/veteriner" component={VetDirectoryPage} />
+        <Route path="/vet/panel" component={ProtectedVetPanelPage} />
+        <Route path="/profile/pets" component={ProtectedMyPetsPage} />
+
+        {/* Hizmetler / Petshop -- :shopId/urun/:productId rotası :id
+            rotasından ÖNCE gelmeli (wouter tanımlama sırasına göre
+            eşleştiriyor -- veteriner/:id ile aynı gerekçe, plan §13) */}
+        <Route
+          path="/hizmetler/petshop/:shopId/urun/:productId"
+          component={PetShopProductDetailPage}
+        />
+        <Route path="/hizmetler/petshop/:id/urunler" component={PetShopProductsPage} />
+        <Route path="/hizmetler/petshop/:id" component={PetShopDetailPage} />
+        <Route path="/hizmetler/petshop" component={PetShopDirectoryPage} />
+        <Route path="/petshop/panel" component={ProtectedPetShopPanelPage} />
+
+        {/* Hizmetler / Barınak -- Petshop'taki gibi iç içe bir
+            :shopId/urun/:productId rotası GEREKMİYOR, ilanlar kendi mevcut
+            detay rotasını (/adoption/{id}) kullanıyor (plan §17). */}
+        <Route path="/hizmetler/barinak/:id/ilanlar" component={ShelterAdoptionsPage} />
+        <Route path="/hizmetler/barinak/:id" component={ShelterDetailPage} />
+        <Route path="/hizmetler/barinak" component={ShelterDirectoryPage} />
+        <Route path="/barinak/panel" component={ProtectedShelterPanelPage} />
 
         {/* Unauthorized */}
         <Route
