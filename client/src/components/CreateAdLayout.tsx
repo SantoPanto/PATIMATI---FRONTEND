@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
   CheckCircle2,
+  HandHeart,
   Heart,
   Info,
   MapPin,
@@ -12,7 +13,7 @@ import {
 import Header from "./Header";
 import Footer from "./Footer";
 
-export type CreateAdType = "lost" | "found" | "adopt";
+export type CreateAdType = "lost" | "found" | "adopt" | "help";
 
 interface ThemeConfig {
   type: CreateAdType;
@@ -160,6 +161,44 @@ const THEME_CONFIGS: Record<CreateAdType, ThemeConfig> = {
     infoBoxDescription:
       "Aile adaylarıyla görüşürken ev ortamı ve bakım sorumluluğu hakkında bilgi almayı ve sözleşmeli teslim yapmayı unutmayın.",
   },
+  help: {
+    type: "help",
+    tabLabel: "Yardım İlanı",
+    route: "/help/create",
+    badgeText: "Yardıma ihtiyacı var",
+    badgeIcon: <HandHeart size={16} />,
+    titlePrefix: "Yardıma muhtaç dostu ",
+    titleHighlight: "bildir.",
+    subtitle:
+      "Gördüğün yardıma muhtaç hayvan(lar)ın fotoğrafını ve durumunu paylaş. Çevrendeki hayvanseverler görüp yardımcı olabilir.",
+    heroBgGradient:
+      "bg-gradient-to-br from-[#ECFEFF] via-white to-[#CFFAFE] border-b border-[#A5F3FC]/40",
+    tabActiveClass:
+      "bg-[#0E7490] text-white shadow-md shadow-cyan-500/20 font-bold",
+    tabInactiveClass:
+      "text-[#64748B] hover:text-[#0E7490] hover:bg-cyan-50/60 font-semibold",
+    badgeClass:
+      "border-[#A5F3FC] bg-white text-[#0E7490] shadow-xs",
+    titleHighlightClass: "text-[#0E7490]",
+    tipIconClass: "text-[#0E7490]",
+    sidebarCardIconBg: "bg-[#ECFEFF]",
+    sidebarCardIconText: "text-[#0E7490]",
+    sidebarInfoBoxBg: "bg-[#ECFEFF]",
+    sidebarInfoBoxBorder: "border-[#A5F3FC]",
+    sidebarInfoBoxIconText: "text-[#0E7490]",
+    sidebarInfoBoxTitleText: "text-[#164E63]",
+    sidebarInfoBoxBodyText: "text-[#0E7490]",
+    tipsTitle: "Daha etkili bir çağrı için",
+    tips: [
+      "Durumu net gösteren güncel fotoğraf(lar) ekle.",
+      "Kaç hayvan olduğunu ve durumlarını açıklamada belirt.",
+      "Konumu mümkün olduğunca doğru işaretle.",
+      "Acil bir durum varsa (yaralanma vb.) açıklamada vurgula.",
+    ],
+    infoBoxTitle: "Topluluk Desteği",
+    infoBoxDescription:
+      "İlanın yayınlandıktan sonra haritaya işlenecek ve çevrendeki hayvanseverler görebilecek. Acil/tıbbi durumlarda bir veteriner veya barınakla da iletişime geçmeyi düşün.",
+  },
 };
 
 export interface TabConfig {
@@ -191,6 +230,13 @@ export const TABS: TabConfig[] = [
     route: "/adopt/create",
     matchPaths: ["/adopt/create", "/adoption/create"],
     icon: <Heart size={16} />,
+  },
+  {
+    type: "help",
+    label: "Yardım",
+    route: "/help/create",
+    matchPaths: ["/help/create"],
+    icon: <HandHeart size={16} />,
   },
 ];
 

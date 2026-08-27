@@ -20,7 +20,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * eder) bağlantı kurulurken.
  */
 
-const { sahteIstemciler } = vi.hoisted(() => ({ sahteIstemciler: [] as any[] }));
+/** vi.mock fabrikası içindeki SahteClient'ın gördüğümüz kadarıyla arayüzü --
+ * sınıfın kendisi factory'nin içinde kalıyor, dışarıdan tipine erişilemiyor. */
+interface SahteIstemci {
+  active: boolean;
+  connected: boolean;
+  baglantiyiKur: () => void;
+}
+
+const { sahteIstemciler } = vi.hoisted(() => ({ sahteIstemciler: [] as SahteIstemci[] }));
 
 vi.mock("@stomp/stompjs", () => {
   class SahteClient {

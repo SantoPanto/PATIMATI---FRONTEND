@@ -269,3 +269,26 @@ describe('PetDetailPage — Gördüm bildirimi', () => {
     expect(screen.getByText(/0555 111 22 33/)).toBeInTheDocument()
   })
 })
+
+describe('PetDetailPage — barınak etiketi', () => {
+  it('BARINAK sahipli sahiplendirme ilanında "Barınak" rozeti görünür', async () => {
+    ilanGetir.mockResolvedValue({ ...ILAN, adType: 'ADOPTION', ownerRole: 'BARINAK' })
+
+    render(<PetDetailPage />)
+
+    // İki ayrı yerde görünür: fotoğraf üstü "Barınak" ilan etiketi VE
+    // "İLAN SAHİBİ" bölümündeki rol rozeti -- ikisi de aynı metni taşıdığı
+    // için tekil değil, en az bir tane olduğunu doğruluyoruz.
+    const barinakEtiketleri = await screen.findAllByText('Barınak')
+    expect(barinakEtiketleri.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('USER sahipli sahiplendirme ilanında "Barınak" rozeti görünmez', async () => {
+    ilanGetir.mockResolvedValue({ ...ILAN, adType: 'ADOPTION', ownerRole: 'USER' })
+
+    render(<PetDetailPage />)
+
+    await screen.findByText('Sahiplendirme')
+    expect(screen.queryByText('Barınak')).toBeNull()
+  })
+})

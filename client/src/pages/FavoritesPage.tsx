@@ -15,16 +15,28 @@ import type { AdResponse, AdType, Page } from "../services/types";
 import { getAdLocation, getSpeciesLabel } from "../utils/adPresentation";
 import "../App.css";
 
+// Backend'in /api/favorites/me ucu, favorinin altındaki ilanı farklı sarmalayıcı
+// alan adlarıyla (veya doğrudan) döndürebiliyor -- normalizasyon bunu tolere eder.
+type FavoriteEntry = {
+  ad?: AdResponse;
+  pet?: AdResponse;
+  listing?: AdResponse;
+  id?: unknown;
+  adType?: unknown;
+};
+
 type FavoriteCategory =
   | "Tümü"
   | "Kayıp"
   | "Bulundu"
-  | "Sahiplendirme";
+  | "Sahiplendirme"
+  | "Yardım";
 
 const categoryToAdType: Record<Exclude<FavoriteCategory, "Tümü">, AdType> = {
   Kayıp: "LOST",
   Bulundu: "FOUND",
   Sahiplendirme: "ADOPTION",
+  Yardım: "HELP",
 };
 
 const categories: FavoriteCategory[] = [
@@ -32,6 +44,7 @@ const categories: FavoriteCategory[] = [
   "Kayıp",
   "Bulundu",
   "Sahiplendirme",
+  "Yardım",
 ];
 
 export default function FavoritesPage() {
@@ -48,15 +61,17 @@ export default function FavoritesPage() {
     const loadFavorites = async () => {
       try {
         setLoading(true);
-        const data = await request<Page<any>>(
+        const data = await request<Page<FavoriteEntry>>(
           "/api/favorites/me?size=50",
           { requiresAuth: true },
         );
 
         const rawList = data.content || [];
         const normalizedAds: AdResponse[] = rawList
-          .map((item: any) => {
-            const adObj: AdResponse | null = item?.ad || item?.pet || item?.listing || (item?.id && item?.adType ? item : null);
+          .map((item) => {
+            const adObj: AdResponse | null =
+              item?.ad || item?.pet || item?.listing ||
+              (item?.id && item?.adType ? (item as unknown as AdResponse) : null);
             return adObj;
           })
           .filter((ad): ad is AdResponse => ad !== null);
