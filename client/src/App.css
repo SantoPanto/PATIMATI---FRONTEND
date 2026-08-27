@@ -2158,7 +2158,10 @@ img {
   align-items: center;
   gap: 4px;
   margin-right: 0;
-  margin-left: 16px;
+  /* Nav grubunu (İlanlar/Harita/Ben neyim?/İhbar Et) sağa, .home-header__actions'ın
+     (Hizmetler ikonu/tema/Giriş-Kayıt) hemen soluna iter -- logo tek başına
+     solda kalır. */
+  margin-left: auto;
 }
 
 .desktop-navigation .navigation-link {

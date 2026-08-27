@@ -1,11 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { BarChart3, Inbox } from "lucide-react";
+import { ArrowLeft, BarChart3, Inbox } from "lucide-react";
 
 /**
- * Belediye paneli bölüm sekmeleri (S6, 27.08): Genel Bakış ↔ İhbar Kuyruğu.
+ * Belediye paneli bölüm sekmeleri ve ana sayfaya dönüş gezintisi.
  *
- * <p>İki sayfa daha önce yalnız adres yazılarak geziliyordu — panelden kuyruğa
- * hiçbir görünür geçiş yoktu. Sekmeler iki sayfada da aynı bileşenden gelir.
+ * <p>Tüm belediye ekranlarında sol üstte görünür "Ana sayfaya dön" butonu ve
+ * bölüm sekmelerini tek bir ortak gezinti bileşeni olarak sunar.
  */
 export default function MunicipalityNav() {
   const [location] = useLocation();
@@ -16,7 +16,17 @@ export default function MunicipalityNav() {
   ] as const;
 
   return (
-    <nav aria-label="Belediye paneli bölümleri" className="mb-5 flex flex-wrap gap-2">
+    <nav aria-label="Belediye paneli bölümleri" className="mb-5 flex flex-wrap items-center gap-2">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 pm-button pm-button--secondary font-semibold"
+      >
+        <ArrowLeft size={16} />
+        Ana sayfaya dön
+      </Link>
+      <span className="hidden text-[var(--pm-muted)] sm:inline" aria-hidden="true">
+        ·
+      </span>
       {SEKMELER.map(({ yol, etiket, Ikon }) => {
         const aktif = location === yol;
         return (

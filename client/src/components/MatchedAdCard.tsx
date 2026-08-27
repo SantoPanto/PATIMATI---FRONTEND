@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, MapPin, PawPrint, Sparkles } from "lucide-react";
 import type { MatchedAdResponseDTO } from "../services/types";
+import { getBreedLabel } from "../utils/adPresentation";
 import { getImageUrl } from "../utils/imageUrl";
 
 import { translateEnum } from "../utils/enumTranslator";
@@ -46,7 +47,7 @@ export default function MatchedAdCard({
 
   const adTitle = ad?.title || "İlan";
   const speciesLabel = translateEnum(ad?.species, "species", "Evcil Hayvan");
-  const breedLabel = ad?.breed || "Bilinmiyor";
+  const breedLabel = getBreedLabel(ad?.breed);
   const locationLabel =
     ad?.district && ad?.city
       ? `${ad.district}, ${ad.city}`
