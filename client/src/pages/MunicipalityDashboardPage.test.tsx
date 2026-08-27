@@ -228,4 +228,18 @@ describe("MunicipalityDashboardPage", () => {
     // Sekmeler: iki bölüm arasında görünür geçiş (S6'nın ana boşluğu buydu)
     expect(screen.getByRole("link", { name: /İhbar Kuyruğu/ })).toBeInTheDocument();
   });
+
+  it("report-stats ucu yoksa (eski BE) panel yine çizilir, yalnız analiz bölümü gizli kalır", async () => {
+    ihbarGetir.mockRejectedValue(new ApiError("Not Found", 404, null));
+
+    render(<MunicipalityDashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Yönetim Paneli/)).toBeInTheDocument();
+      expect(screen.getByText("Kayıp İlanları")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("İhbar Analizi")).toBeNull();
+    expect(screen.queryByText(/yüklenemedi/)).toBeNull();
+  });
 });
