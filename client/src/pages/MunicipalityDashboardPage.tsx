@@ -3,12 +3,16 @@ import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Landmark } from "lucide-react";
 import ErrorBoundary from "../components/ErrorBoundary";
+import MunicipalityNav from "../components/MunicipalityNav";
 import { ApiError } from "../services/api";
 import {
   EN_COK_ISI_NOKTASI,
+  getIhbarIstatistikleri,
   getIsiHaritasi,
   getPanelIstatistikleri,
   yerelIsoTarihSaat,
+  type GunlukIhbarSayisi,
+  type IhbarIstatistikleri,
   type IsiHaritasiNoktasi,
   type IsiKategorisi,
   type PanelIstatistikleri,
@@ -39,7 +43,10 @@ const KATEGORI_GORUNUMU: Record<IsiKategorisi, KategoriGorunumu> = {
   ADOPTION: { etiket: "Sahiplendirme", renk: "#9333EA" },
   REUNION: { etiket: "Kavuşan", renk: "#16A34A" },
   YARALI: { etiket: "Yaralı ihbarı", renk: "#EA580C" },
-  SAHIPSIZ: { etiket: "Sahipsiz ihbarı", renk: "#D97706" },
+  // #D97706 idi — YARALI turuncusuyla ΔE 1.6 (deutan) / 6.7 (normal):
+  // renk körlüğünde AYNI, normal görüşte bile zor ayrışıyordu (palet
+  // doğrulayıcısı, 27.08). Teal iki görüşte de temiz ayrışıyor.
+  SAHIPSIZ: { etiket: "Sahipsiz ihbarı", renk: "#0D9488" },
   DIGER: { etiket: "Diğer ihbar", renk: "#64748B" },
   SIGHTING: { etiket: "Görülme", renk: "#0891B2" },
   HELP: { etiket: "Yardım / Destek", renk: "#DC2626" },
@@ -99,12 +106,131 @@ function SayacKarti({
   );
 }
 
+function TurCubugu({
+  etiket,
+  deger,
+  toplam,
+  renkSinifi,
+}: {
+  etiket: string;
+  deger: number;
+  toplam: number;
+  renkSinifi: string;
+}) {
+  const oran = toplam > 0 ? Math.round((deger / toplam) * 100) : 0;
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+        <span className="flex items-center gap-2 text-[var(--pm-text)]">
+          <span className={`inline-block h-2.5 w-2.5 rounded-full ${renkSinifi}`} />
+          {etiket}
+        </span>
+        <span className="font-bold text-[var(--pm-text)]">{deger}</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--pm-bg)]">
+        <div
+          className={`h-full rounded-full ${renkSinifi}`}
+          style={{ width: `${oran}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Günlük ihbar serisi — tek seri, tek renk (kimlik yarışmasın diye nötr
+ * mavi-gri; turuncu ve teal tür kimliğine ayrılmış). Her çubuk hover'da
+ * gün + sayı söyler; yalnız uç günler etiketli.
+ */
+function GunlukSeri({ gunler }: { gunler: GunlukIhbarSayisi[] }) {
+  if (gunler.length === 0) {
+    return <p className="text-xs text-[var(--pm-muted)]">Aralıkta ihbar yok.</p>;
+  }
+  const enCok = Math.max(...gunler.map((g) => g.count), 1);
+  const GENISLIK = 600;
+  const YUKSEKLIK = 110;
+  const adimGenisligi = GENISLIK / gunler.length;
+  const cubukGenisligi = Math.max(2, adimGenisligi - 2);
+  return (
+    <svg
+      viewBox={`0 0 ${GENISLIK} ${YUKSEKLIK + 18}`}
+      className="w-full"
+      role="img"
+      aria-label="Günlük ihbar sayıları"
+    >
+      {gunler.map((g, i) => {
+        const yukseklik = g.count > 0
+          ? Math.max(3, Math.round((g.count / enCok) * YUKSEKLIK))
+          : 1;
+        return (
+          <rect
+            key={g.date}
+            x={i * adimGenisligi}
+            y={YUKSEKLIK - yukseklik}
+            width={cubukGenisligi}
+            height={yukseklik}
+            rx={2}
+            className={
+              g.count > 0
+                ? "fill-[#64748B] dark:fill-[#94A3B8]"
+                : "fill-[var(--pm-border)]"
+            }
+          >
+            <title>{`${g.date}: ${g.count} ihbar`}</title>
+          </rect>
+        );
+      })}
+      <line
+        x1="0"
+        y1={YUKSEKLIK + 0.5}
+        x2={GENISLIK}
+        y2={YUKSEKLIK + 0.5}
+        className="stroke-[var(--pm-border)]"
+      />
+      <text x="0" y={YUKSEKLIK + 14} fontSize="10" className="fill-[var(--pm-muted)]">
+        {gunler[0].date}
+      </text>
+      <text
+        x={GENISLIK}
+        y={YUKSEKLIK + 14}
+        fontSize="10"
+        textAnchor="end"
+        className="fill-[var(--pm-muted)]"
+      >
+        {gunler[gunler.length - 1].date}
+      </text>
+    </svg>
+  );
+}
+
+/** Sunucu yalnız DOLU günleri döner; grafik aralığın her gününü çizer. */
+function gunleriDoldur(
+  daily: GunlukIhbarSayisi[],
+  baslangic: string,
+  bitis: string,
+): GunlukIhbarSayisi[] {
+  const sayilar = new Map(daily.map((g) => [g.date, g.count]));
+  const gunler: GunlukIhbarSayisi[] = [];
+  const imlec = new Date(`${baslangic}T00:00:00`);
+  const son = new Date(`${bitis}T00:00:00`);
+  let adim = 0;
+  while (imlec <= son && adim < 120) {
+    const anahtar = tarihGirdisiDegeri(imlec);
+    gunler.push({ date: anahtar, count: sayilar.get(anahtar) ?? 0 });
+    imlec.setDate(imlec.getDate() + 1);
+    adim += 1;
+  }
+  return gunler;
+}
+
 export default function MunicipalityDashboardPage() {
   const ilkAralik = useMemo(sonOtuzGun, []);
   const [baslangic, setBaslangic] = useState(ilkAralik.baslangic);
   const [bitis, setBitis] = useState(ilkAralik.bitis);
 
   const [istatistik, setIstatistik] = useState<PanelIstatistikleri | null>(null);
+  const [ihbarIstatistik, setIhbarIstatistik] =
+    useState<IhbarIstatistikleri | null>(null);
   const [noktalar, setNoktalar] = useState<IsiHaritasiNoktasi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
@@ -130,11 +256,13 @@ export default function MunicipalityDashboardPage() {
     Promise.all([
       getPanelIstatistikleri(aralik),
       getIsiHaritasi(aralik, EN_COK_ISI_NOKTASI),
+      getIhbarIstatistikleri(aralik),
     ])
-      .then(([sayilar, harita]) => {
+      .then(([sayilar, harita, ihbarlar]) => {
         if (iptal) return;
         setIstatistik(sayilar);
         setNoktalar(harita);
+        setIhbarIstatistik(ihbarlar);
         setHata(null);
       })
       .catch((e) => {
@@ -204,6 +332,8 @@ export default function MunicipalityDashboardPage() {
             görülmelerden türetilir.
           </p>
         </header>
+
+        <MunicipalityNav />
 
         <div className="pm-card mb-6 flex flex-wrap items-end gap-4 p-4">
           <div className="pm-field">
@@ -275,6 +405,83 @@ export default function MunicipalityDashboardPage() {
               renkSinifi="text-green-600 dark:text-green-400"
             />
           </div>
+        )}
+
+        {ihbarIstatistik && (
+          <section className="pm-card mb-6 p-5">
+            <div className="pm-card__header mb-4">
+              <h2 className="pm-card__title">İhbar Analizi</h2>
+              <span className="text-xs text-[var(--pm-muted)]">
+                {ihbarIstatistik.yeniCount +
+                  ihbarIstatistik.islemeAlindiCount +
+                  ihbarIstatistik.tamamlandiCount}{" "}
+                ihbar
+              </span>
+            </div>
+
+            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <SayacKarti
+                etiket="Yeni (bekliyor)"
+                deger={ihbarIstatistik.yeniCount}
+                renkSinifi="text-amber-600 dark:text-amber-400"
+              />
+              <SayacKarti
+                etiket="İşlemde"
+                deger={ihbarIstatistik.islemeAlindiCount}
+                renkSinifi="text-blue-600 dark:text-blue-400"
+              />
+              <SayacKarti
+                etiket="Tamamlanan"
+                deger={ihbarIstatistik.tamamlandiCount}
+                renkSinifi="text-emerald-600 dark:text-emerald-400"
+              />
+            </div>
+
+            <h3 className="mb-2 text-sm font-bold text-[var(--pm-text)]">
+              Tür dağılımı
+            </h3>
+            {/* Renkler haritadaki lejantla AYNI kimlik; üçlü, palet
+                doğrulayıcısından geçirildi (27.08): turuncu/teal/nötr. */}
+            <div className="mb-5 space-y-2.5">
+              <TurCubugu
+                etiket="Yaralı hayvan"
+                deger={ihbarIstatistik.yaraliCount}
+                toplam={
+                  ihbarIstatistik.yaraliCount +
+                  ihbarIstatistik.sahipsizCount +
+                  ihbarIstatistik.digerCount
+                }
+                renkSinifi="bg-[#EA580C]"
+              />
+              <TurCubugu
+                etiket="Sahipsiz hayvan"
+                deger={ihbarIstatistik.sahipsizCount}
+                toplam={
+                  ihbarIstatistik.yaraliCount +
+                  ihbarIstatistik.sahipsizCount +
+                  ihbarIstatistik.digerCount
+                }
+                renkSinifi="bg-[#0D9488]"
+              />
+              <TurCubugu
+                etiket="Diğer"
+                deger={ihbarIstatistik.digerCount}
+                toplam={
+                  ihbarIstatistik.yaraliCount +
+                  ihbarIstatistik.sahipsizCount +
+                  ihbarIstatistik.digerCount
+                }
+                renkSinifi="bg-[#57534E] dark:bg-[#A8A29E]"
+              />
+            </div>
+
+            <h3 className="mb-2 text-sm font-bold text-[var(--pm-text)]">
+              Günlük ihbar sayısı
+            </h3>
+            <GunlukSeri
+              gunler={gunleriDoldur(ihbarIstatistik.daily, baslangic, bitis)}
+            />
+          </section>
         )}
 
         <section className="pm-card p-5">

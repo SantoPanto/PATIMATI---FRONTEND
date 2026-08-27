@@ -29,6 +29,14 @@ vi.mock("../services/reportService", async (gercegi) => ({
   updateReportStatus: durumGuncelle,
 }));
 
+vi.mock("react-leaflet", () => ({
+  MapContainer: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="modal-harita">{children}</div>
+  ),
+  TileLayer: () => null,
+  CircleMarker: () => <span data-testid="modal-nokta" />,
+}));
+
 import MunicipalityReportQueuePage from "./MunicipalityReportQueuePage";
 
 function ihbar(ek: Partial<AnimalReport> = {}): AnimalReport {
@@ -179,5 +187,21 @@ describe("MunicipalityReportQueuePage", () => {
         size: 20,
       }),
     );
+  });
+
+  it("Haritada gör, ihbarın konum modalını açar ve Kapat kapatır (S6)", async () => {
+    kuyrukGetir.mockResolvedValue(sayfaCevabi([ihbar({ id: 7, district: "Nilüfer" })]));
+
+    render(<MunicipalityReportQueuePage />);
+
+    const dugme = await screen.findByRole("button", { name: /Haritada gör/ });
+    await userEvent.click(dugme);
+
+    const modal = screen.getByRole("dialog", { name: /İhbar #7 konumu/ });
+    expect(modal).toBeInTheDocument();
+    expect(screen.getByTestId("modal-harita")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Kapat" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

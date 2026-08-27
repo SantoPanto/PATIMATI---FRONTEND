@@ -28,8 +28,13 @@ const { istek } = vi.hoisted(() => ({ istek: vi.fn() }))
 
 vi.mock('./api', () => ({ request: istek }))
 
-const { getPanelIstatistikleri, getIsiHaritasi, yerelIsoTarihSaat, EN_COK_ISI_NOKTASI } =
-  await import('./panelService')
+const {
+  getPanelIstatistikleri,
+  getIsiHaritasi,
+  getIhbarIstatistikleri,
+  yerelIsoTarihSaat,
+  EN_COK_ISI_NOKTASI,
+} = await import('./panelService')
 
 const ARALIK = {
   startDate: new Date(2026, 7, 1, 0, 0, 0), // 1 Ağustos 2026, yerel
@@ -139,5 +144,18 @@ describe('getIsiHaritasi', () => {
     const [, secenekler] = istek.mock.calls[0] as [string, { requiresAuth?: boolean }]
     expect(cagrilanYol().pathname).toBe('/api/municipality/panel/heatmap')
     expect(secenekler.requiresAuth).toBe(true)
+  })
+
+  it('getIhbarIstatistikleri report-stats yoluna ayni tarih sozlesmesiyle gider; ilce parametresi GITMEZ', async () => {
+    istek.mockResolvedValue({ district: 'X', daily: [] })
+
+    await getIhbarIstatistikleri(ARALIK)
+
+    const url = cagrilanYol()
+    expect(url.pathname).toBe('/api/municipality/panel/report-stats')
+    expect(url.searchParams.get('startDate')).toBe('2026-08-01T00:00:00')
+    expect(url.searchParams.get('endDate')).toBe('2026-08-27T23:59:59')
+    expect(url.searchParams.has('district')).toBe(false)
+    expect(url.searchParams.has('ilce')).toBe(false)
   })
 })
