@@ -206,10 +206,27 @@ export default function PetReportView({
     );
   }
 
-  // Legacy PetReportResult payload
+  // Zengin pet raporu (AI /analyze_pet -- PetReportResult)
   const legacy = result as PetReportResult;
   return (
     <div className="space-y-4">
+      {legacy.tur && (
+        <div className="rounded-2xl border border-[#DDD6FE] bg-[#FAF5FF] p-5 dark:border-violet-500/20 dark:bg-violet-500/10">
+          <div className="mb-2 flex items-center gap-2.5">
+            <PawPrint size={18} className="text-[#7C3AED] dark:text-violet-300" />
+            <h3 className="text-sm font-bold text-[#1E293B] dark:text-slate-100">
+              Analiz Özeti
+            </h3>
+          </div>
+          <p className="text-sm font-semibold leading-6 text-[#334155] dark:text-slate-300">
+            {legacy.tur}
+            {legacy.irk && legacy.irk !== "BELIRLENEMEDI"
+              ? ` — ${legacy.irk}`
+              : " — Melez / Irk Belirlenemedi"}
+          </p>
+        </div>
+      )}
+
       {legacy.goruntu_kalite_notu && (
         <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />

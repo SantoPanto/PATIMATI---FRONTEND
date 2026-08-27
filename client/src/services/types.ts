@@ -298,6 +298,14 @@ export type PetBakimIpuclari = {
 
 export type PetReportResult = {
   gecerli: boolean;
+  /**
+   * Sınıflandırıcıdan gelen, LLM prompt'una giden çevrilmiş kimlik (AI #37).
+   * LLM üretmez; sağlayıcı düşse de dolu gelir. KEDI_KOPEK_DEGIL erken
+   * dönüşünde üçü de null.
+   */
+  tur?: string | null; // "Kedi" | "Köpek"
+  irk?: string | null; // cins adı ya da "BELIRLENEMEDI"
+  desen?: string | null; // tabby|spotted|solid|bicolor ya da "BELIRLENEMEDI"
   hata_nedeni?: string | null;
   irka_ozel_icerik?: boolean | null;
   renk_tarifi?: PetDegerGuven | null;

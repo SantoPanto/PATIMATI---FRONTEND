@@ -20,8 +20,7 @@ import PetNotesSection from "../components/PetNotesSection";
 import PetVaccinationsSection from "../components/PetVaccinationsSection";
 import PetWeightSection from "../components/PetWeightSection";
 import { ApiError } from "../services/api";
-import { petRaporuAl } from "../services/petAnalizi";
-import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
+import { hataNedeniMesaji, petRaporuAl } from "../services/petAnalizi";
 import {
   addOwnerTreatmentNote,
   addPetVaccination,
@@ -303,11 +302,12 @@ export default function MyPetsPage() {
 
     try {
       const response = await petRaporuAl(file);
-      const normalized = parseAiAnalysis(response);
-      if (!normalized.isPet || !normalized.species) {
+      // /analyze_pet geçişi (BE #185): cevap artık PetReportResult --
+      // gecerli=false ise hata_nedeni kullanıcı diline çevrilir.
+      if (!response.gecerli) {
         setAiErrorByPetId((prev) => ({
           ...prev,
-          [petId]: "Fotoğrafta bir evcil hayvan (kedi veya köpek) tespit edilemedi.",
+          [petId]: hataNedeniMesaji(response.hata_nedeni),
         }));
         return;
       }

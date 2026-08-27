@@ -4,7 +4,16 @@ import BenNeyimPage from "./BenNeyimPage";
 import * as petAnaliziService from "../services/petAnalizi";
 import * as compressionUtils from "../utils/imageCompression";
 import { ApiError } from "../services/api";
-import type { AiAnalysis } from "../services/types";
+import type { PetReportResult } from "../services/types";
+
+/**
+ * "Ben Neyim?" -- /analyze_pet geçişinin (BE #185 + AI #33/#37) bekçisi.
+ *
+ * <p>Sayfa artık PetReportResult çizer (ortak PetReportView üzerinden):
+ * gecerli=true'da kimlik başlığı + zengin bölümler, gecerli=false'ta
+ * hata_nedeni'nin Türkçe karşılığı. Eski AiAnalysis şekline geri kayarsa
+ * bu testler düşer.
+ */
 
 // Mock Header and Footer
 vi.mock("../components/Header", () => ({
@@ -20,146 +29,157 @@ if (typeof window.URL.createObjectURL !== "function") {
   window.URL.createObjectURL = vi.fn(() => "blob:mock-image-url");
 }
 
-describe("BenNeyimPage AI Analiz Akışı", () => {
+describe("BenNeyimPage — LLM pet raporu akışı", () => {
   const setupAndUpload = async () => {
-    vi.spyOn(compressionUtils, "compressImagesWithinLimit").mockImplementation(async (files) => ({
-      accepted: files,
-      stillTooLarge: [],
-    }));
+    vi.spyOn(compressionUtils, "compressImagesWithinLimit").mockImplementation(
+      async (files) => ({
+        accepted: files,
+        stillTooLarge: [],
+      }),
+    );
 
     render(<BenNeyimPage />);
 
     const file = new File(["dummy content"], "pet.jpg", { type: "image/jpeg" });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
     expect(fileInput).not.toBeNull();
 
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Analiz Et/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Analiz Et/i }),
+      ).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Analiz Et/i }));
   };
 
-  it("Case 1 — Normal kedi yanıtında tür ve ırk ekranda gösterilir", async () => {
-    const mockResponse: AiAnalysis = {
-      species: "cat",
-      species_confidence: 0.98,
-      is_pet: true,
-      breed: "tekir",
-      breed_confidence: 0.9,
-      pattern: "tabby",
+  it("gecerli raporda kimlik başlığı ve zengin bölümler gösterilir", async () => {
+    const rapor: PetReportResult = {
+      gecerli: true,
+      tur: "Köpek",
+      irk: "Golden Retriever",
+      desen: "solid",
+      karakter_profili:
+        "Golden Retriever'lar sabırlı ve insana düşkün köpeklerdir.",
+      sasirtici_bilgiler: ["Golden'ların yüzme perdeleri vardır."],
+      bakim_ipuclari: { beslenme: "Günde iki öğün yeterlidir." },
+      tahmini_yas: { aralik: "2-4 yaş", yasam_evresi: "Yetişkin", guven: 80 },
     };
 
-    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(mockResponse);
+    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(rapor);
 
     await setupAndUpload();
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Analiz Özeti/i })).toBeInTheDocument();
-      expect(screen.getAllByText(/Tekir/i).length).toBeGreaterThan(0);
-      expect(screen.queryByText(/Fotoğraf analiz edilemedi/i)).toBeNull();
+      expect(
+        screen.getByRole("heading", { name: /Analiz Özeti/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Köpek — Golden Retriever/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: /Karakter Profili/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/sabırlı ve insana düşkün/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/yüzme perdeleri vardır/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Günde iki öğün yeterlidir/i)).toBeInTheDocument();
     });
   });
 
-  it("Case 2 — Breed null yanıtında hata gösterilmez, Melez / Irk Belirlenemedi gösterilir", async () => {
-    const mockResponse: AiAnalysis = {
-      embedding: new Array(768).fill(0.0123),
-      labels: ["soft:color_gray"],
-      species: "cat",
-      species_confidence: 0.9898,
-      is_pet: true,
-      breed: null,
-      breed_confidence: 0.3344,
-      pattern: "tabby",
-      colors: ["gray", "white"],
-      model_version: "siglip2-animal/v2",
-      is_designed_graphic: false,
-      graphic_confidence: 0.9994,
+  it("irk BELIRLENEMEDI ise başlıkta Melez / Irk Belirlenemedi yazar", async () => {
+    const rapor: PetReportResult = {
+      gecerli: true,
+      tur: "Kedi",
+      irk: "BELIRLENEMEDI",
+      desen: "tabby",
+      karakter_profili: "Tekir desenli kediler meraklıdır.",
     };
 
-    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(mockResponse);
+    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(rapor);
 
     await setupAndUpload();
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Analiz Özeti/i })).toBeInTheDocument();
-      expect(screen.getAllByText(/Melez/i).length).toBeGreaterThan(0);
-      expect(screen.queryByText(/Fotoğraf analiz edilemedi/i)).toBeNull();
+      expect(
+        screen.getByText(/Kedi — Melez \/ Irk Belirlenemedi/i),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/BELIRLENEMEDI/)).toBeNull();
     });
   });
 
-  it("Case 3 — Pattern null yanıtında analiz başarılıdır", async () => {
-    const mockResponse: AiAnalysis = {
-      species: "cat",
-      species_confidence: 0.98,
-      is_pet: true,
-      breed: null,
-      pattern: null,
+  it("gecerli=false raporda hata_nedeni Türkçe mesaja çevrilir", async () => {
+    const rapor: PetReportResult = {
+      gecerli: false,
+      hata_nedeni: "GORUNTU_COK_BULANIK",
     };
 
-    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(mockResponse);
+    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(rapor);
 
     await setupAndUpload();
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Analiz Özeti/i })).toBeInTheDocument();
-      expect(screen.queryByText(/Fotoğraf analiz edilemedi/i)).toBeNull();
+      expect(
+        screen.getByText(/analiz için çok bulanık/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: /Analiz Özeti/i }),
+      ).toBeNull();
     });
   });
 
-  it("Case 4 — Pet olmadığında uyarı kartı gösterilir", async () => {
-    const mockResponse: AiAnalysis = {
-      species: "cat",
-      species_confidence: 0.2,
-      is_pet: false,
+  it("kedi/köpek değilse KEDI_KOPEK_DEGIL mesajı gösterilir", async () => {
+    const rapor: PetReportResult = {
+      gecerli: false,
+      hata_nedeni: "KEDI_KOPEK_DEGIL",
     };
 
-    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(mockResponse);
+    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(rapor);
 
     await setupAndUpload();
 
     await waitFor(() => {
-      expect(screen.getByText(/evcil hayvan \(kedi veya köpek\) tespit edilemedi/i)).toBeInTheDocument();
-      expect(screen.queryByRole("heading", { name: /Analiz Özeti/i })).toBeNull();
+      expect(
+        screen.getByText(/yalnızca kedi ve köpekler için/i),
+      ).toBeInTheDocument();
     });
   });
 
-  it("Case 5 — Gerçek API hatasında doğru kullanıcı mesajı gösterilir", async () => {
+  it("API hatasında kullanıcı mesajı gösterilir, rapor çizilmez", async () => {
     vi.spyOn(petAnaliziService, "petRaporuAl").mockRejectedValue(
-      new ApiError("Sunucu hatası oluştu.", 500, null)
+      new ApiError("Sunucu hatası oluştu.", 500, null),
     );
 
     await setupAndUpload();
 
     await waitFor(() => {
       expect(screen.getByText(/Sunucu hatası oluştu/i)).toBeInTheDocument();
-      expect(screen.queryByRole("heading", { name: /Analiz Özeti/i })).toBeNull();
+      expect(
+        screen.queryByRole("heading", { name: /Analiz Özeti/i }),
+      ).toBeNull();
     });
   });
 
-  it("Case 6 — En üst AI analiz bölümü yeni veri modelini (NormalizedAiAnalysis) kullanır, legacy gecerli alanına bağımlı değildir", async () => {
-    // Response strictly without legacy gecerli property
-    const rawAiResponse: AiAnalysis = {
-      species: "dog",
-      species_confidence: 0.95,
-      is_pet: true,
-      breed: "Golden Retriever",
-      breed_confidence: 0.91,
-      colors: ["GOLDEN"],
-      model_version: "siglip2-animal/v2",
-    };
-
-    vi.spyOn(petAnaliziService, "petRaporuAl").mockResolvedValue(rawAiResponse);
+  it("429'da sunucunun limit mesajı olduğu gibi gösterilir", async () => {
+    vi.spyOn(petAnaliziService, "petRaporuAl").mockRejectedValue(
+      new ApiError(
+        "Günlük analiz hakkınız doldu. Yarın tekrar deneyebilirsiniz.",
+        429,
+        null,
+      ),
+    );
 
     await setupAndUpload();
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Analiz Özeti/i })).toBeInTheDocument();
-      expect(screen.getAllByText(/Köpek/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Golden Retriever/i).length).toBeGreaterThan(0);
-      expect(screen.getByText(/siglip2-animal\/v2/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Günlük analiz hakkınız doldu/i),
+      ).toBeInTheDocument();
     });
   });
 });
