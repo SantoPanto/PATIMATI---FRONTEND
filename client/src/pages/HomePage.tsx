@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   Sparkles,
   SlidersHorizontal,
+  Store,
   X,
 } from "lucide-react";
 
@@ -552,7 +553,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="quick-actions-grid quick-actions-grid--five">
+          <div className="quick-actions-grid quick-actions-grid--three">
             <button
               type="button"
               className="quick-action-card quick-action-card--lost"
@@ -680,6 +681,39 @@ export default function HomePage() {
               </div>
 
               <Sparkles
+                className="quick-action-card__decoration"
+                size={120}
+              />
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-card quick-action-card--services"
+              onClick={() => navigate("/hizmetler")}
+            >
+              <div className="quick-action-card__icon">
+                <Store size={28} />
+              </div>
+
+              <div className="quick-action-card__content">
+                <span className="quick-action-card__label">
+                  Hizmetler
+                </span>
+
+                <h3>Veteriner, petshop, barınak</h3>
+
+                <p>
+                  Yakınındaki veteriner klinikleri, petshoplar ve
+                  barınakları keşfet.
+                </p>
+
+                <span className="quick-action-card__link">
+                  Hizmetlere git
+                  <ChevronRight size={18} />
+                </span>
+              </div>
+
+              <Store
                 className="quick-action-card__decoration"
                 size={120}
               />

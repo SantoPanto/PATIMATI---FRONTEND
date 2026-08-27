@@ -1933,6 +1933,20 @@ img {
   box-shadow: 0 22px 50px rgba(124, 58, 237, 0.13);
 }
 
+.quick-action-card--services {
+  color: #b45309;
+  border-color: #fde68a;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 251, 235, 0.96),
+    rgba(254, 243, 199, 0.9)
+  );
+}
+
+.quick-action-card--services:hover {
+  box-shadow: 0 22px 50px rgba(180, 83, 9, 0.13);
+}
+
 .listing-status--adoption {
   background: rgba(59, 130, 246, 0.92);
 }
