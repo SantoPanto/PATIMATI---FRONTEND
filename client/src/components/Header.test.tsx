@@ -175,5 +175,43 @@ describe("Header rol bazlı panel linki", () => {
     expect(screen.queryByLabelText("Petshop Paneli")).toBeNull();
     expect(screen.queryByLabelText("Barınak Paneli")).toBeNull();
     expect(screen.queryByLabelText("Yönetim Paneli")).toBeNull();
+ * Belediye modulu linkleri. /municipality ve /report uzun sure YALNIZ adres
+ * yazilarak acilabiliyordu — rota vardi, uygulamada gorunur giris yoktu.
+ * Bu blok o girislerin varligini kilitler.
+ */
+describe("Header belediye linkleri", () => {
+  it("kurum hesabinda Belediye Paneli rozeti gorunur", () => {
+    oturum.user = { role: "INSTITUTION" };
+    renderHeader();
+
+    const rozet = screen.getByLabelText("Belediye Paneli");
+    expect(rozet).toHaveAttribute("href", "/municipality");
+  });
+
+  it("siradan kullanicida Belediye Paneli rozeti YOK", () => {
+    oturum.user = { role: "USER" };
+    renderHeader();
+
+    expect(screen.queryByLabelText("Belediye Paneli")).toBeNull();
+  });
+
+  it("yonetici de Belediye Paneli rozetini gorur (27.08 istegi: denetleyici gorunum)", () => {
+    oturum.user = { role: "ADMIN" };
+    renderHeader();
+
+    expect(screen.getByLabelText("Belediye Paneli")).toHaveAttribute(
+      "href",
+      "/municipality",
+    );
+    // Admin'in kendi rozeti de duruyor — ikisi bir arada.
+    expect(screen.getByLabelText("Yönetim Paneli")).toBeInTheDocument();
+  });
+
+  it("Ihbar Et navigasyon linki girissiz de gorunur ve /report'a gider", () => {
+    oturum.isAuthenticated = false;
+    oturum.user = null;
+    renderHeader();
+
+    expect(screen.getByText("İhbar Et")).toHaveAttribute("href", "/report");
   });
 });

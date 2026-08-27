@@ -33,8 +33,12 @@ type RequireAuthProps = {
   /**
    * Verilirse giris yapmis olmak YETMEZ, kullanicinin rolu de bu olmalidir.
    * Rolu tutmayan kullanici /unauthorized sayfasina gonderilir.
+   *
+   * Liste verilirse rollerden BIRI yeterlidir. Belediye paneli icin gerekti:
+   * paneli hem kurum (INSTITUTION) hem yonetici (ADMIN) acabilmeli -- arka
+   * yuzdeki kural da oyle (SecurityConfig: hasAnyRole(INSTITUTION, ADMIN)).
    */
-  requiredRole?: Role;
+  requiredRole?: Role | Role[];
 };
 
 export default function RequireAuth({
@@ -46,7 +50,11 @@ export default function RequireAuth({
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isAuthLoading } = useAuth();
 
-  const rolUyuyor = !requiredRole || user?.role === requiredRole;
+  const rolUyuyor =
+    !requiredRole ||
+    (Array.isArray(requiredRole)
+      ? requiredRole.some((rol) => rol === user?.role)
+      : user?.role === requiredRole);
 
   const closeModal = useCallback(() => {
     navigate(fallbackPath, { replace: true });
