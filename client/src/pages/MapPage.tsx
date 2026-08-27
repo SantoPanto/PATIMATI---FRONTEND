@@ -398,7 +398,11 @@ export default function MapPage() {
                     background: HARITA_RENKLERI.LOST,
                     borderColor: HARITA_RENKLERI.LOST,
                   }
-                : undefined
+                : {
+                    background: `${HARITA_RENKLERI.LOST}1a`,
+                    borderColor: `${HARITA_RENKLERI.LOST}40`,
+                    color: HARITA_RENKLERI.LOST,
+                  }
             }
           >
             <MapPin size={16} />
@@ -417,7 +421,11 @@ export default function MapPage() {
                     background: HARITA_RENKLERI.FOUND,
                     borderColor: HARITA_RENKLERI.FOUND,
                   }
-                : undefined
+                : {
+                    background: `${HARITA_RENKLERI.FOUND}1a`,
+                    borderColor: `${HARITA_RENKLERI.FOUND}40`,
+                    color: HARITA_RENKLERI.FOUND,
+                  }
             }
           >
             <MapPin size={16} />
@@ -436,7 +444,11 @@ export default function MapPage() {
                     background: HARITA_RENKLERI.ADOPTION,
                     borderColor: HARITA_RENKLERI.ADOPTION,
                   }
-                : undefined
+                : {
+                    background: `${HARITA_RENKLERI.ADOPTION}1a`,
+                    borderColor: `${HARITA_RENKLERI.ADOPTION}40`,
+                    color: HARITA_RENKLERI.ADOPTION,
+                  }
             }
           >
             <MapPin size={16} />
@@ -455,7 +467,11 @@ export default function MapPage() {
                     background: HARITA_RENKLERI.HELP,
                     borderColor: HARITA_RENKLERI.HELP,
                   }
-                : undefined
+                : {
+                    background: `${HARITA_RENKLERI.HELP}1a`,
+                    borderColor: `${HARITA_RENKLERI.HELP}40`,
+                    color: HARITA_RENKLERI.HELP,
+                  }
             }
           >
             <MapPin size={16} />
