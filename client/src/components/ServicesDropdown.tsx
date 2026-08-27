@@ -9,7 +9,7 @@ import { Link } from "wouter";
  */
 export default function ServicesDropdown() {
   return (
-    <Link href="/hizmetler" className="header-notification-button" aria-label="Hizmetler">
+    <Link href="/hizmetler" className="header-notification-button" aria-label="Hizmetler" title="Hizmetler">
       <Store size={20} />
     </Link>
   );

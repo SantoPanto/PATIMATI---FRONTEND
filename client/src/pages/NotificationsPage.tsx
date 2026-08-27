@@ -65,7 +65,7 @@ export default function NotificationsPage() {
   return (
     <TeamShell className="screen">
       <header className="center-header">
-        <TeamBack href="/profile" />
+        <TeamBack tarihce />
         <h1>Bildirimler</h1>
       </header>
 
