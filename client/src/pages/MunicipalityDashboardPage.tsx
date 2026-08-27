@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, TileLayer } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { ApiError } from "../services/api";
@@ -54,6 +54,20 @@ function sonOtuzGun(): { baslangic: string; bitis: string } {
     baslangic: tarihGirdisiDegeri(otuzGunOnce),
     bitis: tarihGirdisiDegeri(bugun),
   };
+}
+
+/**
+ * MapContainer {@code center} prop'unu YALNIZ ilk render'da okur; noktalar
+ * sonradan gelince harita varsayılan merkezde (Kocaeli) kalıyordu ve ilçe
+ * verisi ekran dışında kalıyordu (27.08 tarayıcı ölçümü). MapPicker'daki
+ * RecenterMap ile aynı çare: merkez değişince setView.
+ */
+function HaritayiOrtala({ merkez }: { merkez: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(merkez, map.getZoom());
+  }, [merkez, map]);
+  return null;
 }
 
 function SayacKarti({
@@ -252,6 +266,7 @@ export default function MunicipalityDashboardPage() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              <HaritayiOrtala merkez={merkez} />
               {noktalar.map((nokta, i) => (
                 <CircleMarker
                   key={`${nokta.latitude}-${nokta.longitude}-${i}`}

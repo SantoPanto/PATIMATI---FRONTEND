@@ -41,6 +41,7 @@ vi.mock("react-leaflet", () => ({
   CircleMarker: (props: { fillColor?: string }) => (
     <span data-testid="yogunluk-noktasi" data-renk={props.fillColor} />
   ),
+  useMap: () => ({ setView: vi.fn(), getZoom: () => 12 }),
 }));
 
 import MunicipalityDashboardPage from "./MunicipalityDashboardPage";
