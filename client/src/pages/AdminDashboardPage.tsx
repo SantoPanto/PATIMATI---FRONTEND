@@ -15,7 +15,6 @@ import {
   Flag,
   LayoutGrid,
   Loader2,
-  Megaphone,
   RefreshCw,
   Send,
   Shield,
@@ -29,6 +28,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import AdminFilterBar from "../components/admin/AdminFilterBar";
 import InstagramPublishModal from "../components/InstagramPublishModal";
+import RoleBadge from "../components/RoleBadge";
 import { ApiError } from "../services/api";
 import {
   banUser,
@@ -68,14 +68,16 @@ type AdminTab =
   | "ads"
   | "complaints"
   | "instagram"
-  | "instagramQueue"
   | "businessApplications";
 type ComplaintSubTab = "ads" | "users" | "adoptions";
+type InstagramSubTab = "posts" | "queue";
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [complaintSubTab, setComplaintSubTab] =
     useState<ComplaintSubTab>("ads");
+  const [instagramSubTab, setInstagramSubTab] =
+    useState<InstagramSubTab>("posts");
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -346,15 +348,18 @@ export default function AdminDashboardPage() {
     } else if (activeTab === "complaints") {
       fetchComplaints(complaintSubTab, complaintsPageIndex, searchQuery, sortOrder);
     } else if (activeTab === "instagram") {
-      fetchExternalPosts(externalPostsPageIndex);
-    } else if (activeTab === "instagramQueue") {
-      fetchInstagramQueue(instagramQueuePageIndex);
+      if (instagramSubTab === "posts") {
+        fetchExternalPosts(externalPostsPageIndex);
+      } else {
+        fetchInstagramQueue(instagramQueuePageIndex);
+      }
     } else if (activeTab === "businessApplications") {
       fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
     }
   }, [
     activeTab,
     complaintSubTab,
+    instagramSubTab,
     usersPageIndex,
     adsPageIndex,
     complaintsPageIndex,
@@ -661,9 +666,9 @@ export default function AdminDashboardPage() {
               if (activeTab === "ads") fetchAds(adsPageIndex);
               if (activeTab === "complaints")
                 fetchComplaints(complaintSubTab, complaintsPageIndex);
-              if (activeTab === "instagram")
+              if (activeTab === "instagram" && instagramSubTab === "posts")
                 fetchExternalPosts(externalPostsPageIndex);
-              if (activeTab === "instagramQueue")
+              if (activeTab === "instagram" && instagramSubTab === "queue")
                 fetchInstagramQueue(instagramQueuePageIndex);
               if (activeTab === "businessApplications")
                 fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
@@ -768,32 +773,10 @@ export default function AdminDashboardPage() {
             }`}
           >
             <AtSign size={18} />
-            <span>Instagram Kayıtları</span>
-            {externalPostsPage?.totalElements !== undefined && (
+            <span>Instagram</span>
+            {(externalPostsPage || instagramQueuePage) && (
               <span className="ml-1.5 px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {externalPostsPage.totalElements}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("instagramQueue");
-              setError(null);
-              setFeedback(null);
-            }}
-            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
-              activeTab === "instagramQueue"
-                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
-            }`}
-          >
-            <Megaphone size={18} />
-            <span>Instagram Kuyruğu</span>
-            {instagramQueuePage?.totalElements !== undefined && (
-              <span className="ml-1.5 px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {instagramQueuePage.totalElements}
+                {(externalPostsPage?.totalElements ?? 0) + (instagramQueuePage?.totalElements ?? 0)}
               </span>
             )}
           </button>
@@ -822,7 +805,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Filter Bar */}
-        {activeTab !== "businessApplications" && (
+        {(activeTab === "users" || activeTab === "ads" || activeTab === "complaints") && (
         <div className="mb-6">
           <AdminFilterBar
             searchQuery={searchQuery}
@@ -902,15 +885,7 @@ export default function AdminDashboardPage() {
                               {usr.phone || usr.phoneNumber || "-"}
                             </td>
                             <td className="px-6 py-4">
-                              <span
-                                className={`px-2.5 py-1 text-xs font-bold rounded-lg ${
-                                  usr.role === "ADMIN"
-                                    ? "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30"
-                                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                                }`}
-                              >
-                                {usr.role}
-                              </span>
+                              <RoleBadge role={usr.role} size="sm" />
                             </td>
                             <td className="px-6 py-4">
                               {isBanned ? (
@@ -1048,7 +1023,9 @@ export default function AdminDashboardPage() {
                               #{ad.id}
                             </td>
                             <td className="px-6 py-4 font-bold text-slate-900 max-w-xs truncate dark:text-slate-100">
-                              {ad.title}
+                              <Link href={`/ads/${ad.id}`} className="hover:underline hover:text-blue-600 dark:hover:text-blue-400">
+                                {ad.title}
+                              </Link>
                             </td>
                             <td className="px-6 py-4">
                               <span
@@ -1261,7 +1238,9 @@ export default function AdminDashboardPage() {
                               #{c.id}
                             </td>
                             <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">
-                              {c.adTitle || `İlan #${c.adId}`}
+                              <Link href={`/ads/${c.adId}`} className="hover:underline">
+                                {c.adTitle || `İlan #${c.adId}`}
+                              </Link>
                             </td>
                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                               {c.reporterEmail}
@@ -1365,7 +1344,9 @@ export default function AdminDashboardPage() {
                             #{c.id}
                           </td>
                           <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">
-                            {c.adTitle || `Sahiplendirme #${c.adId}`}
+                            <Link href={`/ads/${c.adId}`} className="hover:underline">
+                              {c.adTitle || `Sahiplendirme #${c.adId}`}
+                            </Link>
                           </td>
                           <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                             {c.reporterEmail}
@@ -1393,16 +1374,43 @@ export default function AdminDashboardPage() {
           {/* 4. INSTAGRAM (EXTERNAL) POSTS TAB */}
           {activeTab === "instagram" && (
             <div>
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
-                  Instagram'da Etiketlenen Gönderiler
-                </h2>
+              {/* Instagram Sub-Tabs */}
+              <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 dark:border-slate-800 dark:bg-slate-800/30">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setInstagramSubTab("posts")}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                      instagramSubTab === "posts"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    Kayıtlar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInstagramSubTab("queue")}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                      instagramSubTab === "queue"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    Kuyruk
+                  </button>
+                </div>
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Sayfa {externalPostsPageIndex + 1} /{" "}
-                  {externalPostsPage?.totalPages || 1}
+                  {instagramSubTab === "posts" ? (
+                    <>Sayfa {externalPostsPageIndex + 1} / {externalPostsPage?.totalPages || 1}</>
+                  ) : (
+                    <>Sayfa {instagramQueuePageIndex + 1} / {instagramQueuePage?.totalPages || 1}</>
+                  )}
                 </span>
               </div>
 
+              {instagramSubTab === "posts" && (
+              <>
               {loading && !externalPostsPage ? (
                 <div className="p-12 flex justify-center items-center text-slate-400 gap-2 dark:text-slate-500">
                   <Loader2 size={24} className="animate-spin text-blue-600 dark:text-blue-400" />
@@ -1560,22 +1568,11 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               )}
-            </div>
-          )}
+              </>
+              )}
 
-          {/* 5. INSTAGRAM PUBLISH QUEUE TAB (outbound -- ilanları Instagram'a gönderme) */}
-          {activeTab === "instagramQueue" && (
-            <div>
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
-                  Instagram'a Gönderim Kuyruğu
-                </h2>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Sayfa {instagramQueuePageIndex + 1} /{" "}
-                  {instagramQueuePage?.totalPages || 1}
-                </span>
-              </div>
-
+              {instagramSubTab === "queue" && (
+              <>
               {loading && !instagramQueuePage ? (
                 <div className="p-12 flex justify-center items-center text-slate-400 gap-2 dark:text-slate-500">
                   <Loader2 size={24} className="animate-spin text-blue-600 dark:text-blue-400" />
@@ -1728,6 +1725,8 @@ export default function AdminDashboardPage() {
                     <ChevronRight size={16} />
                   </button>
                 </div>
+              )}
+              </>
               )}
             </div>
           )}
