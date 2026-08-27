@@ -102,7 +102,7 @@ export default function Header() {
             aria-label="Yönetim Paneli"
           >
             <ShieldAlert size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Admin Panel</span>
+            <span className="hidden md:inline">Admin Panel</span>
           </Link>
         )}
 
@@ -113,7 +113,7 @@ export default function Header() {
             aria-label="Veteriner Paneli"
           >
             <Stethoscope size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Veteriner Paneli</span>
+            <span className="hidden md:inline">Veteriner Paneli</span>
           </Link>
         )}
 
@@ -124,7 +124,7 @@ export default function Header() {
             aria-label="Petshop Paneli"
           >
             <ShoppingBag size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Petshop Paneli</span>
+            <span className="hidden md:inline">Petshop Paneli</span>
           </Link>
         )}
 
@@ -135,7 +135,7 @@ export default function Header() {
             aria-label="Barınak Paneli"
           >
             <Home size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Barınak Paneli</span>
+            <span className="hidden md:inline">Barınak Paneli</span>
           </Link>
         )}
 
@@ -146,7 +146,7 @@ export default function Header() {
             aria-label="Belediye Paneli"
           >
             <Landmark size={18} className="text-emerald-700 dark:text-emerald-400" />
-            <span>Belediye Paneli</span>
+            <span className="hidden md:inline">Belediye Paneli</span>
           </Link>
         )}
 
