@@ -2030,6 +2030,38 @@ img {
 }
 
 @media (max-width: 767px) {
+  /* Dar ekranda header tek satıra sığmıyordu: sağ simge kümesi tek başına
+     314px (6 x 44px + boşluklar), rozetli rollerde taşma ekranı yatay
+     kaydırıyor / küçültüyordu (ekip bildirimi 28.08). Marka metni gizlenir,
+     simgeler sıkışır — toplam ~360px'e iner. */
+  .brand__text {
+    display: none;
+  }
+
+  .home-header__content {
+    gap: 8px;
+  }
+
+  .home-header__actions {
+    gap: 4px;
+  }
+
+  .header-notification-button,
+  .header-logout-button,
+  .header-profile-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+  }
+
+  /* Rol rozetleri (Yönetim/Veteriner/Petshop/Barınak/Belediye Paneli) mobilde
+     yalnız simge; padding/margin da küçülmezse rozetli rollerde header yine
+     taşıyor. Seçici aria-label üstünden: rozetlerin ortak sınıfı yok. */
+  .home-header__content a[aria-label$=" Paneli"] {
+    padding: 6px 8px;
+    margin-right: 4px;
+  }
+
   .login-link {
     display: none;
   }
