@@ -47,6 +47,7 @@ import {
 } from "../services/admin";
 import {
   approveBusinessApplication,
+  deleteBusinessApplication,
   getBusinessApplications,
   rejectBusinessApplication,
 } from "../services/businessApplications";
@@ -453,6 +454,24 @@ export default function AdminDashboardPage() {
       await fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Başvuru reddedilemedi.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleDeleteBusinessApplication = async (id: number) => {
+    if (!window.confirm("Bu kurumu tamamen silmek istediğinize emin misiniz? İş kartı silinir ve sahibinin rolü tekrar kullanıcıya döner.")) {
+      return;
+    }
+
+    try {
+      setActionLoadingId(`business-application-${id}`);
+      setFeedback(null);
+      await deleteBusinessApplication(id);
+      setFeedback(`Kurum #${id} silindi.`);
+      await fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Başvuru silinemedi.");
     } finally {
       setActionLoadingId(null);
     }
@@ -1842,6 +1861,20 @@ export default function AdminDashboardPage() {
                             >
                               <XCircle size={14} />
                               Reddet
+                            </button>
+                          </div>
+                        )}
+
+                        {application.status === "ONAYLANDI" && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBusinessApplication(application.id)}
+                              disabled={isActioning}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-60 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              <Trash2 size={14} />
+                              Kurumu Sil
                             </button>
                           </div>
                         )}

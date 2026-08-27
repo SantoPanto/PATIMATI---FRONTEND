@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -60,6 +60,11 @@ vi.mock("../services/firebase", () => ({
   listenForForegroundMessages: vi.fn(),
 }));
 
+// Mesaj rozeti sayiyi bu servisten okur; testte HTTP disari cikmasin.
+vi.mock("../services/messages", () => ({
+  getUnreadMessageCount: vi.fn().mockResolvedValue(0),
+}));
+
 import Header from "./Header";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import {
@@ -67,6 +72,7 @@ import {
   markAllNotificationsAsRead,
   recordForegroundNotification,
 } from "../services/notifications";
+import { getUnreadMessageCount } from "../services/messages";
 
 function renderHeader() {
   return render(
@@ -267,5 +273,30 @@ describe("Header sadeleştirilmiş navigasyon ve İlanlar açılır menüsü", (
       "href",
       "/listings?type=HELP"
     );
+  });
+});
+
+describe("Header mesaj rozeti", () => {
+  it("okunmamis mesaj varken sohbet simgesinde nokta yanar", async () => {
+    vi.mocked(getUnreadMessageCount).mockResolvedValue(3);
+
+    renderHeader();
+
+    const sohbet = screen.getByLabelText("Mesajları görüntüle");
+    await waitFor(() => {
+      expect(sohbet.querySelector(".notification-dot")).not.toBeNull();
+    });
+  });
+
+  it("okunmamis mesaj yokken sohbet simgesinde nokta cizilmez", async () => {
+    vi.mocked(getUnreadMessageCount).mockResolvedValue(0);
+
+    renderHeader();
+
+    await waitFor(() => {
+      expect(vi.mocked(getUnreadMessageCount)).toHaveBeenCalled();
+    });
+    const sohbet = screen.getByLabelText("Mesajları görüntüle");
+    expect(sohbet.querySelector(".notification-dot")).toBeNull();
   });
 });

@@ -12,6 +12,7 @@ import {
   type ReportStatus,
   type ReportType,
 } from "../services/reportService";
+import { getImageUrl } from "../utils/imageUrl";
 
 /**
  * Belediye ihbar kuyruğu (belediye modülü, C parçası).
@@ -234,7 +235,7 @@ export default function MunicipalityReportQueuePage() {
                           )}
                           {kayit.photoUrl && (
                             <a
-                              href={kayit.photoUrl}
+                              href={getImageUrl(kayit.photoUrl)}
                               target="_blank"
                               rel="noreferrer"
                               className="mr-3 text-xs font-bold text-[var(--pm-primary)] underline"
