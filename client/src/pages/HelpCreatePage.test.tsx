@@ -129,4 +129,14 @@ describe("HelpCreatePage", () => {
       screen.getByRole("button", { name: /Yardım ilanını yayınla/ }),
     ).toBeDisabled();
   });
+
+  it("afiş izni kutusu render edilir ve varsayılan İŞARETLİDİR (kullanıcı kararı 28.08)", () => {
+    render(<HelpCreatePage />);
+
+    const kutu = screen.getByRole("checkbox", {
+      name: /Afişin \(PDF\) oluşturulmasına izin veriyorum/i,
+    }) as HTMLInputElement;
+
+    expect(kutu.checked).toBe(true);
+  });
 });

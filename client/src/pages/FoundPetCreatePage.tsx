@@ -212,6 +212,8 @@ export default function FoundPetCreatePage() {
     description: "",
     acceptResponsibility: false,
     instagramShareConsent: false,
+    // Afiş izni ilan verilirken sorulur, varsayılan açık (kullanıcı kararı 28.08).
+    isPosterAllowed: true,
   });
 
   const updateForm = <K extends keyof typeof form>(
@@ -575,6 +577,7 @@ export default function FoundPetCreatePage() {
       district: form.district.trim() || undefined,
       isMatchRequired: true,
       instagramShareConsent: form.instagramShareConsent,
+      isPosterAllowed: form.isPosterAllowed,
     };
 
     /*
@@ -1131,6 +1134,32 @@ export default function FoundPetCreatePage() {
             Bu hayvanı bulduğumu ve ilan
             bilgilerinin bildiğim kadarıyla doğru
             olduğunu kabul ediyorum.
+          </p>
+        </div>
+      </label>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <input
+          type="checkbox"
+          checked={form.isPosterAllowed}
+          onChange={(event) =>
+            updateForm(
+              "isPosterAllowed",
+              event.target.checked,
+            )
+          }
+          className="mt-1 h-4 w-4 accent-[#2563EB]"
+        />
+
+        <div>
+          <strong className="text-sm text-[#0F172A] dark:text-slate-100">
+            Kayıp afişinin (PDF) oluşturulmasına izin veriyorum.
+          </strong>
+
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
+            İzin verirsen diğer kullanıcılar ilanın için hazır afiş
+            indirebilir. İletişim bilgilerinin afişte görünmesi ayrıca
+            Afiş Ayarları&apos;ndan sorulur.
           </p>
         </div>
       </label>

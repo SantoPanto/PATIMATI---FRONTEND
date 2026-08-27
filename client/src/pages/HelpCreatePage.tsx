@@ -76,6 +76,8 @@ export default function HelpCreatePage() {
     description: "",
     acceptResponsibility: false,
     instagramShareConsent: false,
+    // Afiş izni ilan verilirken sorulur, varsayılan açık (kullanıcı kararı 28.08).
+    isPosterAllowed: true,
   });
 
   const updateForm = <K extends keyof typeof form>(
@@ -313,6 +315,7 @@ export default function HelpCreatePage() {
       district: gonderilecek.district.trim() || undefined,
       isMatchRequired: false,
       instagramShareConsent: gonderilecek.instagramShareConsent,
+      isPosterAllowed: gonderilecek.isPosterAllowed,
     };
 
     const formData = new FormData();
@@ -611,6 +614,27 @@ export default function HelpCreatePage() {
 
           <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
             İlanda verdiğim bilgilerin doğru olduğunu kabul ediyorum.
+          </p>
+        </div>
+      </label>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <input
+          type="checkbox"
+          checked={form.isPosterAllowed}
+          onChange={(e) => updateForm("isPosterAllowed", e.target.checked)}
+          className="mt-1 h-4 w-4 accent-[#0E7490]"
+        />
+
+        <div>
+          <strong className="text-sm text-[#0F172A] dark:text-slate-100">
+            Afişin (PDF) oluşturulmasına izin veriyorum.
+          </strong>
+
+          <p className="mt-1 text-sm leading-6 text-[#64748B] dark:text-slate-400">
+            İzin verirsen diğer kullanıcılar ilanın için hazır afiş
+            indirebilir. İletişim bilgilerinin afişte görünmesi ayrıca
+            Afiş Ayarları&apos;ndan sorulur.
           </p>
         </div>
       </label>
