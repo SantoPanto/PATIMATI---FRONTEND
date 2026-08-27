@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { AdResponse } from '../services/types'
@@ -17,7 +17,9 @@ import type { AdResponse } from '../services/types'
  */
 
 vi.mock('wouter', () => ({
-  Link: ({ children }: { children?: React.ReactNode }) => <a>{children}</a>,
+  Link: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }))
 
 import PetListingCard from './PetListingCard'
@@ -70,5 +72,67 @@ describe('PetListingCard — etiketler', () => {
     expect(screen.getByText('Kedi · Tekir')).toBeTruthy()
     expect(screen.getByText('Dişi')).toBeTruthy()
     expect(screen.getByText('Genç')).toBeTruthy()
+  })
+})
+
+/**
+ * Akordiyon (27.08 isteği): karta tıklamak detay sayfasına GİTMEZ, kartı
+ * aşağı doğru açar — özet (açıklama, kaybolma tarihi, ayırt edici işaretler)
+ * kartın altında görünür. Detaya yalnız "İlanı incele" düğmesi götürür.
+ */
+describe('PetListingCard — akordiyon', () => {
+  const DOLU = {
+    ...TEMEL,
+    description: 'Parkta bulundu, çok uysal bir kedi.',
+    lostDate: '2026-08-20',
+    distinctiveMarks: 'Sol kulakta çentik',
+  }
+
+  it('başlangıçta özet kapalı; başlığa tıklayınca açılır, tekrar tıklayınca kapanır', () => {
+    render(<PetListingCard ad={DOLU} />)
+
+    expect(screen.queryByText(/Parkta bulundu/)).toBeNull()
+
+    // Başlık düğmesi: erişilebilir adı içerikten gelir (başlık + alt başlık
+    // + tarih); görsel düğmesinin aria-label'ıyla karışmasın diye alt
+    // başlıktan seçiyoruz.
+    const baslik = screen.getByRole('button', {
+      name: /Kedi · Cins belirtilmemiş/,
+    })
+    expect(baslik.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(baslik)
+    expect(screen.getByText(/Parkta bulundu, çok uysal/)).toBeTruthy()
+    expect(screen.getByText(/Sol kulakta çentik/)).toBeTruthy()
+    expect(baslik.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(baslik)
+    expect(screen.queryByText(/Parkta bulundu/)).toBeNull()
+  })
+
+  it('görsel alanı artık detaya götüren bir link DEĞİL, açma/kapama düğmesi', () => {
+    render(<PetListingCard ad={DOLU} />)
+
+    const gorselDugme = screen.getByRole('button', {
+      name: /ilan özetini aç\/kapat/,
+    })
+    fireEvent.click(gorselDugme)
+    expect(screen.getByText(/Parkta bulundu/)).toBeTruthy()
+  })
+
+  it("detay sayfasına yalnız 'İlanı incele' götürür (href korunur)", () => {
+    render(<PetListingCard ad={DOLU} />)
+
+    const incele = screen.getByRole('link', { name: /İlanı incele/ })
+    expect(incele.getAttribute('href')).toBe('/pet/1')
+  })
+
+  it('açıklaması boş ilanda açılınca bilgilendirme metni görünür', () => {
+    render(<PetListingCard ad={TEMEL} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /ilan özetini aç\/kapat/ }),
+    )
+    expect(screen.getByText('Bu ilana açıklama eklenmemiş.')).toBeTruthy()
   })
 })

@@ -1,5 +1,14 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { ChevronRight, Home, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Home,
+  MapPin,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import type { AdResponse, AdType } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 import {
@@ -83,10 +92,17 @@ interface PetListingCardProps {
 /**
  * PetListingCard - Standart İlan Kartı Bileşeni
  * listings (İlanlar) ve favorites (Favoriler) sayfalarında ortak kullanılan standart kart yapısı.
+ *
+ * <p>27.08 isteği: karta tıklamak artık detay sayfasına GİTMEZ — kart aşağı
+ * doğru açılır ve özet (açıklama, kaybolma tarihi, ayırt edici işaretler)
+ * kartın altında görünür. Detay sayfasına yalnızca "İlanı incele" düğmesi
+ * götürür (mesajlaşma/AI eşleştirme gibi ağır işler orada).
  */
 export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardProps) {
+  const [acik, setAcik] = useState(false);
   const image = getPrimaryImage(ad);
   const statusClass = getListingStatusClass(ad.adType);
+  const detayId = `ilan-detay-${ad.id}`;
 
   const subtitle = [
     getSpeciesLabel(ad.species),
@@ -95,10 +111,13 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
 
   return (
     <article className="pet-listing-card relative">
-      <Link
-        href={`/pet/${ad.id}`}
-        className="pet-listing-card__image"
-        aria-label={`${ad.title} ilanını görüntüle`}
+      <button
+        type="button"
+        onClick={() => setAcik((v) => !v)}
+        aria-expanded={acik}
+        aria-controls={detayId}
+        className="pet-listing-card__image w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+        aria-label={`${ad.title} ilan özetini aç/kapat`}
       >
         {image ? (
           <img src={image} alt={ad.title} loading="lazy" />
@@ -136,7 +155,7 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
             AI doğrulandı
           </span>
         )}
-      </Link>
+      </button>
 
       {onRemoveFavorite && (
         <button
@@ -155,14 +174,27 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
       )}
 
       <div className="pet-listing-card__body">
-        <div className="pet-listing-card__title-row">
+        <button
+          type="button"
+          onClick={() => setAcik((v) => !v)}
+          aria-expanded={acik}
+          aria-controls={detayId}
+          className="pet-listing-card__title-row w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+        >
           <div className="min-w-0">
             <h3 className="truncate">{ad.title}</h3>
             <p>{subtitle}</p>
           </div>
 
-          <span>{formatDate(ad.createdAt)}</span>
-        </div>
+          <span className="flex shrink-0 items-center gap-1.5">
+            {formatDate(ad.createdAt)}
+            <ChevronDown
+              size={16}
+              aria-hidden="true"
+              className={`transition-transform ${acik ? "rotate-180" : ""}`}
+            />
+          </span>
+        </button>
 
         <div className="pet-listing-card__location">
           <MapPin size={17} />
@@ -173,6 +205,33 @@ export default function PetListingCard({ ad, onRemoveFavorite }: PetListingCardP
           <span>{getGenderLabel(ad.gender)}</span>
           <span>{getAgeLabel(ad.ageGroup)}</span>
         </div>
+
+        {acik && (
+          <div
+            id={detayId}
+            className="mt-3 space-y-2 rounded-xl bg-[#F8FAFC] p-3 text-sm leading-6 text-[#334155] dark:bg-slate-800/60 dark:text-slate-300"
+          >
+            <p className="whitespace-pre-line">
+              {ad.description?.trim()
+                ? ad.description
+                : "Bu ilana açıklama eklenmemiş."}
+            </p>
+
+            {ad.lostDate && (
+              <p className="text-xs text-[#64748B] dark:text-slate-400">
+                <span className="font-semibold">Kaybolma tarihi: </span>
+                {formatDate(ad.lostDate)}
+              </p>
+            )}
+
+            {ad.distinctiveMarks && (
+              <p className="text-xs text-[#64748B] dark:text-slate-400">
+                <span className="font-semibold">Ayırt edici işaretler: </span>
+                {ad.distinctiveMarks}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 flex gap-2">
           {onRemoveFavorite && (
