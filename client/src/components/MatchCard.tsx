@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Loader2,
   MapPin,
+  MessageCircle,
   PawPrint,
   Sparkles,
   XCircle,
@@ -14,6 +16,9 @@ import {
 import type { MatchResponseDTO } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
 import { translateEnum } from "../utils/enumTranslator";
+import { startConversationWithAd } from "../services/messages";
+import { getPublicAdById } from "../services/ads";
+import { getUserErrorMessage } from "../utils/errorMessage";
 
 interface MatchCardProps {
   match: MatchResponseDTO;
@@ -54,7 +59,10 @@ function getScoreColorClass(scorePct: number) {
 }
 
 export default function MatchCard({ match }: MatchCardProps) {
+  const [, navigate] = useLocation();
   const [showDetails, setShowDetails] = useState(false);
+  const [isContacting, setIsContacting] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   const totalScorePct = formatScore(match.totalScore);
   const visualScorePct = formatScore(match.visualScore);
@@ -89,6 +97,34 @@ export default function MatchCard({ match }: MatchCardProps) {
   );
 
   const mainScoreStyle = getScoreColorClass(totalScorePct);
+
+  const handleContact = async () => {
+    if (!adId) return;
+    setIsContacting(true);
+    setContactError(null);
+
+    try {
+      let ownerId = (partnerAd as { ownerId?: number; owner?: { id: number } })?.ownerId ??
+                    (partnerAd as { owner?: { id: number } })?.owner?.id;
+
+      if (!ownerId) {
+        const fullAd = await getPublicAdById(adId);
+        ownerId = fullAd.ownerId;
+      }
+
+      if (!ownerId) {
+        throw new Error("İlan sahibinin bilgisi alınamadı.");
+      }
+
+      await startConversationWithAd({ targetUserId: ownerId, adId });
+      navigate(`/chat/${ownerId}`);
+    } catch (err) {
+      console.error("İlan sahibiyle iletişim başlatılamadı:", err);
+      setContactError(getUserErrorMessage(err, "İletişim başlatılırken bir hata oluştu."));
+    } finally {
+      setIsContacting(false);
+    }
+  };
 
   return (
     <article
@@ -181,8 +217,8 @@ export default function MatchCard({ match }: MatchCardProps) {
           </div>
         )}
 
-        {/* Expandable Breakdown Trigger */}
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+        {/* Expandable Breakdown Trigger & Action Buttons */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           <button
             type="button"
             onClick={() => setShowDetails((prev) => !prev)}
@@ -193,15 +229,37 @@ export default function MatchCard({ match }: MatchCardProps) {
           </button>
 
           {adId && (
-            <Link
-              href={`/pet/${adId}`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-orange-600"
-            >
-              İlanı İncele
-              <ExternalLink size={13} />
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleContact}
+                disabled={isContacting}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-60 shadow-xs"
+              >
+                {isContacting ? (
+                  <Loader2 size={13} className="animate-spin text-white" />
+                ) : (
+                  <MessageCircle size={13} />
+                )}
+                <span>{isContacting ? "Açılıyor..." : "İlan Sahibiyle İletişime Geç"}</span>
+              </button>
+
+              <Link
+                href={`/pet/${adId}`}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-orange-600 shadow-xs"
+              >
+                İlanı İncele
+                <ExternalLink size={13} />
+              </Link>
+            </div>
           )}
         </div>
+
+        {contactError && (
+          <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
+            {contactError}
+          </p>
+        )}
 
         {/* Breakdown Section */}
         {showDetails && (

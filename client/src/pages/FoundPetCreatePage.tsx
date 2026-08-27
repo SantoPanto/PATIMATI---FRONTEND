@@ -20,9 +20,10 @@ import {
 
 import CreateAdLayout from "../components/CreateAdLayout";
 import AiAutofillCard from "../components/AiAutofillCard";
-import AiMatchModal from "../components/AiMatchModal";
+import AdCreationMatchModal from "../components/AdCreationMatchModal";
+import { useAdMatchingMachine } from "../hooks/useAdMatchingMachine";
 import { request } from "../services/api";
-import type { AiAnalysis, MatchedAdResponseDTO, PetColor } from "../services/types";
+import type { AdResponse, AiAnalysis, PetColor } from "../services/types";
 import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import { extractInvalidParams, getUserErrorMessage } from "../utils/errorMessage";
 import { ilIlcedenKoordinat } from "../utils/geokod";
@@ -122,8 +123,7 @@ export default function FoundPetCreatePage() {
     useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState("");
-  const [matches, setMatches] = useState<MatchedAdResponseDTO[]>([]);
-  const [showMatchModal, setShowMatchModal] = useState(false);
+  const matchingMachine = useAdMatchingMachine();
 
   const runAiAnalysis = async () => {
     if (images.length === 0) {
@@ -169,33 +169,9 @@ export default function FoundPetCreatePage() {
 
         setAnalysisMessage(
           parsed.appliedCount > 0
-            ? "AI analizi tamamlandı. Olası eşleşmeler aranıyor..."
-            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun. Olası eşleşmeler yine de aranıyor...",
+            ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
+            : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
         );
-
-        try {
-          const matchFormData = new FormData();
-          matchFormData.append("listingType", "FOUND");
-          images.forEach((img) => matchFormData.append("images", img.file));
-
-          if (form.latitude.trim() && form.longitude.trim()) {
-            matchFormData.append("latitude", form.latitude.trim());
-            matchFormData.append("longitude", form.longitude.trim());
-          }
-
-          const matchesData = await request<MatchedAdResponseDTO[]>("/api/ai-match", {
-            method: "POST",
-            body: matchFormData,
-            requiresAuth: true,
-          });
-
-          if (matchesData && matchesData.length > 0) {
-            setMatches(matchesData);
-            setShowMatchModal(true);
-          }
-        } catch (matchErr) {
-          console.error("Eşleştirme hatası:", matchErr);
-        }
       }
     } catch (err) {
       console.error("AI analiz hatası:", err);
@@ -630,20 +606,21 @@ export default function FoundPetCreatePage() {
     });
 
     try {
-      await request("/api/ads", {
+      matchingMachine.startAdCreation();
+      const responseData = await request<AdResponse>("/api/ads", {
         method: "POST",
         requiresAuth: true,
         body: formData,
       });
 
-      /*
-       * /pet/:id ve /listings su an ekrani olmayan iskelet sayfalar.
-       * Kullaniciyi bos bir sayfaya birakmamak icin ana sayfaya
-       * donuluyor -- AddListingPage de ayni sebeple boyle yapiyor.
-       */
-      navigate("/");
+      if (responseData?.id) {
+        matchingMachine.onAdCreated(responseData.id);
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Buldum ilanı oluşturma hatası:", error);
+      matchingMachine.reset();
 
       const invalidParams = extractInvalidParams(error);
       if (invalidParams) {
@@ -1206,10 +1183,11 @@ export default function FoundPetCreatePage() {
         )}
       </button>
 
-      <AiMatchModal
-        isOpen={showMatchModal}
-        matches={matches}
-        onClose={() => setShowMatchModal(false)}
+      <AdCreationMatchModal
+        state={matchingMachine.state}
+        matches={matchingMachine.matches}
+        errorMessage={matchingMachine.errorMessage}
+        onClose={matchingMachine.reset}
       />
     </CreateAdLayout>
   );

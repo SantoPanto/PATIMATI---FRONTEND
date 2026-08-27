@@ -29,7 +29,7 @@ export type ApiResponse<T = unknown> = {
 // 1. User & Authentication Types (/api/auth)
 // ==========================================
 
-export type Role = "GUEST" | "USER" | "ADMIN" | "VET" | "PETSHOP" | "BARINAK";
+export type Role = "GUEST" | "USER" | "ADMIN" | "VET" | "PETSHOP" | "BARINAK" | "INSTITUTION";
 
 export type UserResponseDTO = {
   uid: number;
@@ -391,9 +391,13 @@ export type ChatRoomResponse = {
   partnerRole?: Role | null;
 };
 
+export type MessageType = "TEXT" | "AD_SHARE";
+
 export type MessageSendRequest = {
   recipientId: number;
   content: string;
+  type?: MessageType;
+  sharedAdId?: number;
 };
 
 export type MessageResponse = {
@@ -408,6 +412,9 @@ export type MessageResponse = {
   isOptimistic?: boolean;
   /** Karşı tarafın rolü -- sohbette rol rozeti göstermek için. */
   partnerRole?: Role | null;
+  type?: MessageType;
+  sharedAdId?: number;
+  sharedAd?: AdResponse | AdSummaryDTO;
 };
 
 

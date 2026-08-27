@@ -39,6 +39,7 @@ vi.mock('../services/ads', () => ({
 
 vi.mock('../services/messages', () => ({
   createOrGetChatRoom: odaAc,
+  startConversationWithAd: odaAc,
 }))
 
 vi.mock('../services/sightings', () => ({
@@ -98,15 +99,22 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/pet/74')
 })
 
-async function mesajGonderEDugmesineBas() {
+async function buHayvaniGordurnDugmesineBas() {
   render(<PetDetailPage />)
-  const dugme = await screen.findByRole('button', { name: /Mesaj Gönder/i })
+  const dugme = await screen.findByRole('button', { name: /Bu Hayvanı Gördüm/i })
   await userEvent.click(dugme)
 }
 
-describe('PetDetailPage — "Mesaj Gönder"', () => {
-  it('girissiz kullaniciyi GIRIS SAYFASINA goturur', async () => {
-    await mesajGonderEDugmesineBas()
+describe('PetDetailPage — Kayıp İlanı CTA ("Bu Hayvanı Gördüm")', () => {
+  it('kayip ilaninda "Bu Hayvanı Gördüm" gorunur, "Mesaj Gönder" GORUNMEZ', async () => {
+    render(<PetDetailPage />)
+
+    expect(await screen.findByRole('button', { name: /Bu Hayvanı Gördüm/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Mesaj Gönder$/i })).toBeNull()
+  })
+
+  it('girissiz kullaniciyı "Bu Hayvanı Gördüm" ile GIRIS SAYFASINA goturur', async () => {
+    await buHayvaniGordurnDugmesineBas()
 
     await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1))
 
@@ -117,7 +125,7 @@ describe('PetDetailPage — "Mesaj Gönder"', () => {
   it('donus adresi bu ILANI gosterir — giristen sonra buraya donulur', async () => {
     window.history.replaceState({}, '', '/pet/74?kaynak=harita')
 
-    await mesajGonderEDugmesineBas()
+    await buHayvaniGordurnDugmesineBas()
 
     await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1))
 
@@ -127,26 +135,54 @@ describe('PetDetailPage — "Mesaj Gönder"', () => {
   })
 
   it('girissizken sohbet odasi ucuna HIC gitmez', async () => {
-    await mesajGonderEDugmesineBas()
+    await buHayvaniGordurnDugmesineBas()
 
-    // Kusurun ta kendisi buydu: istek istemci tarafinda firlatiyor, catch
-    // bir alert basiyor ve akis oluyordu. Artik uca hic gidilmiyor.
     await waitFor(() => expect(navigate).toHaveBeenCalled())
     expect(odaAc).not.toHaveBeenCalled()
   })
 
-  it('giris yapmis kullanicida sohbet odasi acilir — kapi fazla genis degil', async () => {
+  it('giris yapmis kullanicida sohbet odasi acilir — startConversationWithAd cagrilir', async () => {
     oturum.user = { id: 5 }
     oturum.isAuthenticated = true
 
-    await mesajGonderEDugmesineBas()
+    await buHayvaniGordurnDugmesineBas()
 
-    // Ikizi: kosul yanlislikla "her zaman /login'e git" diye genisletilirse
-    // bu vaka kirmizi yanar.
-    await waitFor(() => expect(odaAc).toHaveBeenCalledWith(7))
+    await waitFor(() => expect(odaAc).toHaveBeenCalledWith({ targetUserId: 7, adId: 74 }))
     const hedefler = navigate.mock.calls.map(([h]) => h as string)
     expect(hedefler.some((h) => h.includes('/login'))).toBe(false)
-    expect(hedefler).toContain('/chat/7?adId=74')
+    expect(hedefler).toContain('/chat/7')
+  })
+})
+
+describe('PetDetailPage — Diğer İlan Türleri Regresyon Kontrolü', () => {
+  it('sahiplendirme ilaninda "Sahiplenmek İçin İletişime Geç" gorunur ve sohbet baslatir', async () => {
+    ilanGetir.mockResolvedValue({ ...ILAN, adType: 'ADOPTION' })
+    oturum.user = { id: 5 }
+    oturum.isAuthenticated = true
+
+    render(<PetDetailPage />)
+
+    const dugme = await screen.findByRole('button', { name: /Sahiplenmek İçin İletişime Geç/i })
+    expect(dugme).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Bu Hayvanı Gördüm/i })).toBeNull()
+
+    await userEvent.click(dugme)
+    await waitFor(() => expect(odaAc).toHaveBeenCalledWith({ targetUserId: 7, adId: 74 }))
+  })
+
+  it('bulundu ilaninda "Mesaj Gönder" gorunur ve sohbet baslatir', async () => {
+    ilanGetir.mockResolvedValue({ ...ILAN, adType: 'FOUND' })
+    oturum.user = { id: 5 }
+    oturum.isAuthenticated = true
+
+    render(<PetDetailPage />)
+
+    const dugme = await screen.findByRole('button', { name: /Mesaj Gönder/i })
+    expect(dugme).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Bu Hayvanı Gördüm/i })).toBeNull()
+
+    await userEvent.click(dugme)
+    await waitFor(() => expect(odaAc).toHaveBeenCalledWith({ targetUserId: 7, adId: 74 }))
   })
 })
 

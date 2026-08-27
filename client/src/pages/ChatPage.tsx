@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 
+import SharedAdCard from "../components/SharedAdCard";
 import Header from "../components/Header";
 import ReportUserModal from "../components/ReportUserModal";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,6 +34,29 @@ interface ChatContact {
   lastMessage?: string;
   lastTimestamp?: string;
   unreadCount?: number;
+}
+
+export function parseAdIdFromMessage(m: MessageResponse): number | undefined {
+  if (typeof m.sharedAdId === "number" && Number.isFinite(m.sharedAdId)) {
+    return m.sharedAdId;
+  }
+  if (!m.content) return undefined;
+  const match = m.content.match(/\[?AD_SHARE[:=](\d+)\]?/i);
+  if (match) {
+    return Number(match[1]);
+  }
+  try {
+    const parsed = JSON.parse(m.content);
+    if (parsed && typeof parsed.adId === "number") {
+      return parsed.adId;
+    }
+  } catch {}
+  return undefined;
+}
+
+export function isAdShareMessage(m: MessageResponse): boolean {
+  if (m.type === "AD_SHARE") return true;
+  return parseAdIdFromMessage(m) !== undefined;
 }
 
 export default function ChatPage() {
@@ -105,6 +129,11 @@ export default function ChatPage() {
       timestamp: string,
       role?: Role | null,
     ) => {
+      const displayLastMsg =
+        lastMsg && (lastMsg.includes("AD_SHARE") || lastMsg.startsWith("[AD_SHARE"))
+          ? "📷 Paylaşılan İlan"
+          : lastMsg;
+
       setContacts((prev) => {
         const index = prev.findIndex((c) => c.userId === contactUserId);
         const resolvedName =
@@ -124,7 +153,7 @@ export default function ChatPage() {
             ...updated[index],
             userName: resolvedName,
             userRole: resolvedRole,
-            lastMessage: lastMsg || updated[index].lastMessage,
+            lastMessage: displayLastMsg || updated[index].lastMessage,
             lastTimestamp: timestamp || updated[index].lastTimestamp,
           };
           // Move active contact room to top of list
@@ -136,7 +165,7 @@ export default function ChatPage() {
             userId: contactUserId,
             userName: resolvedName,
             userRole: resolvedRole,
-            lastMessage: lastMsg,
+            lastMessage: displayLastMsg,
             lastTimestamp: timestamp,
           },
           ...prev,
@@ -185,7 +214,8 @@ export default function ChatPage() {
               m.isOptimistic === true &&
               Number(m.senderId) === senderId &&
               Number(m.recipientId) === recipientId &&
-              m.content === incomingMessage.content,
+              (m.content === incomingMessage.content ||
+                (isAdShareMessage(m) && isAdShareMessage(incomingMessage))),
           );
 
           if (optIndex !== -1) {
@@ -205,7 +235,10 @@ export default function ChatPage() {
         }
       } else if (senderId !== currentId) {
         console.log(`[CHAT INCOMING] Message from non-active partner (${otherName}): content="${incomingMessage.content}"`);
-        setToastMessage(`${otherName}: ${incomingMessage.content}`);
+        const toastText = isAdShareMessage(incomingMessage)
+          ? `${otherName} bir ilan paylaştı`
+          : `${otherName}: ${incomingMessage.content}`;
+        setToastMessage(toastText);
         setTimeout(() => setToastMessage(null), 4000);
       }
     },
@@ -700,6 +733,44 @@ export default function ChatPage() {
                   ) : (
                     messages.map((m) => {
                       const isMine = m.senderId === currentUserId;
+                      const isAdShare = isAdShareMessage(m);
+                      const adId = parseAdIdFromMessage(m);
+
+                      if (isAdShare && adId) {
+                        return (
+                          <div
+                            key={m.id}
+                            className={`flex flex-col ${
+                              isMine ? "items-end" : "items-start"
+                            }`}
+                          >
+                            <SharedAdCard
+                              sharedAdId={adId}
+                              sharedAd={m.sharedAd}
+                              isMine={isMine}
+                            />
+                            <div
+                              className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
+                                isMine ? "text-slate-400 dark:text-slate-500" : "text-slate-400 dark:text-slate-500"
+                              }`}
+                            >
+                              <span>
+                                {new Date(m.timestamp).toLocaleTimeString(
+                                  "tr-TR",
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )}
+                              </span>
+                              {isMine &&
+                                (m.isRead ? (
+                                  <CheckCheck size={14} className="text-blue-500" />
+                                ) : (
+                                  <Check size={14} className="text-slate-400" />
+                                ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={m.id}

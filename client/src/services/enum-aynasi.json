@@ -131,7 +131,8 @@
         "ADMIN",
         "VET",
         "PETSHOP",
-        "BARINAK"
+        "BARINAK",
+        "INSTITUTION"
       ]
     },
     "Species": {

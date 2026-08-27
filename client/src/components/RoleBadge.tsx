@@ -1,4 +1,4 @@
-import { Home, PawPrint, ShieldCheck, ShoppingBag, Stethoscope } from "lucide-react";
+import { Home, Landmark, PawPrint, ShieldCheck, ShoppingBag, Stethoscope } from "lucide-react";
 import type { Role } from "../services/types";
 import { POI_RENKLERI } from "../utils/haritaSunum";
 
@@ -22,6 +22,7 @@ const ROLE_META: Record<Role, RoleBadgeMeta> = {
   VET: { label: "Veteriner", icon: Stethoscope, color: POI_RENKLERI.VETERINARY },
   PETSHOP: { label: "Petshop", icon: ShoppingBag, color: POI_RENKLERI.PET_SHOP },
   BARINAK: { label: "Barınak", icon: Home, color: POI_RENKLERI.SHELTER },
+  INSTITUTION: { label: "Kurum", icon: Landmark, color: "#64748B" },
 };
 
 /**
