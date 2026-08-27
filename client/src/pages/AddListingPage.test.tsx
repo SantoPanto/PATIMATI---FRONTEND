@@ -176,4 +176,15 @@ describe("AddListingPage — Bilgilerin doğruluğunu onaylıyorum (Doğrulama C
 
     expect(checkbox.checked).toBe(false);
   });
+
+  it("afiş izni kutusu render edilir ve varsayılan İŞARETLİDİR (kullanıcı kararı 28.08)", () => {
+    render(<AddListingPage />);
+
+    const kutu = screen.getByRole("checkbox", {
+      name: /Kayıp afişinin \(PDF\) oluşturulmasına izin veriyorum/i,
+    }) as HTMLInputElement;
+
+    expect(kutu).toBeInTheDocument();
+    expect(kutu.checked).toBe(true);
+  });
 });
