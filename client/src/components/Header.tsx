@@ -19,6 +19,7 @@ import ListingDropdown from "./ListingDropdown";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { getMyPotentialMatches } from "../services/potentialMatches";
+import { getUnreadMessageCount } from "../services/messages";
 import {
   getNotificationSnapshot,
   subscribeToNotifications,
@@ -29,6 +30,30 @@ const PENDING_MATCH_STATUSES = new Set(["PENDING", "NOTIFIED", "VIEWED"]);
 export default function Header() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const [okunmamisMesaj, setOkunmamisMesaj] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setOkunmamisMesaj(0);
+      return;
+    }
+    let iptal = false;
+    const yenile = () => {
+      getUnreadMessageCount()
+        .then((n) => {
+          if (!iptal) setOkunmamisMesaj(typeof n === "number" ? n : 0);
+        })
+        .catch(() => {
+          // Rozet bilgilendirme amaçlı; sayı alınamazsa sessizce sönük kalır.
+        });
+    };
+    yenile();
+    const zamanlayici = setInterval(yenile, 60_000);
+    return () => {
+      iptal = true;
+      clearInterval(zamanlayici);
+    };
+  }, [isAuthenticated, location]);
   const { theme, toggleTheme } = useTheme();
   const notifications = useSyncExternalStore(
     subscribeToNotifications,
@@ -234,6 +259,9 @@ export default function Header() {
                 onClick={() => navigate("/chat")}
               >
                 <MessageCircle size={20} />
+                {okunmamisMesaj > 0 && (
+                  <span className="notification-dot" />
+                )}
               </button>
 
               <Link
