@@ -21,9 +21,10 @@ import { ApiError } from "../services/api";
  * ölçülen şey haritanın kendisi değil, NOKTALARIN türe göre renklendirilmesi.
  */
 
-const { istatistikGetir, haritaGetir } = vi.hoisted(() => ({
+const { istatistikGetir, haritaGetir, ihbarGetir } = vi.hoisted(() => ({
   istatistikGetir: vi.fn(),
   haritaGetir: vi.fn(),
+  ihbarGetir: vi.fn(),
 }));
 
 // yerelIsoTarihSaat + EN_COK_ISI_NOKTASI gerçek kalıyor; yalnız istekler sahte.
@@ -31,6 +32,7 @@ vi.mock("../services/panelService", async (gercegi) => ({
   ...(await gercegi<typeof import("../services/panelService")>()),
   getPanelIstatistikleri: istatistikGetir,
   getIsiHaritasi: haritaGetir,
+  getIhbarIstatistikleri: ihbarGetir,
 }));
 
 vi.mock("react-leaflet", () => ({
@@ -45,6 +47,17 @@ vi.mock("react-leaflet", () => ({
 }));
 
 import MunicipalityDashboardPage from "./MunicipalityDashboardPage";
+
+const IHBAR_ISTATISTIK = {
+  district: "Osmangazi",
+  yeniCount: 4,
+  islemeAlindiCount: 2,
+  tamamlandiCount: 7,
+  yaraliCount: 5,
+  sahipsizCount: 6,
+  digerCount: 2,
+  daily: [{ date: "2026-08-27", count: 3 }],
+};
 
 const ISTATISTIK: PanelIstatistikleri = {
   district: "Osmangazi",
@@ -67,6 +80,7 @@ function nokta(ek: Partial<IsiHaritasiNoktasi> = {}): IsiHaritasiNoktasi {
 beforeEach(() => {
   vi.clearAllMocks();
   istatistikGetir.mockResolvedValue(ISTATISTIK);
+    ihbarGetir.mockResolvedValue(IHBAR_ISTATISTIK);
   haritaGetir.mockResolvedValue([]);
 });
 
@@ -196,5 +210,22 @@ describe("MunicipalityDashboardPage", () => {
     expect(
       await screen.findByText("Bu işlem için kurum yetkisi gerekiyor."),
     ).toBeInTheDocument();
+  });
+
+  it("İhbar Analizi bölümü sayıları, tür dağılımını ve sekmeleri çizer (S6)", async () => {
+    render(<MunicipalityDashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("İhbar Analizi")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Yeni (bekliyor)")).toBeInTheDocument();
+    expect(screen.getByText("Tamamlanan")).toBeInTheDocument();
+    expect(screen.getByText("Yaralı hayvan")).toBeInTheDocument();
+    expect(screen.getByText("Sahipsiz hayvan")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Günlük ihbar sayıları" })).toBeInTheDocument();
+
+    // Sekmeler: iki bölüm arasında görünür geçiş (S6'nın ana boşluğu buydu)
+    expect(screen.getByRole("link", { name: /İhbar Kuyruğu/ })).toBeInTheDocument();
   });
 });

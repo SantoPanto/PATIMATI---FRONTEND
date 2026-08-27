@@ -102,6 +102,39 @@ export function getPanelIstatistikleri(
   );
 }
 
+/** {@code MunicipalityReportStatsDto.GunlukSayi} ile birebir. */
+export type GunlukIhbarSayisi = {
+  /** ISO gün (yyyy-MM-dd). */
+  date: string;
+  count: number;
+};
+
+/** {@code MunicipalityReportStatsDto} ile birebir (BE #189). */
+export type IhbarIstatistikleri = {
+  district: string;
+  yeniCount: number;
+  islemeAlindiCount: number;
+  tamamlandiCount: number;
+  yaraliCount: number;
+  sahipsizCount: number;
+  digerCount: number;
+  /** Aralıktaki boş günler LİSTEDE YOK — grafiği çizen doldurur. */
+  daily: GunlukIhbarSayisi[];
+};
+
+/**
+ * GET /api/municipality/panel/report-stats (Bearer) — durum + tür kırılımı
+ * ve günlük seri. Tarihler stats ile aynı sözleşmede ZORUNLU.
+ */
+export function getIhbarIstatistikleri(
+  aralik: TarihAraligi,
+): Promise<IhbarIstatistikleri> {
+  return request<IhbarIstatistikleri>(
+    `/api/municipality/panel/report-stats?${aralikSorgusu(aralik).toString()}`,
+    { method: "GET", requiresAuth: true },
+  );
+}
+
 /**
  * GET /api/municipality/panel/heatmap (Bearer).
  *

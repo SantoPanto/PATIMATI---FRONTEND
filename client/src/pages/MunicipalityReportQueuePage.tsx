@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { Inbox } from "lucide-react";
+import { Inbox, MapPin } from "lucide-react";
+import { CircleMarker, MapContainer, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { ApiError } from "../services/api";
+import ErrorBoundary from "../components/ErrorBoundary";
+import MunicipalityNav from "../components/MunicipalityNav";
 import {
   getMunicipalityReports,
   updateReportStatus,
@@ -32,6 +36,13 @@ const TUR_ETIKETLERI: Record<ReportType, string> = {
   YARALI: "Yaralı hayvan",
   SAHIPSIZ: "Sahipsiz hayvan",
   DIGER: "Diğer",
+};
+
+/** Panel haritasının lejantıyla AYNI kimlik renkleri (doğrulanmış üçlü). */
+const TUR_RENKLERI: Record<ReportType, string> = {
+  YARALI: "#EA580C",
+  SAHIPSIZ: "#0D9488",
+  DIGER: "#57534E",
 };
 
 function DurumRozeti({ durum }: { durum: ReportStatus }) {
@@ -77,6 +88,7 @@ export default function MunicipalityReportQueuePage() {
   const [hata, setHata] = useState<string | null>(null);
   const [guncellenenId, setGuncellenenId] = useState<number | null>(null);
   const [surum, setSurum] = useState(0);
+  const [seciliIhbar, setSeciliIhbar] = useState<AnimalReport | null>(null);
 
   useEffect(() => {
     let iptal = false;
@@ -146,6 +158,8 @@ export default function MunicipalityReportQueuePage() {
           <h1>İhbar Kuyruğu</h1>
           <p>Vatandaş ihbarları, konumlarının ilçesine göre bu kuyruğa düşer.</p>
         </header>
+
+        <MunicipalityNav />
 
         <div className="pm-card mb-6 flex flex-wrap items-end gap-4 p-4">
           <div className="pm-field">
@@ -223,11 +237,19 @@ export default function MunicipalityReportQueuePage() {
                               href={kayit.photoUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-xs font-bold text-[var(--pm-primary)] underline"
+                              className="mr-3 text-xs font-bold text-[var(--pm-primary)] underline"
                             >
                               Fotoğrafı aç
                             </a>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => setSeciliIhbar(kayit)}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-[var(--pm-primary)] underline"
+                          >
+                            <MapPin size={12} />
+                            Haritada gör
+                          </button>
                         </td>
                         <td className="p-3 text-sm">{kayit.district ?? "—"}</td>
                         <td className="whitespace-nowrap p-3 text-sm">
@@ -294,6 +316,69 @@ export default function MunicipalityReportQueuePage() {
             >
               Sonraki
             </button>
+          </div>
+        )}
+        {seciliIhbar && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`İhbar #${seciliIhbar.id} konumu`}
+            className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setSeciliIhbar(null)}
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl border border-[var(--pm-border)] bg-[var(--pm-surface)] p-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-bold text-[var(--pm-text)]">
+                  İhbar #{seciliIhbar.id} —{" "}
+                  {TUR_ETIKETLERI[seciliIhbar.type] ?? seciliIhbar.type}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setSeciliIhbar(null)}
+                  className="pm-button pm-button--secondary px-3 py-1 text-xs"
+                >
+                  Kapat
+                </button>
+              </div>
+
+              <ErrorBoundary
+                title="Harita yüklenemedi."
+                fallback={
+                  <p className="text-sm text-[var(--pm-muted)]">
+                    Harita yüklenemedi; koordinatlar aşağıda.
+                  </p>
+                }
+              >
+                <div className="h-72 overflow-hidden rounded-xl border border-[var(--pm-border)]">
+                  <MapContainer
+                    center={[seciliIhbar.latitude, seciliIhbar.longitude]}
+                    zoom={15}
+                    scrollWheelZoom
+                    className="h-full w-full"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <CircleMarker
+                      center={[seciliIhbar.latitude, seciliIhbar.longitude]}
+                      radius={10}
+                      stroke={false}
+                      fillColor={TUR_RENKLERI[seciliIhbar.type] ?? "#EA580C"}
+                      fillOpacity={0.85}
+                    />
+                  </MapContainer>
+                </div>
+              </ErrorBoundary>
+
+              <p className="mt-2 text-xs text-[var(--pm-muted)]">
+                {seciliIhbar.district ?? "İlçe çözülmedi"} ·{" "}
+                {seciliIhbar.latitude.toFixed(5)}, {seciliIhbar.longitude.toFixed(5)}
+              </p>
+            </div>
           </div>
         )}
       </div>
