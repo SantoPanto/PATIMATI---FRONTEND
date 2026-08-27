@@ -122,4 +122,37 @@ describe("parseAiAnalysis", () => {
     expect(result.breed).toBeNull();
     expect(result.coatPattern).toBe("UNKNOWN");
   });
+
+  it("breed eşik altında null iken breedTop iki anahtar adından da okunur (AI #38)", () => {
+    const hamSekil = parseAiAnalysis({
+      species: "dog",
+      species_confidence: 0.99,
+      is_pet: true,
+      breed: null,
+      breed_top: "Kangal",
+      breed_confidence: 0.63,
+    });
+    expect(hamSekil.breed).toBeNull();
+    expect(hamSekil.breedTop).toBe("Kangal");
+
+    const mapliSekil = parseAiAnalysis({
+      species: "DOG",
+      isPet: true,
+      breed: null,
+      breedTop: "Kangal",
+      breedConfidence: 0.63,
+    });
+    expect(mapliSekil.breedTop).toBe("Kangal");
+  });
+
+  it("breedTop 'unknown' ya da boşsa null'a indirgenir", () => {
+    expect(
+      parseAiAnalysis({ species: "dog", is_pet: true, breed_top: "unknown" })
+        .breedTop,
+    ).toBeNull();
+    expect(
+      parseAiAnalysis({ species: "dog", is_pet: true, breed_top: "  " })
+        .breedTop,
+    ).toBeNull();
+  });
 });

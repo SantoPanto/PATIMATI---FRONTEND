@@ -75,6 +75,8 @@ export type NormalizedAiAnalysis = {
   species: Species | null;
   speciesConfidence: number | null;
   breed: string | null;
+  /** Eşikten bağımsız en iyi tahmin (AI #38); breed doluysa onunla aynı, boşken düşük güvenli öneri. */
+  breedTop: string | null;
   breedConfidence: number | null;
   coatPattern: CoatPattern;
   colors: PetColor[];
@@ -111,6 +113,18 @@ export function parseAiAnalysis(analysis: AiAnalysis): NormalizedAiAnalysis {
   ) {
     breed = analysis.breed.trim();
     appliedCount += 1;
+  }
+
+  // 3b. breedTop — eşikten bağımsız en iyi tahmin (AI #38). appliedCount'a
+  // YAZILMAZ: öneri "AI çıkardı" sayılmaz, mesaj ayrımı formlarda yapılır.
+  let breedTop: string | null = null;
+  const rawBreedTop = analysis.breedTop ?? analysis.breed_top;
+  if (
+    rawBreedTop &&
+    rawBreedTop.trim() &&
+    rawBreedTop.trim().toLowerCase() !== "unknown"
+  ) {
+    breedTop = rawBreedTop.trim();
   }
 
   // 4. coatPattern
@@ -226,6 +240,7 @@ export function parseAiAnalysis(analysis: AiAnalysis): NormalizedAiAnalysis {
     species,
     speciesConfidence,
     breed,
+    breedTop,
     breedConfidence,
     coatPattern,
     colors,

@@ -39,6 +39,22 @@
         "NOT_APPLICABLE"
       ]
     },
+    "BusinessApplicationStatus": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/BusinessApplicationStatus.java",
+      "degerler": [
+        "BEKLEMEDE",
+        "ONAYLANDI",
+        "REDDEDILDI"
+      ]
+    },
+    "BusinessType": {
+      "kaynak": "src/main/java/com/works/patimati/entity/enums/BusinessType.java",
+      "degerler": [
+        "VET",
+        "PETSHOP",
+        "BARINAK"
+      ]
+    },
     "CoatPattern": {
       "kaynak": "src/main/java/com/works/patimati/entity/enums/CoatPattern.java",
       "degerler": [
@@ -182,6 +198,20 @@
       {
         "dosya": "src/services/types.ts",
         "tip": "AiStatus",
+        "tur": "tam"
+      }
+    ],
+    "BusinessApplicationStatus": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "BusinessApplicationStatus",
+        "tur": "tam"
+      }
+    ],
+    "BusinessType": [
+      {
+        "dosya": "src/services/types.ts",
+        "tip": "BusinessType",
         "tur": "tam"
       }
     ],
