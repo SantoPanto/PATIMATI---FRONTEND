@@ -56,5 +56,9 @@ export const SW_BILDIRIM_HEDEFI_KAYNAK = `function bildirimHedefi(data) {
     return "/chat/" + encodeURIComponent(data.referenceId);
   }
 
+  if (data.adId) {
+    return "/pet/" + encodeURIComponent(data.adId);
+  }
+
   return "/";
 }`;
