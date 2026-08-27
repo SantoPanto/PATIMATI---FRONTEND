@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ExternalLink, AlertCircle, MapPin, PawPrint, Loader2 } from "lucide-react";
 import type { AdResponse, AdSummaryDTO } from "../services/types";
 import { getPublicAdById } from "../services/ads";
+import { hasKnownBreed } from "../utils/adPresentation";
 import { getImageUrl } from "../utils/imageUrl";
 import { translateEnum } from "../utils/enumTranslator";
 
@@ -108,7 +109,7 @@ export default function SharedAdCard({
   const speciesStr = ad.species
     ? translateEnum(String(ad.species), "species")
     : "";
-  const breedStr = ad.breed ? ad.breed : "";
+  const breedStr = hasKnownBreed(ad.breed) ? ad.breed! : "";
 
   const categoryLine = [adTypeStr, speciesStr, breedStr]
     .filter(Boolean)

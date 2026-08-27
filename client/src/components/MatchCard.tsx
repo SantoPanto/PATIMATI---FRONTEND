@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { MatchResponseDTO } from "../services/types";
 import { getImageUrl } from "../utils/imageUrl";
+import { hasKnownBreed } from "../utils/adPresentation";
 import { translateEnum } from "../utils/enumTranslator";
 import { startConversationWithAd } from "../services/messages";
 import { getPublicAdById } from "../services/ads";
@@ -84,9 +85,9 @@ export default function MatchCard({ match }: MatchCardProps) {
 
   const title =
     partnerAd?.title || match.partnerAdTitle || `Eşleşme #${match.id ?? "İlan"}`;
-  const breed =
-    partnerAd?.breed ||
-    (partnerAd?.species ? translateEnum(String(partnerAd.species), "species") : "Belirtilmedi");
+  const breed = hasKnownBreed(partnerAd?.breed)
+    ? partnerAd!.breed
+    : (partnerAd?.species ? translateEnum(String(partnerAd.species), "species") : "Belirtilmedi");
   // Backend eslesme kaydinda METINSEL konum yok; gercekten var olan tek
   // konum verisi konum skorudur.
   const locationText = `Konum uyumu %${locationScorePct}`;

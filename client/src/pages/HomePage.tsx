@@ -8,6 +8,7 @@ import {
   getAdDetailPath,
   getAdImage,
   getAdLocation,
+  getBreedLabel,
   getRelativeDate,
   getSpeciesLabel,
 } from "../utils/adPresentation";
@@ -76,7 +77,7 @@ function toPetListing(
     id: ad.id,
     name: ad.title,
     animal: getSpeciesLabel(ad.species),
-    breed: ad.breed || "Cins belirtilmemiş",
+    breed: getBreedLabel(ad.breed),
     location: getAdLocation(ad),
     distance:
       distanceKm == null

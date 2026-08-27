@@ -24,6 +24,7 @@ import {
   getAdImage,
   getAdLocation,
   getAgeLabel,
+  getBreedLabel,
   getGenderLabel,
   getRelativeDate,
   getSpeciesLabel,
@@ -334,7 +335,7 @@ export default function Adoption() {
                     <div className="adoption-card__header">
                       <div>
                         <h3>{ad.title}</h3>
-                        <p>{ad.breed || "Cins belirtilmemiş"}</p>
+                        <p>{getBreedLabel(ad.breed)}</p>
                       </div>
                       <span className="adoption-card__gender">
                         <UserRound size={15} />

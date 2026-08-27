@@ -23,6 +23,15 @@ export function getBreedLabel(breed?: string | null): string {
   return breed;
 }
 
+/**
+ * `getBreedLabel`'in yer tutucu metin ("Cins belirtilmemiş") döndürmesi
+ * gerektiren yerlerde (ör. " • {cins}" gibi ayraçla eklenen kısa gösterim)
+ * placeholder'ı hiç basmayıp alanı tamamen atlamak isteyen çağıranlar için.
+ */
+export function hasKnownBreed(breed?: string | null): boolean {
+  return Boolean(breed && breed.trim() && breed !== "MIXED_OR_UNKNOWN");
+}
+
 export function getSpeciesLabel(species: Species): string {
   if (species === "UNKNOWN") return "Belirtilmemiş";
   return translateEnum(species, "species", "Hayvan");

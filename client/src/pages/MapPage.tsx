@@ -18,6 +18,7 @@ import { TeamBack, TeamShell } from "../components/TeamUI";
 import { getPublicAds } from "../services/ads";
 import { getNearbyPois } from "../services/pois";
 import type { AdResponse, PoiResponse, PoiType } from "../services/types";
+import { hasKnownBreed } from "../utils/adPresentation";
 import { getImageUrl } from "../utils/imageUrl";
 import { konumAl } from "../utils/konum";
 import {
@@ -699,7 +700,7 @@ export default function MapPage() {
                           {getSpeciesLabel(
                             ad.species,
                           )}
-                          {ad.breed
+                          {hasKnownBreed(ad.breed)
                             ? ` • ${ad.breed}`
                             : ""}
                         </span>
@@ -767,7 +768,7 @@ export default function MapPage() {
               {getSpeciesLabel(
                 selectedAd.species,
               )}
-              {selectedAd.breed
+              {hasKnownBreed(selectedAd.breed)
                 ? ` • ${selectedAd.breed}`
                 : ""}
             </p>
