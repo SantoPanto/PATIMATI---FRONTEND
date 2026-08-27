@@ -69,3 +69,25 @@ export function resolveAdoptionComplaint(id: number): Promise<void> {
   });
 }
 
+/** BE {@code MyComplaintResponse} ile birebir (S7). */
+export type MyComplaint = {
+  id: number;
+  /** "KULLANICI" | "ILAN" | "SAHIPLENDIRME" — hangi şikayet tablosundan. */
+  tur: "KULLANICI" | "ILAN" | "SAHIPLENDIRME";
+  hedefId: number;
+  reason: ComplaintReason;
+  description: string | null;
+  status: "BEKLEMEDE" | "INCELEMEDE" | "COZULDU";
+  createdAt: string;
+};
+
+/**
+ * GET /api/complaints/mine (Bearer) — kullanıcının kendi açtığı şikayetler,
+ * üç tablodan birleşik, en yeni üstte (S7).
+ */
+export function getMyComplaints(): Promise<MyComplaint[]> {
+  return request<MyComplaint[]>("/api/complaints/mine", {
+    method: "GET",
+    requiresAuth: true,
+  });
+}
