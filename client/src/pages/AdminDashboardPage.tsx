@@ -1405,7 +1405,7 @@ export default function AdminDashboardPage() {
                         : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-800"
                     }`}
                   >
-                    Kayıtlar
+                    Etiketler
                   </button>
                   <button
                     type="button"
@@ -1416,7 +1416,7 @@ export default function AdminDashboardPage() {
                         : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-800"
                     }`}
                   >
-                    Kuyruk
+                    Gönderi İstekleri
                   </button>
                 </div>
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -1700,6 +1700,16 @@ export default function AdminDashboardPage() {
                                 <Send size={14} />
                                 <span>Tekrar Dene</span>
                               </button>
+                            ) : item.status === "PUBLISHED" && item.igPermalink ? (
+                              <a
+                                href={item.igPermalink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition-all dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:border-slate-700"
+                              >
+                                <ExternalLink size={14} />
+                                <span>Gönderiyi Gör</span>
+                              </a>
                             ) : null}
                           </td>
                         </tr>
