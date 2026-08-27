@@ -33,11 +33,9 @@ export function getImageUrl(path?: string | null): string {
     return sanitizedPath;
   }
 
-  // Media / API Base URL configuration
+  // Media Base URL configuration
   const rawBaseUrl = (
     import.meta.env.VITE_MEDIA_URL ||
-    import.meta.env.VITE_API_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
     "https://media.patimati.me"
   ).trim();
 
