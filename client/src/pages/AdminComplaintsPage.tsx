@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Trash2, Ban, MessageSquare, CheckCircle } from "lucide-react";
 import { TeamBack, TeamShell } from "../components/TeamUI";
 import AdminFilterBar from "../components/admin/AdminFilterBar";
@@ -232,7 +232,15 @@ export default function AdminComplaintsPage() {
               </span>
             </div>
 
-            <h3>{item.title}</h3>
+            <h3>
+              {item.tur === "kullanici" ? (
+                item.title
+              ) : (
+                <Link href={`/ads/${item.adId}`} style={{ color: "inherit", textDecoration: "underline" }}>
+                  {item.title}
+                </Link>
+              )}
+            </h3>
 
             <p>{item.description}</p>
 
