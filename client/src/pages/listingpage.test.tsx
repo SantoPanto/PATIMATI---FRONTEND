@@ -27,8 +27,24 @@ vi.mock('../services/adoptions', () => ({
   getPublicAdoptions: sahiplendirmeGetir,
 }))
 
+let mockSearchStr = ''
+let mockLocationPath = '/listings'
+
 vi.mock('wouter', () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <a>{children}</a>,
+  useLocation: () => [
+    mockLocationPath,
+    (to: string) => {
+      const [path, query] = to.split('?')
+      mockLocationPath = path || '/listings'
+      mockSearchStr = query ? `?${query}` : ''
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', to)
+      }
+    },
+  ],
+  useSearch: () =>
+    mockSearchStr || (typeof window !== 'undefined' ? window.location.search : ''),
 }))
 
 vi.mock('../components/Header', () => ({ default: () => <header /> }))
@@ -53,6 +69,8 @@ async function istekleriBekle() {
 }
 
 beforeEach(() => {
+  mockSearchStr = ''
+  mockLocationPath = '/listings'
   if (typeof window !== 'undefined') {
     window.history.replaceState(null, '', '/listings')
   }
@@ -184,5 +202,67 @@ describe('ListingsPage — arama kutusu (B5)', () => {
     expect(screen.getByLabelText('Tür filtresi')).toBeInTheDocument()
     expect(screen.getByLabelText('Cinsiyet filtresi')).toBeInTheDocument()
     expect(screen.getByText('Güvenli sahiplendirme')).toBeInTheDocument()
+  })
+
+  it('Listings sayfasındayken sekmeler/URL değiştiğinde UI ve veriler dinamik güncellenir', async () => {
+    sayfaVer()
+
+    window.history.replaceState(null, '', '/listings?type=LOST')
+    mockSearchStr = '?type=LOST'
+
+    render(<ListingsPage />)
+    await istekleriBekle()
+
+    expect(screen.getByRole('heading', { name: 'Kayıp İlanları' })).toBeInTheDocument()
+    expect(ilanlariGetir).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 20,
+      adType: 'LOST',
+    })
+
+    // Case 1: LOST -> ADOPTION geçişi
+    fireEvent.click(screen.getByRole('tab', { name: 'Sahiplendirme' }))
+    await istekleriBekle()
+
+    expect(screen.getByRole('heading', { name: 'Sahiplendirme İlanları' })).toBeInTheDocument()
+    expect(screen.getByText('Yeni bir yuva yeni bir hayat')).toBeInTheDocument()
+    expect(sahiplendirmeGetir).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 100,
+    })
+
+    // Case 2: ADOPTION -> LOST geçişi
+    fireEvent.click(screen.getByRole('tab', { name: 'Kayıp' }))
+    await istekleriBekle()
+
+    expect(screen.getByRole('heading', { name: 'Kayıp İlanları' })).toBeInTheDocument()
+    expect(screen.queryByText('Yeni bir yuva yeni bir hayat')).not.toBeInTheDocument()
+    expect(ilanlariGetir).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 20,
+      adType: 'LOST',
+    })
+
+    // Case 3: LOST -> HELP geçişi
+    fireEvent.click(screen.getByRole('tab', { name: 'Yardım' }))
+    await istekleriBekle()
+
+    expect(screen.getByRole('heading', { name: 'Yardım İlanları' })).toBeInTheDocument()
+    expect(ilanlariGetir).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 20,
+      adType: 'HELP',
+    })
+
+    // Case 4: HELP -> FOUND geçişi
+    fireEvent.click(screen.getByRole('tab', { name: 'Bulunan' }))
+    await istekleriBekle()
+
+    expect(screen.getByRole('heading', { name: 'Bulunan İlanlar' })).toBeInTheDocument()
+    expect(ilanlariGetir).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 20,
+      adType: 'FOUND',
+    })
   })
 })

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   BadgeCheck,
   ChevronLeft,
@@ -34,10 +34,12 @@ const FILTERS: Array<{ value: FilterType; label: string }> = [
   { value: "HELP", label: "Yardım" },
 ];
 
-const getFilterFromUrl = (): FilterType => {
-  if (typeof window === "undefined") return "ALL";
-  if (window.location.pathname.startsWith("/adoption")) return "ADOPTION";
-  const params = new URLSearchParams(window.location.search);
+const getFilterFromSearchString = (searchStr: string): FilterType => {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/adoption")) {
+    return "ADOPTION";
+  }
+  const searchToParse = searchStr || (typeof window !== "undefined" ? window.location.search : "");
+  const params = new URLSearchParams(searchToParse);
   const type = (params.get("type") || params.get("filter"))?.toUpperCase();
   if (type && ["LOST", "FOUND", "ADOPTION", "HELP"].includes(type)) {
     return type as FilterType;
@@ -51,7 +53,12 @@ interface ListingsPageProps {
 }
 
 export default function ListingsPage({ defaultFilter }: ListingsPageProps = {}) {
-  const [activeFilter, setActiveFilter] = useState<FilterType>(() => defaultFilter || getFilterFromUrl());
+  const searchString = useSearch();
+  const [, navigate] = useLocation();
+
+  const [activeFilter, setActiveFilter] = useState<FilterType>(
+    () => defaultFilter || getFilterFromSearchString(searchString)
+  );
   const [ads, setAds] = useState<AdResponse[]>([]);
 
   // Sahiplendirme alt filtreleri
@@ -68,26 +75,20 @@ export default function ListingsPage({ defaultFilter }: ListingsPageProps = {}) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // URL değişimini dinle (örn: header dropdown'dan tıklanınca)
+  // URL query (useSearch) değişimini reaktif olarak dinle
   useEffect(() => {
-    const handlePopState = () => {
-      setActiveFilter(getFilterFromUrl());
+    const searchFilter = getFilterFromSearchString(searchString);
+    const targetFilter = defaultFilter && searchFilter === "ALL" ? defaultFilter : searchFilter;
+    if (targetFilter !== activeFilter) {
+      setActiveFilter(targetFilter);
+      setAds([]);
       setPage(0);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    if (!defaultFilter) {
-      const searchFromUrl = getFilterFromUrl();
-      if (searchFromUrl !== activeFilter) {
-        setActiveFilter(searchFromUrl);
-        setPage(0);
+      if (targetFilter !== "ADOPTION") {
+        setSpeciesFilter("Tümü");
+        setGenderFilter("Tümü");
       }
     }
-  }, [defaultFilter]);
+  }, [searchString, defaultFilter, activeFilter]);
 
   useEffect(() => {
     const zamanlayici = window.setTimeout(() => {
@@ -166,10 +167,16 @@ export default function ListingsPage({ defaultFilter }: ListingsPageProps = {}) 
     }
 
     setActiveFilter(filter);
+    setAds([]);
     setPage(0);
 
+    if (filter !== "ADOPTION") {
+      setSpeciesFilter("Tümü");
+      setGenderFilter("Tümü");
+    }
+
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(searchString || window.location.search);
       if (filter === "ALL") {
         params.delete("type");
         params.delete("filter");
@@ -178,7 +185,7 @@ export default function ListingsPage({ defaultFilter }: ListingsPageProps = {}) 
       }
       const newQuery = params.toString();
       const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ""}`;
-      window.history.replaceState(null, "", newUrl);
+      navigate(newUrl);
     }
   };
 
