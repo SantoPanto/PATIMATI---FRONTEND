@@ -289,9 +289,11 @@ export default function Header() {
                 type="button"
                 className="header-logout-button"
                 onClick={handleLogout}
+                title="Çıkış Yap"
+                aria-label="Çıkış Yap"
               >
                 <LogOut size={17} />
-                <span>Çıkış Yap</span>
+                <span className="hidden md:inline">Çıkış Yap</span>
               </button>
             </>
           ) : (
