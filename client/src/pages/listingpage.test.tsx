@@ -14,10 +14,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  * gözlenebilir; ekranda ikisi de aynı görünür.
  */
 
-const { ilanlariGetir } = vi.hoisted(() => ({ ilanlariGetir: vi.fn() }))
+const { ilanlariGetir, sahiplendirmeGetir } = vi.hoisted(() => ({
+  ilanlariGetir: vi.fn(),
+  sahiplendirmeGetir: vi.fn(),
+}))
 
 vi.mock('../services/ads', () => ({
   getPublicAds: ilanlariGetir,
+}))
+
+vi.mock('../services/adoptions', () => ({
+  getPublicAdoptions: sahiplendirmeGetir,
 }))
 
 vi.mock('wouter', () => ({
@@ -31,11 +38,13 @@ vi.mock('../components/PetListingCard', () => ({ default: () => null }))
 import ListingsPage from './listingpage'
 
 function sayfaVer(totalPages = 0, totalElements = 0) {
-  ilanlariGetir.mockResolvedValue({
+  const mockResponse = {
     content: [],
     totalPages,
     totalElements,
-  })
+  }
+  ilanlariGetir.mockResolvedValue(mockResponse)
+  sahiplendirmeGetir.mockResolvedValue(mockResponse)
 }
 
 /** Bekleyen istek sözlerinin (promise) çözülmesini bekler; zamanlayıcı İLERLETMEZ. */
@@ -44,7 +53,11 @@ async function istekleriBekle() {
 }
 
 beforeEach(() => {
+  if (typeof window !== 'undefined') {
+    window.history.replaceState(null, '', '/listings')
+  }
   ilanlariGetir.mockReset()
+  sahiplendirmeGetir.mockReset()
   vi.useFakeTimers()
 })
 
@@ -151,5 +164,25 @@ describe('ListingsPage — arama kutusu (B5)', () => {
 
     expect((kutu as HTMLInputElement).value).toBe('')
     expect(ilanlariGetir).toHaveBeenLastCalledWith({ page: 0, size: 20 })
+  })
+
+  it('Sahiplendirme sekmesi seçilince banner, alt filtreler ve güvenlik rehberi çıkar', async () => {
+    sayfaVer()
+
+    render(<ListingsPage />)
+    await istekleriBekle()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Sahiplendirme' }))
+    await istekleriBekle()
+
+    expect(sahiplendirmeGetir).toHaveBeenLastCalledWith({
+      page: 0,
+      size: 100,
+    })
+
+    expect(screen.getByText('Yeni bir yuva yeni bir hayat')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tür filtresi')).toBeInTheDocument()
+    expect(screen.getByLabelText('Cinsiyet filtresi')).toBeInTheDocument()
+    expect(screen.getByText('Güvenli sahiplendirme')).toBeInTheDocument()
   })
 })

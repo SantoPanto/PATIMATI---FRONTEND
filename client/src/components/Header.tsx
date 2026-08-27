@@ -15,6 +15,7 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
 import ServicesDropdown from "./ServicesDropdown";
+import ListingDropdown from "./ListingDropdown";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { getMyPotentialMatches } from "../services/potentialMatches";
@@ -160,27 +161,7 @@ export default function Header() {
         </Link>
 
         <nav className="desktop-navigation" aria-label="Ana navigasyon">
-          <Link
-            href="/"
-            className={
-              isActive("/")
-                ? "navigation-link active"
-                : "navigation-link"
-            }
-          >
-            Ana Sayfa
-          </Link>
-
-          <Link
-            href="/listings"
-            className={
-              isActive("/listings")
-                ? "navigation-link active"
-                : "navigation-link"
-            }
-          >
-            İlanlar
-          </Link>
+          <ListingDropdown />
 
           <Link
             href="/map"
@@ -191,17 +172,6 @@ export default function Header() {
             }
           >
             Harita
-          </Link>
-
-          <Link
-            href="/adoption"
-            className={
-              isActive("/adoption")
-                ? "navigation-link active"
-                : "navigation-link"
-            }
-          >
-            Sahiplendirme
           </Link>
 
           <Link

@@ -2142,9 +2142,9 @@ img {
 .desktop-navigation {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin-right: 0;
-  margin-left: auto;
+  margin-left: 16px;
 }
 
 .desktop-navigation .navigation-link {
@@ -2184,6 +2184,7 @@ img {
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .header-notification-button {

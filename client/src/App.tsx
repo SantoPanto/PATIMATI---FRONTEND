@@ -1,6 +1,7 @@
 import "./App.css";
 
-import { Route, Switch } from "wouter";
+import { useEffect } from "react";
+import { Route, Switch, useLocation } from "wouter";
 import PublicReportPage from "./pages/PublicReportPage";
 import MunicipalityReportQueuePage from "./pages/MunicipalityReportQueuePage";
 import HomePage from "./pages/HomePage";
@@ -19,7 +20,6 @@ import AiMatchPage from "./pages/AiMatchPage";
 import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import BenNeyimPage from "./pages/BenNeyimPage";
 import NotFound from "./pages/NotFound";
-import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
@@ -61,6 +61,14 @@ import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
 import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
+
+function AdoptionRouteRedirect() {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate("/listings?type=ADOPTION", { replace: true });
+  }, [navigate]);
+  return null;
+}
 
 function ProtectedAddListingPage() {
   return <RequireAuth component={AddListingPage} mode="redirect" />;
@@ -318,7 +326,7 @@ function App() {
           component={PetDetailPage}
         />
 
-        <Route path="/adoption" component={Adoption} />
+        <Route path="/adoption" component={AdoptionRouteRedirect} />
 
         {/* Admin */}
         <Route path="/admin" component={ProtectedAdminDashboardPage} />
