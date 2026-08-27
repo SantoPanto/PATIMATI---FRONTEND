@@ -195,11 +195,11 @@ export default function Header() {
           >
             İhbar Et
           </Link>
+
+          <ServicesDropdown />
         </nav>
 
         <div className="home-header__actions">
-          <ServicesDropdown />
-
           <button
             className="header-notification-button"
             type="button"
