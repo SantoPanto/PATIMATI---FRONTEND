@@ -36,6 +36,8 @@ vi.mock("../services/ads", () => ({
 
 vi.mock("wouter", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <a>{children}</a>,
+  useLocation: () => ["/adoption", vi.fn()],
+  useSearch: () => "",
 }));
 
 vi.mock("../components/Header", () => ({ default: () => <header /> }));

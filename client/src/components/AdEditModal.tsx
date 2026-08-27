@@ -4,6 +4,7 @@ import { updateAd } from "../services/ads";
 import { hasKnownBreed } from "../utils/adPresentation";
 import type {
   AdResponse,
+  AdType,
   AgeGroup,
   CoatPattern,
   Gender,
@@ -128,6 +129,9 @@ export default function AdEditModal({
     const payload = {
       title: title.trim(),
       description: description.trim(),
+      // Sunucu sözleşmesi ilan türünü zorunlu tutuyor (AdUpdateRequest.adType
+      // @NotNull); düzenleme türü değiştirmez, mevcut değer aynen geri gider.
+      adType: effectiveAdType as AdType,
       species,
       breed: breed.trim() || undefined,
       gender,
@@ -301,7 +305,6 @@ export default function AdEditModal({
                   >
                     <option value="CAT">Kedi</option>
                     <option value="DOG">Köpek</option>
-                    <option value="UNKNOWN">Bilinmiyor</option>
                   </select>
                 </div>
 
@@ -380,13 +383,20 @@ export default function AdEditModal({
                   <label className="block text-sm font-bold text-slate-700 mb-1 dark:text-slate-300">
                     Göz Rengi
                   </label>
-                  <input
-                    type="text"
-                    value={eyeColor}
+                  <select
+                    value={eyeColor || "UNKNOWN"}
                     onChange={(e) => setEyeColor(e.target.value)}
                     className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    placeholder="Örn: Yeşil, Mavi"
-                  />
+                  >
+                    <option value="UNKNOWN">Belirtilmemiş</option>
+                    <option value="BROWN">Kahverengi</option>
+                    <option value="BLUE">Mavi</option>
+                    <option value="GREEN">Yeşil</option>
+                    <option value="AMBER">Kehribar</option>
+                    <option value="HAZEL">Ela</option>
+                    <option value="HETEROCHROMIA">Heterokromi</option>
+                    <option value="OTHER">Diğer</option>
+                  </select>
                 </div>
               </div>
 

@@ -115,7 +115,7 @@ export default function AboutPage() {
 
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <a
-                href="https://www.instagram.com/patimatibuu/"
+                href="https://www.instagram.com/patimati.me/"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] px-6 font-semibold text-white shadow-sm transition hover:opacity-90 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300"

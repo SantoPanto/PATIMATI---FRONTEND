@@ -11,38 +11,62 @@ import {
   Ruler,
   ShieldAlert,
   Stethoscope,
+  Tag,
   Utensils,
   VenetianMask,
   Wind,
 } from "lucide-react";
-import type { PetReportResult } from "../services/types";
+import type { AiAnalysis, PetReportResult } from "../services/types";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 
-/*
- * BenNeyimPage.tsx'ten ÇIKARILDI (26.08): "Evcil Hayvanlarım" ve veteriner
- * paneli de aynı AI raporunu (kaydedilmiş hâliyle) göstermek istiyor —
- * ~180 satırlık bu render mantığını ikinci kez yazmak yerine tek yerden
- * paylaşılıyor. Görsel çıktı BenNeyimPage'dekiyle birebir aynı kalacak
- * şekilde taşındı; "Başka fotoğrafla dene" butonu SAYFAYA özel olduğu için
- * burada değil, çağıran tarafta kalır.
- */
+const COLOR_MAP: Record<string, string> = {
+  BLACK: "Siyah",
+  WHITE: "Beyaz",
+  GRAY: "Gri",
+  BROWN: "Kahverengi",
+  ORANGE: "Turuncu",
+  CREAM: "Krem",
+  GOLDEN: "Altın",
+  BEIGE: "Bej",
+  OTHER: "Diğer",
+};
+
+const PATTERN_MAP: Record<string, string> = {
+  UNKNOWN: "Belirsiz / Düz",
+  SOLID: "Tek Renk / Düz",
+  STRIPED: "Tekir / Çizgili",
+  SPOTTED: "Benekli",
+  PATCHED: "Parçalı Renkli",
+  CALICO: "Kaliko (Üç Renkli)",
+  TORTOISESHELL: "Kaplombağa Kabuğu",
+  OTHER: "Diğer",
+};
+
+const EYE_COLOR_MAP: Record<string, string> = {
+  UNKNOWN: "Belirsiz",
+  BROWN: "Kahverengi",
+  BLUE: "Mavi",
+  GREEN: "Yeşil",
+  AMBER: "Kehribar",
+  HAZEL: "Ela",
+  HETEROCHROMIA: "Farklı Renkli (Heterokromi)",
+};
 
 type GuvenSeviyesi = {
   etiket: string;
   className: string;
 };
 
-// prompt'un kendi GÜVEN SKORU KURALLARI eşikleriyle (80+ / 50-79 / altı)
-// birebir aynı -- ham sayı yerine anlaşılır bir etiket gösteriliyor
-// (kullanıcı kararı).
 function guvenSeviyesi(guven: number): GuvenSeviyesi {
-  if (guven >= 80) {
+  const skore = guven <= 1.0 ? guven * 100 : guven;
+  if (skore >= 80) {
     return {
       etiket: "Yüksek güven",
       className:
         "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
     };
   }
-  if (guven >= 50) {
+  if (skore >= 50) {
     return {
       etiket: "Orta güven",
       className:
@@ -75,7 +99,7 @@ function SonucKarti({
 }: {
   icon: React.ReactNode;
   baslik: string;
-  guven?: number;
+  guven?: number | null;
   children: React.ReactNode;
 }) {
   return (
@@ -98,21 +122,119 @@ function SonucKarti({
   );
 }
 
-export default function PetReportView({ result }: { result: PetReportResult }) {
-  if (!result.gecerli) {
+export default function PetReportView({
+  result,
+}: {
+  result: PetReportResult | AiAnalysis | Record<string, unknown>;
+}) {
+  // If legacy report with explicit gecerli = false
+  if ("gecerli" in result && result.gecerli === false) {
     return null;
   }
 
+  // Modern AiAnalysis payload
+  if ("species" in result || "is_pet" in result || "isPet" in result) {
+    const normalized = parseAiAnalysis(result as AiAnalysis);
+    if (!normalized.isPet || !normalized.species) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-[#DDD6FE] bg-[#FAF5FF] p-5 dark:border-violet-500/20 dark:bg-violet-500/10">
+          <div className="mb-2 flex items-center gap-2.5">
+            <PawPrint size={18} className="text-[#7C3AED] dark:text-violet-300" />
+            <h3 className="text-sm font-bold text-[#1E293B] dark:text-slate-100">
+              Analiz Özeti
+            </h3>
+          </div>
+          <p className="text-sm font-semibold leading-6 text-[#334155] dark:text-slate-300">
+            {normalized.species === "CAT" ? "Kedi" : "Köpek"}
+            {normalized.breed ? ` — ${normalized.breed}` : " — Melez / Irk Belirlenemedi"}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SonucKarti
+            icon={<PawPrint size={18} />}
+            baslik="Tür"
+            guven={normalized.speciesConfidence}
+          >
+            {normalized.species === "CAT" ? "Kedi" : "Köpek"}
+          </SonucKarti>
+
+          <SonucKarti
+            icon={<Tag size={18} />}
+            baslik="Irk"
+            guven={normalized.breedConfidence}
+          >
+            {normalized.breed ?? "Belirlenemedi / Melez"}
+          </SonucKarti>
+
+          <SonucKarti icon={<Palette size={18} />} baslik="Renk ve Desen">
+            <div>
+              <span className="font-semibold">Renkler: </span>
+              {normalized.colors.length > 0
+                ? normalized.colors.map((c) => COLOR_MAP[c] || c).join(", ")
+                : "Belirlenemedi"}
+            </div>
+            <div>
+              <span className="font-semibold">Desen: </span>
+              {PATTERN_MAP[normalized.coatPattern] || normalized.coatPattern}
+            </div>
+          </SonucKarti>
+
+          {normalized.eyeColor !== "UNKNOWN" && (
+            <SonucKarti icon={<Eye size={18} />} baslik="Göz Rengi">
+              {EYE_COLOR_MAP[normalized.eyeColor] || normalized.eyeColor}
+            </SonucKarti>
+          )}
+
+          {normalized.collarStatus !== "UNKNOWN" && (
+            <SonucKarti icon={<VenetianMask size={18} />} baslik="Tasma Durumu">
+              {normalized.collarStatus === "YES" ? "Tasma Var" : "Tasma Görünmüyor"}
+            </SonucKarti>
+          )}
+
+          {normalized.earTagStatus !== "UNKNOWN" && (
+            <SonucKarti icon={<Fingerprint size={18} />} baslik="Kulak Küpesi">
+              {normalized.earTagStatus === "YES" ? "Kulak Küpesi Var" : "Kulak Küpesi Yok"}
+            </SonucKarti>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Zengin pet raporu (AI /analyze_pet -- PetReportResult)
+  const legacy = result as PetReportResult;
   return (
     <div className="space-y-4">
-      {result.goruntu_kalite_notu && (
-        <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-          <span>{result.goruntu_kalite_notu}</span>
+      {legacy.tur && (
+        <div className="rounded-2xl border border-[#DDD6FE] bg-[#FAF5FF] p-5 dark:border-violet-500/20 dark:bg-violet-500/10">
+          <div className="mb-2 flex items-center gap-2.5">
+            <PawPrint size={18} className="text-[#7C3AED] dark:text-violet-300" />
+            <h3 className="text-sm font-bold text-[#1E293B] dark:text-slate-100">
+              Analiz Özeti
+            </h3>
+          </div>
+          <p className="text-sm font-semibold leading-6 text-[#334155] dark:text-slate-300">
+            {legacy.tur}
+            {legacy.irk && legacy.irk !== "BELIRLENEMEDI"
+              ? ` — ${legacy.irk}`
+              : " — Melez / Irk Belirlenemedi"}
+          </p>
         </div>
       )}
 
-      {result.karakter_profili && (
+      {legacy.goruntu_kalite_notu && (
+        <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          <span>{legacy.goruntu_kalite_notu}</span>
+        </div>
+      )}
+
+      {legacy.karakter_profili && (
         <div className="rounded-2xl border border-[#DDD6FE] bg-[#FAF5FF] p-5 dark:border-violet-500/20 dark:bg-violet-500/10">
           <div className="mb-2 flex items-center gap-2.5">
             <Heart size={18} className="text-[#7C3AED] dark:text-violet-300" />
@@ -121,124 +243,120 @@ export default function PetReportView({ result }: { result: PetReportResult }) {
             </h3>
           </div>
           <p className="text-sm leading-6 text-[#334155] dark:text-slate-300">
-            {result.karakter_profili}
+            {legacy.karakter_profili}
           </p>
-          {result.irka_ozel_icerik === false && (
+          {legacy.irka_ozel_icerik === false && (
             <p className="mt-2 text-xs italic text-[#64748B] dark:text-slate-500">
-              Irk belirlenemediği için genel tür özellikleri esas
-              alındı.
+              Irk belirlenemediği için genel tür özellikleri esas alındı.
             </p>
           )}
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {result.renk_tarifi && (
+        {legacy.renk_tarifi && (
           <SonucKarti
             icon={<Palette size={18} />}
             baslik="Renk ve Desen"
-            guven={result.renk_tarifi.guven}
+            guven={legacy.renk_tarifi.guven}
           >
-            {result.renk_tarifi.deger}
+            {legacy.renk_tarifi.deger}
           </SonucKarti>
         )}
 
-        {result.goz_rengi && (
+        {legacy.goz_rengi && (
           <SonucKarti
             icon={<Eye size={18} />}
             baslik="Göz Rengi"
-            guven={result.goz_rengi.guven}
+            guven={legacy.goz_rengi.guven}
           >
-            {result.goz_rengi.deger}
+            {legacy.goz_rengi.deger}
           </SonucKarti>
         )}
 
-        {result.tahmini_yas && (
+        {legacy.tahmini_yas && (
           <SonucKarti
             icon={<Cake size={18} />}
             baslik="Tahmini Yaş"
-            guven={result.tahmini_yas.guven}
+            guven={legacy.tahmini_yas.guven}
           >
-            {result.tahmini_yas.aralik}
+            {legacy.tahmini_yas.aralik}
             <span className="ml-2 inline-block rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#475569] dark:bg-slate-800 dark:text-slate-400">
-              {result.tahmini_yas.yasam_evresi}
+              {legacy.tahmini_yas.yasam_evresi}
             </span>
           </SonucKarti>
         )}
 
-        {result.cinsiyet && (
+        {legacy.cinsiyet && (
           <SonucKarti
             icon={<VenetianMask size={18} />}
             baslik="Cinsiyet"
-            guven={result.cinsiyet.guven}
+            guven={legacy.cinsiyet.guven}
           >
-            {result.cinsiyet.tahmin}
+            {legacy.cinsiyet.tahmin}
           </SonucKarti>
         )}
 
-        {result.tahmini_boyut && (
+        {legacy.tahmini_boyut && (
           <SonucKarti
             icon={<Ruler size={18} />}
             baslik="Tahmini Boyut"
-            guven={result.tahmini_boyut.guven}
+            guven={legacy.tahmini_boyut.guven}
           >
-            {result.tahmini_boyut.deger}
+            {legacy.tahmini_boyut.deger}
           </SonucKarti>
         )}
       </div>
 
-      {result.ayirt_edici_isaretler &&
-        result.ayirt_edici_isaretler.length > 0 && (
-          <SonucKarti
-            icon={<Fingerprint size={18} />}
-            baslik="Ayırt Edici İşaretler"
-          >
-            <ul className="list-disc space-y-1 pl-4">
-              {result.ayirt_edici_isaretler.map((isaret) => (
-                <li key={isaret}>{isaret}</li>
-              ))}
-            </ul>
-          </SonucKarti>
-        )}
+      {legacy.ayirt_edici_isaretler && legacy.ayirt_edici_isaretler.length > 0 && (
+        <SonucKarti
+          icon={<Fingerprint size={18} />}
+          baslik="Ayırt Edici İşaretler"
+        >
+          <ul className="list-disc space-y-1 pl-4">
+            {legacy.ayirt_edici_isaretler.map((isaret) => (
+              <li key={isaret}>{isaret}</li>
+            ))}
+          </ul>
+        </SonucKarti>
+      )}
 
-      {result.genel_durum_gozlemi && (
+      {legacy.genel_durum_gozlemi && (
         <SonucKarti
           icon={<Stethoscope size={18} />}
           baslik="Genel Durum Gözlemi"
         >
-          {result.genel_durum_gozlemi}
+          {legacy.genel_durum_gozlemi}
         </SonucKarti>
       )}
 
-      {result.sasirtici_bilgiler &&
-        result.sasirtici_bilgiler.length > 0 && (
-          <SonucKarti
-            icon={<Lightbulb size={18} />}
-            baslik="Şaşırtıcı Bilgiler"
-          >
-            <ul className="list-disc space-y-1.5 pl-4">
-              {result.sasirtici_bilgiler.map((bilgi) => (
-                <li key={bilgi}>{bilgi}</li>
-              ))}
-            </ul>
-          </SonucKarti>
-        )}
+      {legacy.sasirtici_bilgiler && legacy.sasirtici_bilgiler.length > 0 && (
+        <SonucKarti
+          icon={<Lightbulb size={18} />}
+          baslik="Şaşırtıcı Bilgiler"
+        >
+          <ul className="list-disc space-y-1.5 pl-4">
+            {legacy.sasirtici_bilgiler.map((bilgi) => (
+              <li key={bilgi}>{bilgi}</li>
+            ))}
+          </ul>
+        </SonucKarti>
+      )}
 
-      {result.dikkat_edilmesi_gerekenler &&
-        result.dikkat_edilmesi_gerekenler.length > 0 && (
-          <SonucKarti
-            icon={<ShieldAlert size={18} />}
-            baslik="Dikkat Edilmesi Gerekenler"
-          >
-            <ul className="list-disc space-y-1.5 pl-4">
-              {result.dikkat_edilmesi_gerekenler.map((madde) => (
-                <li key={madde}>{madde}</li>
-              ))}
-            </ul>
-          </SonucKarti>
-        )}
+      {legacy.dikkat_edilmesi_gerekenler && legacy.dikkat_edilmesi_gerekenler.length > 0 && (
+        <SonucKarti
+          icon={<ShieldAlert size={18} />}
+          baslik="Dikkat Edilmesi Gerekenler"
+        >
+          <ul className="list-disc space-y-1.5 pl-4">
+            {legacy.dikkat_edilmesi_gerekenler.map((madde) => (
+              <li key={madde}>{madde}</li>
+            ))}
+          </ul>
+        </SonucKarti>
+      )}
 
-      {result.bakim_ipuclari && (
+      {legacy.bakim_ipuclari && (
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F3FF] text-[#7C3AED] dark:bg-violet-500/15 dark:text-violet-300">
@@ -249,32 +367,32 @@ export default function PetReportView({ result }: { result: PetReportResult }) {
             </h3>
           </div>
           <div className="space-y-3 text-sm leading-6 text-[#334155] dark:text-slate-300">
-            {result.bakim_ipuclari.beslenme && (
+            {legacy.bakim_ipuclari.beslenme && (
               <div className="flex items-start gap-2.5">
                 <Utensils size={16} className="mt-0.5 shrink-0 text-[#64748B] dark:text-slate-500" />
-                <span>{result.bakim_ipuclari.beslenme}</span>
+                <span>{legacy.bakim_ipuclari.beslenme}</span>
               </div>
             )}
-            {result.bakim_ipuclari.tuy_bakimi && (
+            {legacy.bakim_ipuclari.tuy_bakimi && (
               <div className="flex items-start gap-2.5">
                 <Wind size={16} className="mt-0.5 shrink-0 text-[#64748B] dark:text-slate-500" />
-                <span>{result.bakim_ipuclari.tuy_bakimi}</span>
+                <span>{legacy.bakim_ipuclari.tuy_bakimi}</span>
               </div>
             )}
-            {result.bakim_ipuclari.aktivite && (
+            {legacy.bakim_ipuclari.aktivite && (
               <div className="flex items-start gap-2.5">
                 <Dumbbell size={16} className="mt-0.5 shrink-0 text-[#64748B] dark:text-slate-500" />
-                <span>{result.bakim_ipuclari.aktivite}</span>
+                <span>{legacy.bakim_ipuclari.aktivite}</span>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {result.ek_hayvanlar && (
+      {legacy.ek_hayvanlar && (
         <div className="rounded-2xl bg-[#F1F5F9] p-4 text-sm text-[#475569] dark:bg-slate-800/60 dark:text-slate-400">
           <strong className="font-bold">Diğer hayvanlar: </strong>
-          {result.ek_hayvanlar}
+          {legacy.ek_hayvanlar}
         </div>
       )}
     </div>

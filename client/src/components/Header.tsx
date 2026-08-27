@@ -1,6 +1,7 @@
 import {
   Bell,
   Home,
+  Landmark,
   LogOut,
   MessageCircle,
   Moon,
@@ -14,6 +15,7 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "wouter";
 import ServicesDropdown from "./ServicesDropdown";
+import ListingDropdown from "./ListingDropdown";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { getMyPotentialMatches } from "../services/potentialMatches";
@@ -75,6 +77,7 @@ export default function Header() {
   const isVet = user?.role === "VET";
   const isPetShop = user?.role === "PETSHOP";
   const isShelter = user?.role === "BARINAK";
+  const isInstitution = user?.role === "INSTITUTION";
 
   const handleLogout = async () => {
     await logout();
@@ -99,7 +102,7 @@ export default function Header() {
             aria-label="Yönetim Paneli"
           >
             <ShieldAlert size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Admin Panel</span>
+            <span className="hidden md:inline">Admin Panel</span>
           </Link>
         )}
 
@@ -110,7 +113,7 @@ export default function Header() {
             aria-label="Veteriner Paneli"
           >
             <Stethoscope size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Veteriner Paneli</span>
+            <span className="hidden md:inline">Veteriner Paneli</span>
           </Link>
         )}
 
@@ -121,7 +124,7 @@ export default function Header() {
             aria-label="Petshop Paneli"
           >
             <ShoppingBag size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Petshop Paneli</span>
+            <span className="hidden md:inline">Petshop Paneli</span>
           </Link>
         )}
 
@@ -132,7 +135,18 @@ export default function Header() {
             aria-label="Barınak Paneli"
           >
             <Home size={18} className="text-blue-600 dark:text-blue-400" />
-            <span>Barınak Paneli</span>
+            <span className="hidden md:inline">Barınak Paneli</span>
+          </Link>
+        )}
+
+        {(isInstitution || isAdmin) && (
+          <Link
+            href="/municipality"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-emerald-400 dark:hover:text-emerald-300 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 dark:border-emerald-500/20"
+            aria-label="Belediye Paneli"
+          >
+            <Landmark size={18} className="text-emerald-700 dark:text-emerald-400" />
+            <span className="hidden md:inline">Belediye Paneli</span>
           </Link>
         )}
 
@@ -147,27 +161,7 @@ export default function Header() {
         </Link>
 
         <nav className="desktop-navigation" aria-label="Ana navigasyon">
-          <Link
-            href="/"
-            className={
-              isActive("/")
-                ? "navigation-link active"
-                : "navigation-link"
-            }
-          >
-            Ana Sayfa
-          </Link>
-
-          <Link
-            href="/listings"
-            className={
-              isActive("/listings")
-                ? "navigation-link active"
-                : "navigation-link"
-            }
-          >
-            İlanlar
-          </Link>
+          <ListingDropdown />
 
           <Link
             href="/map"
@@ -181,17 +175,6 @@ export default function Header() {
           </Link>
 
           <Link
-            href="/adoption"
-            className={
-              isActive("/adoption")
-                ? "navigation-link active"
-                : "navigation-link"
-            }
-          >
-            Sahiplendirme
-          </Link>
-
-          <Link
             href="/ben-neyim"
             className={
               isActive("/ben-neyim")
@@ -200,6 +183,17 @@ export default function Header() {
             }
           >
             Ben neyim?
+          </Link>
+
+          <Link
+            href="/report"
+            className={
+              isActive("/report")
+                ? "navigation-link active"
+                : "navigation-link"
+            }
+          >
+            İhbar Et
           </Link>
         </nav>
 

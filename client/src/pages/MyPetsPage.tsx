@@ -301,12 +301,17 @@ export default function MyPetsPage() {
     setAiErrorByPetId((prev) => ({ ...prev, [petId]: "" }));
 
     try {
-      const sonuc = await petRaporuAl(file);
-      if (!sonuc.gecerli) {
-        setAiErrorByPetId((prev) => ({ ...prev, [petId]: hataNedeniMesaji(sonuc.hata_nedeni) }));
+      const response = await petRaporuAl(file);
+      // /analyze_pet geçişi (BE #185): cevap artık PetReportResult --
+      // gecerli=false ise hata_nedeni kullanıcı diline çevrilir.
+      if (!response.gecerli) {
+        setAiErrorByPetId((prev) => ({
+          ...prev,
+          [petId]: hataNedeniMesaji(response.hata_nedeni),
+        }));
         return;
       }
-      const guncelHayvan = await savePetAiReport(petId, JSON.stringify(sonuc));
+      const guncelHayvan = await savePetAiReport(petId, JSON.stringify(response));
       setPets((prev) => prev.map((p) => (p.id === petId ? guncelHayvan : p)));
     } catch (error) {
       setAiErrorByPetId((prev) => ({

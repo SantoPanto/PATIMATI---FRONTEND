@@ -2156,9 +2156,9 @@ img {
 .desktop-navigation {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin-right: 0;
-  margin-left: auto;
+  margin-left: 16px;
 }
 
 .desktop-navigation .navigation-link {
@@ -2198,6 +2198,7 @@ img {
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .header-notification-button {
@@ -3224,3 +3225,113 @@ img {
   transform: translateY(-1px);
 }
 
+/* --- "Bunları da keşfet" vitrini (S8) --- */
+
+.kesfet-section {
+  padding-top: 26px;
+  padding-bottom: 70px;
+}
+
+.kesfet-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .kesfet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .kesfet-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.kesfet-karti {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+.kesfet-karti:hover {
+  transform: translateY(-3px);
+  border-color: #f97316;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.kesfet-karti h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.kesfet-karti p {
+  flex: 1;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.kesfet-karti__ikon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.kesfet-karti__ikon--yesil {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.kesfet-karti__ikon--mavi {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.kesfet-karti__ikon--turuncu {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.kesfet-karti__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #f97316;
+}
+
+.dark .kesfet-karti {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: #0b1526;
+}
+
+.dark .kesfet-karti h3 {
+  color: #f1f5f9;
+}
+
+.dark .kesfet-karti p {
+  color: #94a3b8;
+}
+
+.dark .kesfet-karti:hover {
+  border-color: #fb923c;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+}

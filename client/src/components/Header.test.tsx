@@ -177,3 +177,95 @@ describe("Header rol bazlı panel linki", () => {
     expect(screen.queryByLabelText("Yönetim Paneli")).toBeNull();
   });
 });
+
+/**
+ * Belediye modulu linkleri. /municipality ve /report uzun sure YALNIZ adres
+ * yazilarak acilabiliyordu — rota vardi, uygulamada gorunur giris yoktu.
+ * Bu blok o girislerin varligini kilitler.
+ */
+describe("Header belediye linkleri", () => {
+  it("kurum hesabinda Belediye Paneli rozeti gorunur", () => {
+    oturum.user = { role: "INSTITUTION" };
+    renderHeader();
+
+    const rozet = screen.getByLabelText("Belediye Paneli");
+    expect(rozet).toHaveAttribute("href", "/municipality");
+  });
+
+  it("siradan kullanicida Belediye Paneli rozeti YOK", () => {
+    oturum.user = { role: "USER" };
+    renderHeader();
+
+    expect(screen.queryByLabelText("Belediye Paneli")).toBeNull();
+  });
+
+  it("yonetici de Belediye Paneli rozetini gorur (27.08 istegi: denetleyici gorunum)", () => {
+    oturum.user = { role: "ADMIN" };
+    renderHeader();
+
+    expect(screen.getByLabelText("Belediye Paneli")).toHaveAttribute(
+      "href",
+      "/municipality",
+    );
+    // Admin'in kendi rozeti de duruyor — ikisi bir arada.
+    expect(screen.getByLabelText("Yönetim Paneli")).toBeInTheDocument();
+  });
+
+  it("Ihbar Et navigasyon linki girissiz de gorunur ve /report'a gider", () => {
+    oturum.isAuthenticated = false;
+    oturum.user = null;
+    renderHeader();
+
+    expect(screen.getByText("İhbar Et")).toHaveAttribute("href", "/report");
+  });
+});
+
+describe("Header sadeleştirilmiş navigasyon ve İlanlar açılır menüsü", () => {
+  it("navigasyon menüsünde ayrı 'Ana Sayfa' linki YOKTUR, logo ana sayfaya gider", () => {
+    renderHeader();
+
+    const logo = screen.getByLabelText("PATIMATI ana sayfa");
+    expect(logo).toHaveAttribute("href", "/");
+
+    const nav = screen.getByRole("navigation", { name: "Ana navigasyon" });
+    expect(nav).not.toHaveTextContent("Ana Sayfa");
+  });
+
+  it("navigasyon menüsünde ayrı üst seviye 'Sahiplendirme' butonu YOKTUR", () => {
+    renderHeader();
+
+    const nav = screen.getByRole("navigation", { name: "Ana navigasyon" });
+    const directSahiplendirmeLink = Array.from(nav.querySelectorAll("a")).find(
+      (a) => a.textContent?.trim() === "Sahiplendirme"
+    );
+    expect(directSahiplendirmeLink).toBeUndefined();
+  });
+
+  it("İlanlar açılır menüsü 4 ilan türünü doğru linklerle sunar", () => {
+    renderHeader();
+
+    const dropdownTrigger = screen.getByLabelText("İlan türleri menüsünü aç");
+    expect(dropdownTrigger).toBeInTheDocument();
+
+    act(() => {
+      dropdownTrigger.click();
+    });
+
+    expect(screen.getByText("Kayıp İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=LOST"
+    );
+    expect(screen.getByText("Bulundu İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=FOUND"
+    );
+    expect(screen.getByText("Sahiplendirme İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=ADOPTION"
+    );
+    expect(screen.getByText("Yardım İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=HELP"
+    );
+  });
+});

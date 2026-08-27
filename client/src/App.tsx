@@ -1,7 +1,9 @@
 import "./App.css";
 
-import { Route, Switch } from "wouter";
-
+import { useEffect } from "react";
+import { Route, Switch, useLocation } from "wouter";
+import PublicReportPage from "./pages/PublicReportPage";
+import MunicipalityReportQueuePage from "./pages/MunicipalityReportQueuePage";
 import HomePage from "./pages/HomePage";
 import ListingsPage from "./pages/listingpage";
 import AddListingPage from "./pages/AddListingPage"; 
@@ -18,7 +20,6 @@ import AiMatchPage from "./pages/AiMatchPage";
 import AiMatchResultsPage from "./pages/AiMatchResultsPage";
 import BenNeyimPage from "./pages/BenNeyimPage";
 import NotFound from "./pages/NotFound";
-import Adoption from "./pages/Adoption";
 import SettingsPage from "./pages/SettingsPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyListingsPage from "./pages/MyListingsPage";
@@ -53,6 +54,7 @@ import ShelterDetailPage from "./pages/ShelterDetailPage";
 import ShelterAdoptionsPage from "./pages/ShelterAdoptionsPage";
 import ShelterPanelPage from "./pages/ShelterPanelPage";
 import MyPetsPage from "./pages/MyPetsPage";
+import MunicipalityDashboardPage from "./pages/MunicipalityDashboardPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ComplaintPage from "./pages/ComplaintPage";
@@ -60,6 +62,14 @@ import OAuthRedirectHandler from "./pages/OAuthRedirectHandler";
 import ForegroundNotificationToast from "./components/ForegroundNotificationToast";
 import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
+
+function AdoptionRouteRedirect() {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate("/listings?type=ADOPTION", { replace: true });
+  }, [navigate]);
+  return null;
+}
 
 function ProtectedAddListingPage() {
   return <RequireAuth component={AddListingPage} mode="redirect" />;
@@ -173,6 +183,26 @@ function ProtectedMyPetsPage() {
   return <RequireAuth component={MyPetsPage} mode="redirect" />;
 }
 
+function ProtectedMunicipalityDashboardPage() {
+  return (
+    <RequireAuth
+      component={MunicipalityDashboardPage}
+      mode="redirect"
+      requiredRole={["INSTITUTION", "ADMIN"]}
+    />
+  );
+}
+
+function ProtectedMunicipalityReportQueuePage() {
+  return (
+    <RequireAuth
+      component={MunicipalityReportQueuePage}
+      mode="redirect"
+      requiredRole={["INSTITUTION", "ADMIN"]}
+    />
+  );
+}
+
 function ProtectedNotificationsPage() {
   return <RequireAuth component={NotificationsPage} mode="redirect" />;
 }
@@ -243,9 +273,7 @@ function App() {
         <Route path="/ai-match" component={AiMatchPage} />
         <Route path="/ai-match-results" component={AiMatchResultsPage} />
 
-        {/* Ben Neyim? -- yalnızca kayıtlı kullanıcılar (bkz. sayfaya doğrudan
-            gidiliyor olması: ProtectedAdoptionCreatePage/profile ile AYNI
-            "redirect" deseni) */}
+        {/* Ben Neyim? */}
         <Route path="/ben-neyim" component={ProtectedBenNeyimPage} />
 
         {/* Buldum İlanı */}
@@ -256,6 +284,13 @@ function App() {
         <Route path="/about" component={AboutPage} />
         <Route path="/safety" component={SafetyPage} />
         <Route path="/privacy" component={GizlilikPage} />
+
+        {/* Belediye Paneli (Korumalı) */}
+        <Route path="/municipality/queue" component={ProtectedMunicipalityReportQueuePage} />
+        <Route path="/municipality" component={ProtectedMunicipalityDashboardPage} />
+
+        {/* Halka acik ihbar formu -- giris istemez (C1) */}
+        <Route path="/report" component={PublicReportPage} />
 
         {/* Harita / Mesaj */}
         <Route path="/map" component={MapPage} />
@@ -277,6 +312,7 @@ function App() {
           component={ProtectedNotificationsPage}
         />
         <Route path="/complaints" component={ProtectedComplaintPage} />
+        
         {/* Sahiplendirme */}
         <Route
           path="/adopt/create"
@@ -295,7 +331,7 @@ function App() {
           component={PetDetailPage}
         />
 
-        <Route path="/adoption" component={Adoption} />
+        <Route path="/adoption" component={AdoptionRouteRedirect} />
 
         {/* Admin */}
         <Route path="/admin" component={ProtectedAdminDashboardPage} />

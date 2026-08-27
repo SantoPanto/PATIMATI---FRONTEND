@@ -21,10 +21,6 @@ import type { PetReportResult } from "../services/types";
 import { compressImagesWithinLimit } from "../utils/imageCompression";
 import { getUserErrorMessage } from "../utils/errorMessage";
 
-// Java tarafının gerçek sınırı (application.yml:
-// spring.servlet.multipart.max-file-size) -- AI servisinin kendi 10 MB'ı
-// asla görülmez, Java ondan önce 413 döner (bkz. AiMatchPage.tsx'in aynı
-// ölçülmüş sınırı).
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / (1024 * 1024);
 const SUPPORTED_IMAGE_TYPES = [
@@ -34,6 +30,12 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+/**
+ * "Ben Neyim?" -- 2026-08-27'den beri LLM tabanlı zengin pet raporu
+ * (AI /analyze_pet, BE #185): karakter profili, bakım ipuçları, şaşırtıcı
+ * bilgiler... Raporun çizimi MyPets/vet tarafıyla ORTAK {@link PetReportView}
+ * bileşeninde; bu sayfa yalnızca yükleme akışını ve hata hâllerini taşır.
+ */
 export default function BenNeyimPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,8 +114,8 @@ export default function BenNeyimPage() {
     setResult(null);
 
     try {
-      const sonuc = await petRaporuAl(photo, kullaniciNotu);
-      setResult(sonuc);
+      const response = await petRaporuAl(photo, kullaniciNotu);
+      setResult(response);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setErrorMessage(err.message);
@@ -143,12 +145,17 @@ export default function BenNeyimPage() {
             </span>
 
             <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">
-              Bir fotoğraf yükle, yapay zekâ tanısın
+              Bir fotoğraf yükle, dostunu yakından tanı
             </h1>
 
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#64748B] dark:text-slate-400">
-              Kedi veya köpeğinin bir fotoğrafını yükle; ırkını, karakterini,
-              bakım ipuçlarını ve daha fazlasını öğren.
+              Kedi veya köpeğinin bir fotoğrafını yükle; karakter profili,
+              bakım ipuçları ve şaşırtıcı bilgilerle dolu, sana özel bir
+              rapor al.
+            </p>
+
+            <p className="mt-3 text-xs font-medium text-[#94A3B8] dark:text-slate-500">
+              Günde 3 analiz hakkın var.
             </p>
           </div>
         </section>
@@ -221,7 +228,7 @@ export default function BenNeyimPage() {
                 <img
                   src={preview}
                   alt="Yüklenen fotoğraf"
-                  className="max-h-[360px] w-full object-contain bg-[#F1F5F9] dark:bg-slate-800"
+                  className="max-h-[360px] w-full bg-[#F1F5F9] object-contain dark:bg-slate-800"
                 />
                 <button
                   type="button"
@@ -251,6 +258,9 @@ export default function BenNeyimPage() {
                       maxLength={200}
                       className="w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm text-[#1E293B] outline-none transition focus:border-[#7C3AED] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
+                    <p className="mt-1.5 text-xs text-[#94A3B8] dark:text-slate-500">
+                      Notun rapora bağlam olarak eklenir.
+                    </p>
                   </div>
 
                   <button
@@ -262,7 +272,7 @@ export default function BenNeyimPage() {
                     {isSubmitting ? (
                       <>
                         <Loader2 size={18} className="animate-spin" />
-                        Analiz ediliyor...
+                        Rapor hazırlanıyor...
                       </>
                     ) : (
                       <>
@@ -301,7 +311,7 @@ export default function BenNeyimPage() {
             </div>
           )}
 
-          {result && result.gecerli && (
+          {result?.gecerli && (
             <div className="mt-6 space-y-4">
               <PetReportView result={result} />
 

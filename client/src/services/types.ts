@@ -251,12 +251,15 @@ export type AdResponse = {
  * Yapay Zekâ Analiz Yanıt DTO'su (POST /api/ai/analyze)
  */
 export type AiAnalysis = {
-  species?: string;
-  speciesConfidence?: number;
-  species_confidence?: number;
+  species?: string | null;
+  speciesConfidence?: number | null;
+  species_confidence?: number | null;
   breed?: string | null;
-  breedConfidence?: number;
-  breed_confidence?: number;
+  breedConfidence?: number | null;
+  breed_confidence?: number | null;
+  /** Eşikten bağımsız en iyi cins tahmini (AI #38) — breed eşik altında null iken de dolu. */
+  breedTop?: string | null;
+  breed_top?: string | null;
   coatPattern?: string | null;
   pattern?: string | null;
   colors?: string[] | Array<{ r: number; g: number; b: number; score: number }>;
@@ -265,6 +268,8 @@ export type AiAnalysis = {
   embedding?: number[];
   labels?: string[];
   model_version?: string;
+  is_designed_graphic?: boolean;
+  graphic_confidence?: number;
 };
 
 /**
@@ -296,6 +301,14 @@ export type PetBakimIpuclari = {
 
 export type PetReportResult = {
   gecerli: boolean;
+  /**
+   * Sınıflandırıcıdan gelen, LLM prompt'una giden çevrilmiş kimlik (AI #37).
+   * LLM üretmez; sağlayıcı düşse de dolu gelir. KEDI_KOPEK_DEGIL erken
+   * dönüşünde üçü de null.
+   */
+  tur?: string | null; // "Kedi" | "Köpek"
+  irk?: string | null; // cins adı ya da "BELIRLENEMEDI"
+  desen?: string | null; // tabby|spotted|solid|bicolor ya da "BELIRLENEMEDI"
   hata_nedeni?: string | null;
   irka_ozel_icerik?: boolean | null;
   renk_tarifi?: PetDegerGuven | null;

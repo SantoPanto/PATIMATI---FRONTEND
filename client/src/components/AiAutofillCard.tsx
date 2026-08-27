@@ -53,7 +53,8 @@ export default function AiAutofillCard({
             </p>
 
             <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-slate-400">
-              İlk fotoğrafınız analiz edilir ve tür, cins, renk gibi bilgiler forma otomatik aktarılır.
+              İlk fotoğrafınız analiz edilir; AI&apos;nın emin olduğu bilgiler (tür, renk,
+              desen — yeterince eminse cins) forma otomatik aktarılır.
             </p>
 
             <button
