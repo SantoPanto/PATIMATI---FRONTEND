@@ -1121,6 +1121,54 @@ export type ShelterReviewUpsertPayload = {
   comment?: string;
 };
 
+/**
+ * İşletme sahibi olma başvurusu -- backend karşılığı:
+ * entity/enums/BusinessType.java. VetClinic/PetShop/Shelter'ın hangi tablosu
+ * oluşturulacağını ve User.role'ün onayda hangi değere geçeceğini belirler.
+ */
+export type BusinessType = "VET" | "PETSHOP" | "BARINAK";
+
+/** Backend karşılığı: entity/enums/BusinessApplicationStatus.java. */
+export type BusinessApplicationStatus = "BEKLEMEDE" | "ONAYLANDI" | "REDDEDILDI";
+
+/** Backend karşılığı: dto/response/BusinessApplicationResponse. */
+export type BusinessApplicationResponse = {
+  id: number;
+  businessType: BusinessType;
+  name: string;
+  address: string;
+  city: string;
+  district: string | null;
+  phone: string;
+  workingHours: string | null;
+  photoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  animalTypes: AnimalType[];
+  status: BusinessApplicationStatus;
+  rejectionReason: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+  applicantUserId: number;
+  applicantName: string;
+  applicantEmail: string;
+};
+
+/** Backend karşılığı: dto/request/BusinessApplicationCreateRequest (multipart `data` alanı). */
+export type BusinessApplicationCreatePayload = {
+  businessType: BusinessType;
+  name: string;
+  address: string;
+  city: string;
+  district?: string;
+  phone: string;
+  workingHours?: string;
+  photo?: File;
+  latitude?: number;
+  longitude?: number;
+  animalTypes?: AnimalType[];
+};
+
 /** Backend karşılığı: dto/admin/CreateShelterAccountRequest. */
 export type CreateShelterAccountPayload = {
   firstName: string;

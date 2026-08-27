@@ -39,6 +39,7 @@ import AdminComplaintsPage from "./pages/AdminComplaintsPage";
 import AdminListingsPage from "./pages/AdminListingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ServicesPage from "./pages/ServicesPage";
+import BusinessApplicationFormPage from "./pages/BusinessApplicationFormPage";
 import VetDirectoryPage from "./pages/VetDirectoryPage";
 import VetDetailPage from "./pages/VetDetailPage";
 import VetPanelPage from "./pages/VetPanelPage";
@@ -162,6 +163,10 @@ function ProtectedShelterPanelPage() {
   return (
     <RequireAuth component={ShelterPanelPage} mode="redirect" requiredRole="BARINAK" />
   );
+}
+
+function ProtectedBusinessApplicationFormPage() {
+  return <RequireAuth component={BusinessApplicationFormPage} mode="redirect" />;
 }
 
 function ProtectedMyPetsPage() {
@@ -308,6 +313,10 @@ function App() {
             (Header'daki "Hizmetler" ikonu artık üç seçenekli bir açılır menü
             değil, doğrudan buraya götürüyor). */}
         <Route path="/hizmetler" component={ServicesPage} />
+        <Route
+          path="/hizmetler/isletme-basvurusu"
+          component={ProtectedBusinessApplicationFormPage}
+        />
 
         {/* Hizmetler / Veteriner */}
         <Route path="/hizmetler/veteriner/:id" component={VetDetailPage} />
