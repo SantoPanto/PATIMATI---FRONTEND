@@ -42,6 +42,7 @@ const KATEGORI_GORUNUMU: Record<IsiKategorisi, KategoriGorunumu> = {
   SAHIPSIZ: { etiket: "Sahipsiz ihbarı", renk: "#D97706" },
   DIGER: { etiket: "Diğer ihbar", renk: "#64748B" },
   SIGHTING: { etiket: "Görülme", renk: "#0891B2" },
+  HELP: { etiket: "Yardım / Destek", renk: "#DC2626" },
 };
 
 /** Sunucu yarın yeni kategori eklerse ekran kırılmasın. */

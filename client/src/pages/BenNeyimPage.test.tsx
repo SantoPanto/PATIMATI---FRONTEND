@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import BenNeyimPage from "./BenNeyimPage";
 import * as petAnaliziService from "../services/petAnalizi";
@@ -128,7 +128,7 @@ describe("BenNeyimPage AI Analiz Akışı", () => {
 
   it("Case 5 — Gerçek API hatasında doğru kullanıcı mesajı gösterilir", async () => {
     vi.spyOn(petAnaliziService, "petRaporuAl").mockRejectedValue(
-      new ApiError("Sunucu hatası oluştu.", 500)
+      new ApiError("Sunucu hatası oluştu.", 500, null)
     );
 
     await setupAndUpload();

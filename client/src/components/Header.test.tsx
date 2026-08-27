@@ -175,6 +175,10 @@ describe("Header rol bazlı panel linki", () => {
     expect(screen.queryByLabelText("Petshop Paneli")).toBeNull();
     expect(screen.queryByLabelText("Barınak Paneli")).toBeNull();
     expect(screen.queryByLabelText("Yönetim Paneli")).toBeNull();
+  });
+});
+
+/**
  * Belediye modulu linkleri. /municipality ve /report uzun sure YALNIZ adres
  * yazilarak acilabiliyordu — rota vardi, uygulamada gorunur giris yoktu.
  * Bu blok o girislerin varligini kilitler.

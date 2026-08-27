@@ -135,6 +135,9 @@ export default function Header() {
           >
             <Home size={18} className="text-blue-600 dark:text-blue-400" />
             <span>Barınak Paneli</span>
+          </Link>
+        )}
+
         {(isInstitution || isAdmin) && (
           <Link
             href="/municipality"
