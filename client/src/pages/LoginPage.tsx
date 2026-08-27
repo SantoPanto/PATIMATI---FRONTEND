@@ -6,6 +6,7 @@ import {
   clearAuthStorage,
   completeGoogleOAuthCallback,
   login,
+  resolvePostLoginPath,
   sanitizeRedirectPath,
   saveAuthResponse,
   startGoogleOAuth,
@@ -91,7 +92,10 @@ export default function LoginPage() {
           return;
         }
 
-        navigate(callbackResult.redirectPath, { replace: true });
+        navigate(
+          resolvePostLoginPath(currentUser.role, callbackResult.redirectPath),
+          { replace: true },
+        );
       };
 
       void finishGoogleLogin();
@@ -118,8 +122,8 @@ export default function LoginPage() {
       });
 
       saveAuthResponse(data, rememberMe);
-      await refreshUser();
-      navigate(redirectPath);
+      const currentUser = await refreshUser();
+      navigate(resolvePostLoginPath(currentUser?.role, redirectPath));
     } catch (error) {
       setErrorMessage(
         getUserErrorMessage(error, "Giriş sırasında bir sorun oluştu"),

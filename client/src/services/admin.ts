@@ -62,6 +62,40 @@ export function unbanUser(userId: number): Promise<{ message: string }> {
   });
 }
 
+/** BE {@code InstitutionAssignmentRequest} ile birebir — üç alan da zorunlu. */
+export type InstitutionAssignment = {
+  institutionName: string;
+  /** Örn. "Bursa". */
+  institutionCity: string;
+  /**
+   * Panel/kuyruk kapsamı BU alandan türetiliyor; {@code ads.district} ile
+   * kıyaslanır. Nominatim oraya Türkçe yazıyor ("Nilüfer") — harfi değişmiş
+   * yazım ("Nilufer") eşleşmez.
+   */
+  institutionDistrict: string;
+};
+
+/**
+ * PUT /api/admin/users/{userId}/institution — kullanıcıyı kurum (belediye)
+ * hesabına yükseltir (belediye modülü, B parçası).
+ *
+ * <p>⚠ Yükseltilen kullanıcı YENİDEN GİRİŞ yapmalı: yetki jetondaki rol
+ * claim'inden kuruluyor, eski jeton hâlâ "USER" taşır.
+ */
+export function assignInstitution(
+  userId: number,
+  data: InstitutionAssignment,
+): Promise<{ message: string; note?: string }> {
+  return request<{ message: string; note?: string }>(
+    `/api/admin/users/${userId}/institution`,
+    {
+      method: "PUT",
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    },
+  );
+}
+
 /**
  * GET /api/admin/ads
  */

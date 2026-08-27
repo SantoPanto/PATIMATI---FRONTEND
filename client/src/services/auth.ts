@@ -21,6 +21,7 @@ import type {
   LoginRequest,
   RegisterRequest,
   ResetPasswordRequest,
+  Role,
   UpdateProfileRequest,
   UserResponseDTO,
 } from "./types";
@@ -407,6 +408,25 @@ export function changePassword(
       }),
     },
   );
+}
+
+/**
+ * Giriş sonrası varış yolu (belediye modülü, B parçası).
+ *
+ * <p>Kurum hesabının uygulamadaki işi belediye paneli; girişten sonra ana
+ * sayfaya bırakılırsa panele giden görünür bir yol yok. Bu yüzden INSTITUTION
+ * rolü, kullanıcı ÖZELLİKLE başka bir sayfa istememişse (redirect parametresi
+ * varsayılan "/" ise) panele yönlendirilir. İstenen yol korunur: girişe
+ * ?redirect= ile düşen kurum kullanıcısı istediği sayfaya gider.
+ */
+export function resolvePostLoginPath(
+  role: Role | undefined,
+  requestedPath: string,
+): string {
+  if (role === "INSTITUTION" && requestedPath === "/") {
+    return "/municipality";
+  }
+  return requestedPath;
 }
 
 export { API_BASE_URL };
