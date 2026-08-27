@@ -219,3 +219,53 @@ describe("Header belediye linkleri", () => {
     expect(screen.getByText("İhbar Et")).toHaveAttribute("href", "/report");
   });
 });
+
+describe("Header sadeleştirilmiş navigasyon ve İlanlar açılır menüsü", () => {
+  it("navigasyon menüsünde ayrı 'Ana Sayfa' linki YOKTUR, logo ana sayfaya gider", () => {
+    renderHeader();
+
+    const logo = screen.getByLabelText("PATIMATI ana sayfa");
+    expect(logo).toHaveAttribute("href", "/");
+
+    const nav = screen.getByRole("navigation", { name: "Ana navigasyon" });
+    expect(nav).not.toHaveTextContent("Ana Sayfa");
+  });
+
+  it("navigasyon menüsünde ayrı üst seviye 'Sahiplendirme' butonu YOKTUR", () => {
+    renderHeader();
+
+    const nav = screen.getByRole("navigation", { name: "Ana navigasyon" });
+    const directSahiplendirmeLink = Array.from(nav.querySelectorAll("a")).find(
+      (a) => a.textContent?.trim() === "Sahiplendirme"
+    );
+    expect(directSahiplendirmeLink).toBeUndefined();
+  });
+
+  it("İlanlar açılır menüsü 4 ilan türünü doğru linklerle sunar", () => {
+    renderHeader();
+
+    const dropdownTrigger = screen.getByLabelText("İlan türleri menüsünü aç");
+    expect(dropdownTrigger).toBeInTheDocument();
+
+    act(() => {
+      dropdownTrigger.click();
+    });
+
+    expect(screen.getByText("Kayıp İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=LOST"
+    );
+    expect(screen.getByText("Bulundu İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=FOUND"
+    );
+    expect(screen.getByText("Sahiplendirme İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=ADOPTION"
+    );
+    expect(screen.getByText("Yardım İlanı").closest("a")).toHaveAttribute(
+      "href",
+      "/listings?type=HELP"
+    );
+  });
+});

@@ -28,7 +28,7 @@ const TABS = [
   { href: "/", label: "Ana Sayfa", Icon: Home },
   { href: "/listings", label: "İlanlar", Icon: List },
   { href: "/map", label: "Harita", Icon: Map },
-  { href: "/adoption", label: "Sahiplendirme", Icon: Heart },
+  { href: "/listings?type=ADOPTION", label: "Sahiplendirme", Icon: Heart },
   // 22.08 mobil taraması: Mesajlar'a ne header'dan ne bu çubuktan
   // ulaşılabiliyordu — tek yol Profil→Mesajlarım kartıydı. Tasarım sınırı
   // 5 eleman (yukarıdaki DESIGN_SYSTEM notu), bu beşincisi.
@@ -61,7 +61,15 @@ export default function BottomNav() {
       return location === "/";
     }
 
-    return location.startsWith(path);
+    const [pathname, search] = path.split("?");
+    if (search && typeof window !== "undefined") {
+      return location.startsWith(pathname) && window.location.search.includes(search);
+    }
+    if (path === "/listings" && typeof window !== "undefined") {
+      return location === "/listings" && !window.location.search.includes("type=ADOPTION");
+    }
+
+    return location.startsWith(pathname);
   };
 
   return (
