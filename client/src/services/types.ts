@@ -249,12 +249,12 @@ export type AdResponse = {
  * Yapay Zekâ Analiz Yanıt DTO'su (POST /api/ai/analyze)
  */
 export type AiAnalysis = {
-  species?: string;
-  speciesConfidence?: number;
-  species_confidence?: number;
+  species?: string | null;
+  speciesConfidence?: number | null;
+  species_confidence?: number | null;
   breed?: string | null;
-  breedConfidence?: number;
-  breed_confidence?: number;
+  breedConfidence?: number | null;
+  breed_confidence?: number | null;
   coatPattern?: string | null;
   pattern?: string | null;
   colors?: string[] | Array<{ r: number; g: number; b: number; score: number }>;
@@ -263,6 +263,8 @@ export type AiAnalysis = {
   embedding?: number[];
   labels?: string[];
   model_version?: string;
+  is_designed_graphic?: boolean;
+  graphic_confidence?: number;
 };
 
 /**
