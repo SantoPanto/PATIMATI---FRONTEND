@@ -103,6 +103,30 @@ describe("AI oto-doldurma mesajı sonucu YANSITIR", () => {
     expect(screen.queryByText(/Bilgiler forma aktarıldı/i)).toBeNull();
   });
 
+  it("cins eşik altında yalnız breedTop varsa öneri mesajı çıkar ve alan dolar (AI #38)", async () => {
+    istek.mockResolvedValue({
+      species: "DOG",
+      speciesConfidence: 0.99,
+      breed: null,
+      breedTop: "Kangal",
+      breedConfidence: 0.63,
+      isPet: true,
+    });
+
+    const { container } = render(<AdoptionCreatePage />);
+    await fotografEkleVeAnalizEt(container);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/düşük güvenli bir öneri olarak dolduruldu/i),
+      ).toBeInTheDocument();
+    });
+
+    // Cins girdisinin id'si yok — öneri değerinin BİR girdiye yazıldığını
+    // görünen değer üzerinden doğruluyoruz.
+    expect(screen.getByDisplayValue("Kangal")).toBeInTheDocument();
+  });
+
   it("AI gerçekten tür/cins döndürdüğünde 'tamamlandı' der", async () => {
     istek.mockResolvedValue({
       labels: ["soft:color_white"],

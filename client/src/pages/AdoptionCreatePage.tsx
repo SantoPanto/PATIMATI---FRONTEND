@@ -161,6 +161,9 @@ export default function AdoptionCreatePage() {
 
         if (parsed.breed) {
           updateForm("breed", parsed.breed);
+        } else if (parsed.breedTop) {
+          // Eşik altındaki en iyi tahmin (AI #38): düşük güvenli öneri dolumu.
+          updateForm("breed", parsed.breedTop);
         }
 
         if (parsed.colors.length > 0) {
@@ -168,9 +171,12 @@ export default function AdoptionCreatePage() {
           updateForm("color", colorNames);
         }
 
+        const cinsOnerisi = !parsed.breed && !!parsed.breedTop;
         setAnalysisMessage(
-          parsed.appliedCount > 0
-            ? "AI analizi tamamlandı. Bilgiler forma aktarıldı."
+          parsed.appliedCount > 0 || cinsOnerisi
+            ? cinsOnerisi
+              ? "AI analizi tamamlandı. Cins, düşük güvenli bir öneri olarak dolduruldu — yanlışsa düzeltin."
+              : "AI analizi tamamlandı. Bilgiler forma aktarıldı."
             : "AI bu fotoğraftan tür/cins/renk çıkaramadı — alanları elle doldurun.",
         );
       }

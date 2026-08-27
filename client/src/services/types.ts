@@ -257,6 +257,9 @@ export type AiAnalysis = {
   breed?: string | null;
   breedConfidence?: number | null;
   breed_confidence?: number | null;
+  /** Eşikten bağımsız en iyi cins tahmini (AI #38) — breed eşik altında null iken de dolu. */
+  breedTop?: string | null;
+  breed_top?: string | null;
   coatPattern?: string | null;
   pattern?: string | null;
   colors?: string[] | Array<{ r: number; g: number; b: number; score: number }>;
