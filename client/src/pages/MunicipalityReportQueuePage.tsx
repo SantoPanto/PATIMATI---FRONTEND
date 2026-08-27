@@ -13,18 +13,17 @@ import {
  * Belediye ihbar kuyruğu (belediye modülü, C parçası).
  *
  * <p>Kurum ya da yönetici hesabıyla açılır. İlçe kapsamı İSTEKTEN GELMEZ —
- * sunucu oturumdaki hesaptan türetir; bu yüzden burada ilçe seçtirilmiyor.
+ * sunucu oturumdaki hesaptan türetir (ilçesiz yönetici tüm kuyruğu görür).
  *
  * <p>Liste Spring {@code Page<>} sarmalıyla döner ({@code content} alanı),
  * durum güncellemesi sorgu parametresiyle gider — ikisi de
- * {@code services/reportService.ts} içinde sarmalı; burada yeni istek yazılmaz.
+ * {@code services/reportService.ts} içinde sarmalı.
  *
  * <p>Tarih süzgeci bilerek yok: uçta tarih parametresi tanımlı değil ve sayfa
  * içi süzgeç yalnız o sayfayı süzeceği için yanıltıcı olurdu.
  *
- * <p>Görsel dil 27.08 geri bildirimiyle uygulamanın kendi diline çekildi
- * (slate + turuncu vurgu + karanlık tema) — önceki hâli mock sayfanın
- * stilini taşıyordu.
+ * <p>Görsel dil: uygulamanın {@code pm-*} tasarım sistemi
+ * ({@code styles/design-system.css}) — 27.08 ikinci geri bildirimi.
  */
 
 const SAYFA_BOYU = 20;
@@ -39,19 +38,19 @@ function DurumRozeti({ durum }: { durum: ReportStatus }) {
   switch (durum) {
     case "YENI":
       return (
-        <span className="rounded px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400">
+        <span className="rounded-full px-2.5 py-1 text-xs font-bold bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400">
           Yeni İhbar
         </span>
       );
     case "ISLEME_ALINDI":
       return (
-        <span className="rounded px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400">
+        <span className="rounded-full px-2.5 py-1 text-xs font-bold bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400">
           İşleme Alındı
         </span>
       );
     case "TAMAMLANDI":
       return (
-        <span className="rounded px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400">
+        <span className="rounded-full px-2.5 py-1 text-xs font-bold bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400">
           Tamamlandı
         </span>
       );
@@ -137,27 +136,25 @@ export default function MunicipalityReportQueuePage() {
   };
 
   return (
-    <div className="mx-auto my-6 max-w-6xl px-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-[#0F172A] dark:text-slate-100">
-          <Inbox size={24} className="text-[#F97316]" />
-          Belediye İhbar Kuyruğu
-        </h1>
-        <p className="mt-1 mb-5 text-sm text-[#64748B] dark:text-slate-400">
-          Vatandaş ihbarları, konumlarının ilçesine göre bu kuyruğa düşer.
-        </p>
+    <main className="pm-main">
+      <div className="pm-container">
+        <header className="pm-page-heading">
+          <span className="pm-eyebrow">
+            <Inbox size={14} className="mr-1 inline-block align-[-2px]" />
+            Belediye
+          </span>
+          <h1>İhbar Kuyruğu</h1>
+          <p>Vatandaş ihbarları, konumlarının ilçesine göre bu kuyruğa düşer.</p>
+        </header>
 
-        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
-          <div>
-            <label
-              htmlFor="durum-suzgeci"
-              className="mb-1 block text-xs font-medium text-[#0F172A] dark:text-slate-200"
-            >
+        <div className="pm-card mb-6 flex flex-wrap items-end gap-4 p-4">
+          <div className="pm-field">
+            <label htmlFor="durum-suzgeci" className="pm-field__label">
               Duruma Göre Filtrele
             </label>
             <select
               id="durum-suzgeci"
-              className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-sm text-[#0F172A] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="pm-input"
               value={durumSuzgeci}
               onChange={(e) => suzgecDegisti(e.target.value)}
             >
@@ -168,7 +165,7 @@ export default function MunicipalityReportQueuePage() {
             </select>
           </div>
           {!yukleniyor && (
-            <p className="pb-2 text-xs text-[#94A3B8] dark:text-slate-500">
+            <p className="pb-3 text-xs text-[var(--pm-muted)]">
               Toplam {toplamKayit} ihbar
             </p>
           )}
@@ -177,21 +174,21 @@ export default function MunicipalityReportQueuePage() {
         {hata && (
           <div
             role="alert"
-            className="mb-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
+            className="mb-4 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
           >
             {hata}
           </div>
         )}
 
         {yukleniyor ? (
-          <p className="p-4 text-center text-sm text-[#64748B] dark:text-slate-400">
+          <p className="p-4 text-center text-sm text-[var(--pm-muted)]">
             İhbarlar yükleniyor...
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-            <table className="w-full border-collapse text-left text-[#0F172A] dark:text-slate-100">
+          <div className="pm-card overflow-x-auto">
+            <table className="w-full border-collapse text-left text-[var(--pm-text)]">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                <tr className="border-b border-[var(--pm-border)] bg-[var(--pm-bg)]">
                   <th className="p-3 text-sm">ID</th>
                   <th className="p-3 text-sm">Tür</th>
                   <th className="p-3 text-sm">Ayrıntı</th>
@@ -208,16 +205,16 @@ export default function MunicipalityReportQueuePage() {
                     return (
                       <tr
                         key={kayit.id}
-                        className="border-b border-slate-100 align-top hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                        className="border-b border-[var(--pm-border)] align-top last:border-b-0"
                       >
                         <td className="p-3 text-sm">#{kayit.id}</td>
-                        <td className="p-3 text-sm font-medium">
+                        <td className="p-3 text-sm font-bold">
                           {TUR_ETIKETLERI[kayit.type] ?? kayit.type}
                         </td>
                         <td className="max-w-xs p-3 text-sm">
                           {kayit.note && <p className="mb-1">{kayit.note}</p>}
                           {kayit.reporterContact && (
-                            <p className="text-xs text-[#64748B] dark:text-slate-400">
+                            <p className="text-xs text-[var(--pm-muted)]">
                               İletişim: {kayit.reporterContact}
                             </p>
                           )}
@@ -226,7 +223,7 @@ export default function MunicipalityReportQueuePage() {
                               href={kayit.photoUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-xs text-[#F97316] underline hover:text-orange-600"
+                              className="text-xs font-bold text-[var(--pm-primary)] underline"
                             >
                               Fotoğrafı aç
                             </a>
@@ -248,7 +245,7 @@ export default function MunicipalityReportQueuePage() {
                               type="button"
                               disabled={guncellenenId !== null}
                               onClick={() => durumaGecir(kayit.id, adim.durum)}
-                              className="rounded-lg bg-[#F97316] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="rounded-lg bg-[var(--pm-primary)] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[var(--pm-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {guncellenenId === kayit.id
                                 ? "Güncelleniyor..."
@@ -263,7 +260,7 @@ export default function MunicipalityReportQueuePage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="p-4 text-center text-sm text-[#64748B] dark:text-slate-400"
+                      className="p-4 text-center text-sm text-[var(--pm-muted)]"
                     >
                       {durumSuzgeci === "ALL"
                         ? "Kuyrukta ihbar yok."
@@ -282,24 +279,24 @@ export default function MunicipalityReportQueuePage() {
               type="button"
               disabled={sayfa === 0}
               onClick={() => setSayfa((s) => s - 1)}
-              className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-sm text-[#0F172A] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              className="pm-button pm-button--secondary"
             >
               Önceki
             </button>
-            <span className="text-sm text-[#64748B] dark:text-slate-400">
+            <span className="text-sm text-[var(--pm-muted)]">
               Sayfa {sayfa + 1} / {toplamSayfa}
             </span>
             <button
               type="button"
               disabled={sayfa + 1 >= toplamSayfa}
               onClick={() => setSayfa((s) => s + 1)}
-              className="rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 text-sm text-[#0F172A] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              className="pm-button pm-button--secondary"
             >
               Sonraki
             </button>
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

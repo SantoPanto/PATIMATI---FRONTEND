@@ -98,7 +98,7 @@ export default function Header() {
           </Link>
         )}
 
-        {isInstitution && (
+        {(isInstitution || isAdmin) && (
           <Link
             href="/municipality"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-emerald-400 dark:hover:text-emerald-300 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 dark:border-emerald-500/20"

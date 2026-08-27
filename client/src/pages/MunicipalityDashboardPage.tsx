@@ -18,18 +18,17 @@ import {
  * Belediye yönetim paneli (belediye modülü, A parçası) — sayaçlar + yoğunluk
  * haritası.
  *
- * <p>İlçe SEÇTİRİLMİYOR: iki uç da kapsamı oturumdaki kurum hesabından
- * türetiyor, sunucu {@code district}'i cevapta söylüyor.
+ * <p>İlçe SEÇTİRİLMİYOR: kapsam sunucuda oturumdaki hesaptan türetiliyor;
+ * {@code district} cevapta geliyor (ilçesiz yöneticide "Tüm ilçeler").
  *
- * <p>{@code startDate}/{@code endDate} sunucuda ZORUNLU ve varsayılansız —
- * ekran açılışta son 30 günü seçili getirir.
+ * <p>{@code startDate}/{@code endDate} sunucuda ZORUNLU — açılışta son 30 gün.
  *
- * <p><b>Harita kategorileri (27.08 geri bildirimi):</b> uç artık üç kaynağı
- * birleştiriyor (ilanlar + kavuşanlar + vatandaş ihbarları + görülmeler) ve
- * 500 nokta tek yığında okunmuyordu. Lejant bu yüzden TIKLANABİLİR süzgeç:
- * kategori kapatılınca noktaları haritadan kalkar. Renkler sayaç kartlarıyla
- * hizalı; ısı katmanı kararı (CircleMarker, leaflet.heat değil) önceki
- * commit'te gerekçeli.
+ * <p><b>Görsel dil (27.08, ikinci geri bildirim):</b> sayfa uygulamanın kendi
+ * tasarım sistemine oturtuldu — {@code styles/design-system.css}'teki
+ * {@code pm-*} iskeleti ve {@code --pm-*} değişkenleri. El yazması renk
+ * bırakılmadı: yüzey/kenarlık/metin değişkenlerden gelir, karanlık temada
+ * uygulamanın kendi tonlarına (yüzey #1e293b, turuncu #fb923c) otomatik geçer.
+ * Kategori renkleri sayaç kartlarıyla hizalı; lejant tıklanabilir süzgeç.
  */
 
 type KategoriGorunumu = { etiket: string; renk: string };
@@ -54,10 +53,6 @@ function gorunum(kategori: IsiKategorisi): KategoriGorunumu {
 
 /** Kocaeli çevresi — nokta yokken haritanın açıldığı merkez (MapPicker ile aynı). */
 const VARSAYILAN_MERKEZ: [number, number] = [40.8528, 29.8815];
-
-const GIRDI_SINIFI =
-  "rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-sm text-[#0F172A] " +
-  "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 function tarihGirdisiDegeri(tarih: Date): string {
   return yerelIsoTarihSaat(tarih).slice(0, 10);
@@ -96,9 +91,9 @@ function SayacKarti({
   renkSinifi: string;
 }) {
   return (
-    <div className={`rounded-xl border p-4 ${renkSinifi}`}>
-      <p className="text-sm text-[#64748B] dark:text-slate-400">{etiket}</p>
-      <p className="text-3xl font-bold">{deger}</p>
+    <div className="pm-card p-4">
+      <p className="text-sm text-[var(--pm-muted)]">{etiket}</p>
+      <p className={`text-3xl font-extrabold ${renkSinifi}`}>{deger}</p>
     </div>
   );
 }
@@ -193,51 +188,49 @@ export default function MunicipalityDashboardPage() {
   };
 
   return (
-    <div className="mx-auto my-6 max-w-6xl px-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="flex items-center gap-2 text-2xl font-bold text-[#0F172A] dark:text-slate-100">
-          <Landmark size={24} className="text-[#F97316]" />
-          Belediye Yönetim Paneli
-          {istatistik ? ` — ${istatistik.district}` : ""}
-        </h2>
-        <p className="mt-1 mb-5 text-sm text-[#64748B] dark:text-slate-400">
-          Sayılar ve harita, kurumunuzun ilçesindeki ilan, ihbar ve
-          görülmelerden türetilir.
-        </p>
+    <main className="pm-main">
+      <div className="pm-container">
+        <header className="pm-page-heading">
+          <span className="pm-eyebrow">
+            <Landmark size={14} className="mr-1 inline-block align-[-2px]" />
+            Belediye
+          </span>
+          <h1>
+            Yönetim Paneli{istatistik ? ` — ${istatistik.district}` : ""}
+          </h1>
+          <p>
+            Sayılar ve harita, kurumunuzun kapsamındaki ilan, ihbar ve
+            görülmelerden türetilir.
+          </p>
+        </header>
 
-        <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
-          <div>
-            <label
-              htmlFor="baslangic"
-              className="mb-1 block text-xs font-medium text-[#0F172A] dark:text-slate-200"
-            >
+        <div className="pm-card mb-6 flex flex-wrap items-end gap-4 p-4">
+          <div className="pm-field">
+            <label htmlFor="baslangic" className="pm-field__label">
               Başlangıç
             </label>
             <input
               id="baslangic"
               type="date"
-              className={GIRDI_SINIFI}
+              className="pm-input"
               value={baslangic}
               onChange={(e) => setBaslangic(e.target.value)}
             />
           </div>
-          <div>
-            <label
-              htmlFor="bitis"
-              className="mb-1 block text-xs font-medium text-[#0F172A] dark:text-slate-200"
-            >
+          <div className="pm-field">
+            <label htmlFor="bitis" className="pm-field__label">
               Bitiş
             </label>
             <input
               id="bitis"
               type="date"
-              className={GIRDI_SINIFI}
+              className="pm-input"
               value={bitis}
               onChange={(e) => setBitis(e.target.value)}
             />
           </div>
           {!araligiTersDegil && (
-            <p className="pb-2 text-xs text-amber-700 dark:text-amber-400">
+            <p className="pb-3 text-xs text-amber-700 dark:text-amber-400">
               Başlangıç tarihi bitişten sonra olamaz.
             </p>
           )}
@@ -246,49 +239,47 @@ export default function MunicipalityDashboardPage() {
         {hata && (
           <div
             role="alert"
-            className="mb-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
+            className="mb-4 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
           >
             {hata}
           </div>
         )}
 
         {yukleniyor && (
-          <p className="mb-4 text-sm text-[#64748B] dark:text-slate-400">
+          <p className="mb-4 text-sm text-[var(--pm-muted)]">
             Panel verileri yükleniyor...
           </p>
         )}
 
         {istatistik && (
-          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SayacKarti
               etiket="Kayıp İlanları"
               deger={istatistik.lostCount}
-              renkSinifi="border-pink-200 bg-pink-50 text-pink-700 dark:border-pink-500/20 dark:bg-pink-500/10 dark:text-pink-400"
+              renkSinifi="text-pink-600 dark:text-pink-400"
             />
             <SayacKarti
               etiket="Bulunan Hayvanlar"
               deger={istatistik.foundCount}
-              renkSinifi="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400"
+              renkSinifi="text-blue-600 dark:text-blue-400"
             />
             <SayacKarti
               etiket="Sahiplendirme İlanları"
               deger={istatistik.adoptionCount}
-              renkSinifi="border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/20 dark:bg-purple-500/10 dark:text-purple-400"
+              renkSinifi="text-purple-600 dark:text-purple-400"
             />
             <SayacKarti
               etiket="Sahibine Kavuşanlar"
               deger={istatistik.reunionCount}
-              renkSinifi="border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400"
+              renkSinifi="text-green-600 dark:text-green-400"
             />
           </div>
         )}
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold text-[#0F172A] dark:text-slate-100">
-              Yoğunluk Haritası
-            </h3>
-            <span className="text-xs text-[#94A3B8] dark:text-slate-500">
+        <section className="pm-card p-5">
+          <div className="pm-card__header mb-4">
+            <h2 className="pm-card__title">Yoğunluk Haritası</h2>
+            <span className="text-xs text-[var(--pm-muted)]">
               {gorunenNoktalar.length} nokta
             </span>
           </div>
@@ -309,10 +300,10 @@ export default function MunicipalityDashboardPage() {
                         ? `${etiket} noktalarını göster`
                         : `${etiket} noktalarını gizle`
                     }
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                    className={`flex items-center gap-1.5 rounded-full border border-[var(--pm-border)] bg-[var(--pm-surface)] px-3 py-1 text-xs font-bold transition hover:border-[var(--pm-primary)] ${
                       gizli
-                        ? "border-slate-200 bg-white text-[#94A3B8] line-through opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
-                        : "border-slate-300 bg-white text-[#0F172A] hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                        ? "text-[var(--pm-muted)] line-through opacity-60"
+                        : "text-[var(--pm-text)]"
                     }`}
                   >
                     <span
@@ -329,12 +320,12 @@ export default function MunicipalityDashboardPage() {
           <ErrorBoundary
             title="Harita yüklenemedi."
             fallback={
-              <div className="flex h-96 items-center justify-center rounded-xl border border-dashed border-slate-300 text-sm text-[#64748B] dark:border-slate-600 dark:text-slate-400">
+              <div className="flex h-96 items-center justify-center rounded-2xl border border-dashed border-[var(--pm-border)] text-sm text-[var(--pm-muted)]">
                 Harita yüklenemedi; sayılar yukarıda.
               </div>
             }
           >
-            <div className="h-96 overflow-hidden rounded-xl border border-[#CBD5E1] shadow-inner dark:border-slate-700">
+            <div className="h-96 overflow-hidden rounded-2xl border border-[var(--pm-border)]">
               <MapContainer
                 center={merkez}
                 zoom={12}
@@ -361,12 +352,12 @@ export default function MunicipalityDashboardPage() {
           </ErrorBoundary>
 
           {!yukleniyor && noktalar.length === 0 && (
-            <p className="mt-2 text-xs text-[#94A3B8] dark:text-slate-500">
+            <p className="mt-2 text-xs text-[var(--pm-muted)]">
               Seçili aralıkta konumlu kayıt yok.
             </p>
           )}
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

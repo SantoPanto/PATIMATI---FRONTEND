@@ -152,6 +152,18 @@ describe("Header belediye linkleri", () => {
     expect(screen.queryByLabelText("Belediye Paneli")).toBeNull();
   });
 
+  it("yonetici de Belediye Paneli rozetini gorur (27.08 istegi: denetleyici gorunum)", () => {
+    oturum.user = { role: "ADMIN" };
+    renderHeader();
+
+    expect(screen.getByLabelText("Belediye Paneli")).toHaveAttribute(
+      "href",
+      "/municipality",
+    );
+    // Admin'in kendi rozeti de duruyor — ikisi bir arada.
+    expect(screen.getByLabelText("Yönetim Paneli")).toBeInTheDocument();
+  });
+
   it("Ihbar Et navigasyon linki girissiz de gorunur ve /report'a gider", () => {
     oturum.isAuthenticated = false;
     oturum.user = null;
