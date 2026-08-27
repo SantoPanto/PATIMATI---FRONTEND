@@ -677,6 +677,31 @@
     padding-bottom: 80px;
   }
 
+  /* Chip grupları mobilde SARMAZ: ilan ve hizmet süzgeçleri alt alta iki
+     şerit olur, her şerit kendi içinde yatay kaydırılır (28.08 ekip
+     bildirimi: iki grup birden sarınca dağınık bir yığın görünüyordu). */
+  .map-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .map-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .map-filter--poi {
+    justify-content: flex-start;
+  }
+
+  .map-filter-chip {
+    flex-shrink: 0;
+  }
+
   .map-page .center-header {
     gap: 8px;
   }
