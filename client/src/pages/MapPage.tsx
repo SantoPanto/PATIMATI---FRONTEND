@@ -617,6 +617,14 @@ export default function MapPage() {
                 >
                   <Popup>
                     <div className="map-popup">
+                      {poi.photoUrl && (
+                        <img
+                          src={poi.photoUrl}
+                          alt={poi.name}
+                          className="map-popup__image"
+                        />
+                      )}
+
                       <div className="map-popup__content">
                         <span
                           className="map-popup__type"

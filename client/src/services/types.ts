@@ -616,6 +616,8 @@ export type InstagramQueueItemResponse = {
   status: InstagramPublishStatus;
   failureReason: string | null;
   createdAt: string; // ISO-8601 UTC
+  /** Yalnızca status="PUBLISHED" iken dolu -- gerçek Instagram gönderisinin bağlantısı. */
+  igPermalink: string | null;
 };
 
 /**
@@ -912,6 +914,8 @@ export type PoiResponse = {
   source: PoiSource;
   /** `source === "PLATFORM"` iken ilgili VetClinic/PetShop/Shelter'ın kendi kimliği -- "Hizmete Git" bağlantısı için. OSM/MANUAL noktalarda null. */
   refId: number | null;
+  /** `source === "PLATFORM"` iken ilgili kartın kendi fotoğrafı. OSM/MANUAL noktalarda fotoğraf verisi hiç olmadığı için null. */
+  photoUrl: string | null;
 };
 
 // ==========================================
