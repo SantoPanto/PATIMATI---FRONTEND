@@ -1,6 +1,5 @@
 import { Sparkles } from "lucide-react";
 import PetReportView from "./PetReportView";
-import type { PetReportResult } from "../services/types";
 
 /** Hayvana kaydedilmiş "Ben Neyim?" raporunu gösterir -- sahip ve vet tarafında ORTAK. */
 export default function PetAiReportCard({
@@ -14,14 +13,14 @@ export default function PetAiReportCard({
     return null;
   }
 
-  let parsed: PetReportResult;
+  let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(aiReport) as PetReportResult;
+    parsed = JSON.parse(aiReport) as Record<string, unknown>;
   } catch {
     return null;
   }
 
-  if (!parsed.gecerli) {
+  if (!parsed || parsed.gecerli === false) {
     return null;
   }
 

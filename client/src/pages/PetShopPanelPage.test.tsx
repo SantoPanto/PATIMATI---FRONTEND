@@ -165,7 +165,7 @@ describe("PetShopPanelPage — Petshop Kartı: konum", () => {
   it("harita onChange'i tetiklenince state günceller ve kayıt isteğine latitude/longitude dahil olur", async () => {
     render(<PetShopPanelPage />);
 
-    await waitFor(() => expect(getMyPetShop).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByPlaceholderText("Pati Petshop")).toBeInTheDocument());
 
     fireEvent.change(screen.getByPlaceholderText("Pati Petshop"), {
       target: { value: "Pati Petshop" },

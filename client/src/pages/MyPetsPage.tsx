@@ -20,7 +20,8 @@ import PetNotesSection from "../components/PetNotesSection";
 import PetVaccinationsSection from "../components/PetVaccinationsSection";
 import PetWeightSection from "../components/PetWeightSection";
 import { ApiError } from "../services/api";
-import { hataNedeniMesaji, petRaporuAl } from "../services/petAnalizi";
+import { petRaporuAl } from "../services/petAnalizi";
+import { parseAiAnalysis } from "../utils/aiAnalysisUtils";
 import {
   addOwnerTreatmentNote,
   addPetVaccination,
@@ -301,12 +302,16 @@ export default function MyPetsPage() {
     setAiErrorByPetId((prev) => ({ ...prev, [petId]: "" }));
 
     try {
-      const sonuc = await petRaporuAl(file);
-      if (!sonuc.gecerli) {
-        setAiErrorByPetId((prev) => ({ ...prev, [petId]: hataNedeniMesaji(sonuc.hata_nedeni) }));
+      const response = await petRaporuAl(file);
+      const normalized = parseAiAnalysis(response);
+      if (!normalized.isPet || !normalized.species) {
+        setAiErrorByPetId((prev) => ({
+          ...prev,
+          [petId]: "Fotoğrafta bir evcil hayvan (kedi veya köpek) tespit edilemedi.",
+        }));
         return;
       }
-      const guncelHayvan = await savePetAiReport(petId, JSON.stringify(sonuc));
+      const guncelHayvan = await savePetAiReport(petId, JSON.stringify(response));
       setPets((prev) => prev.map((p) => (p.id === petId ? guncelHayvan : p)));
     } catch (error) {
       setAiErrorByPetId((prev) => ({
