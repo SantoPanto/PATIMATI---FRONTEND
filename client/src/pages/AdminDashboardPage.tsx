@@ -1,9 +1,11 @@
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   AlertTriangle,
   AtSign,
   Ban,
+  Briefcase,
+  Check,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -11,19 +13,17 @@ import {
   EyeOff,
   ExternalLink,
   Flag,
-  Home,
   LayoutGrid,
   Loader2,
   Megaphone,
   RefreshCw,
   Send,
   Shield,
-  ShoppingBag,
-  Stethoscope,
   Trash2,
   UserCheck,
   Users,
   X,
+  XCircle,
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -32,9 +32,6 @@ import InstagramPublishModal from "../components/InstagramPublishModal";
 import { ApiError } from "../services/api";
 import {
   banUser,
-  createPetShopAccount,
-  createShelterAccount,
-  createVetAccount,
   deleteAdminAd,
   getAdminAdComplaints,
   getAdminAdoptionComplaints,
@@ -48,10 +45,17 @@ import {
   unhideAd,
   unbanUser,
 } from "../services/admin";
+import {
+  approveBusinessApplication,
+  getBusinessApplications,
+  rejectBusinessApplication,
+} from "../services/businessApplications";
 import type {
   AdComplaintAdminResponse,
   AdResponse,
   AdoptionComplaintAdminResponse,
+  BusinessApplicationResponse,
+  BusinessApplicationStatus,
   ExternalPostAdminResponse,
   InstagramQueueItemResponse,
   Page,
@@ -65,9 +69,7 @@ type AdminTab =
   | "complaints"
   | "instagram"
   | "instagramQueue"
-  | "vetAccounts"
-  | "petshopAccounts"
-  | "shelterAccounts";
+  | "businessApplications";
 type ComplaintSubTab = "ads" | "users" | "adoptions";
 
 export default function AdminDashboardPage() {
@@ -113,27 +115,12 @@ export default function AdminDashboardPage() {
   const [publishModalItem, setPublishModalItem] =
     useState<InstagramQueueItemResponse | null>(null);
 
-  // State for Veteriner hesabı oluşturma formu
-  const [vetFirstName, setVetFirstName] = useState("");
-  const [vetLastName, setVetLastName] = useState("");
-  const [vetEmail, setVetEmail] = useState("");
-  const [vetPassword, setVetPassword] = useState("");
-  const [isCreatingVet, setIsCreatingVet] = useState(false);
-
-  // State for Petshop hesabı oluşturma formu (vetAccounts ile birebir aynı desen)
-  const [petshopFirstName, setPetshopFirstName] = useState("");
-  const [petshopLastName, setPetshopLastName] = useState("");
-  const [petshopEmail, setPetshopEmail] = useState("");
-  const [petshopPassword, setPetshopPassword] = useState("");
-  const [isCreatingPetshop, setIsCreatingPetshop] = useState(false);
-
-  // State for Barınak hesabı oluşturma formu (vetAccounts/petshopAccounts ile
-  // birebir aynı desenin 3. tekrarı -- kasıtlı, bkz. plan §19)
-  const [shelterFirstName, setShelterFirstName] = useState("");
-  const [shelterLastName, setShelterLastName] = useState("");
-  const [shelterEmail, setShelterEmail] = useState("");
-  const [shelterPassword, setShelterPassword] = useState("");
-  const [isCreatingShelter, setIsCreatingShelter] = useState(false);
+  // State for Kurum Başvuruları (işletme sahibi olma başvuruları)
+  const [businessApplicationsPage, setBusinessApplicationsPage] =
+    useState<Page<BusinessApplicationResponse> | null>(null);
+  const [businessApplicationsPageIndex, setBusinessApplicationsPageIndex] = useState(0);
+  const [businessApplicationsStatusFilter, setBusinessApplicationsStatusFilter] =
+    useState<BusinessApplicationStatus>("BEKLEMEDE");
 
   // General state
   const [loading, setLoading] = useState(false);
@@ -154,6 +141,7 @@ export default function AdminDashboardPage() {
   const complaintsAbortRef = useRef<AbortController | null>(null);
   const externalPostsAbortRef = useRef<AbortController | null>(null);
   const instagramQueueAbortRef = useRef<AbortController | null>(null);
+  const businessApplicationsAbortRef = useRef<AbortController | null>(null);
 
   // Bileşen unmount olduğunda hâlâ süren istekleri iptal et (unmount sonrası
   // state güncellemesini önler).
@@ -164,6 +152,7 @@ export default function AdminDashboardPage() {
       complaintsAbortRef.current?.abort();
       externalPostsAbortRef.current?.abort();
       instagramQueueAbortRef.current?.abort();
+      businessApplicationsAbortRef.current?.abort();
     };
   }, []);
 
@@ -324,6 +313,30 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  // Fetch Business Applications (Kurum Başvuruları)
+  const fetchBusinessApplications = useCallback(
+    async (pageIndex: number, status: BusinessApplicationStatus) => {
+      businessApplicationsAbortRef.current?.abort();
+      const controller = new AbortController();
+      businessApplicationsAbortRef.current = controller;
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await getBusinessApplications({ page: pageIndex, size: 10, status });
+        setBusinessApplicationsPage(res);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        console.error("Kurum başvuruları yüklenemedi:", err);
+        setError("Kurum başvuruları alınamadı.");
+      } finally {
+        if (businessApplicationsAbortRef.current === controller) {
+          setLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
   // Effect to load data based on active tab & filters
   useEffect(() => {
     if (activeTab === "users") {
@@ -336,6 +349,8 @@ export default function AdminDashboardPage() {
       fetchExternalPosts(externalPostsPageIndex);
     } else if (activeTab === "instagramQueue") {
       fetchInstagramQueue(instagramQueuePageIndex);
+    } else if (activeTab === "businessApplications") {
+      fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
     }
   }, [
     activeTab,
@@ -345,6 +360,8 @@ export default function AdminDashboardPage() {
     complaintsPageIndex,
     externalPostsPageIndex,
     instagramQueuePageIndex,
+    businessApplicationsPageIndex,
+    businessApplicationsStatusFilter,
     searchQuery,
     sortOrder,
     fetchUsers,
@@ -352,6 +369,7 @@ export default function AdminDashboardPage() {
     fetchComplaints,
     fetchExternalPosts,
     fetchInstagramQueue,
+    fetchBusinessApplications,
   ]);
 
   const handleSearchChange = (query: string) => {
@@ -402,78 +420,36 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleCreateVetAccount = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setFeedback(null);
-    setIsCreatingVet(true);
-
+  const handleApproveBusinessApplication = async (id: number) => {
     try {
-      await createVetAccount({
-        firstName: vetFirstName.trim(),
-        lastName: vetLastName.trim(),
-        email: vetEmail.trim(),
-        password: vetPassword,
-      });
-      setFeedback(`Veteriner hesabı oluşturuldu: ${vetEmail.trim()}`);
-      setVetFirstName("");
-      setVetLastName("");
-      setVetEmail("");
-      setVetPassword("");
+      setActionLoadingId(`business-application-${id}`);
+      setFeedback(null);
+      await approveBusinessApplication(id);
+      setFeedback(`Başvuru #${id} onaylandı.`);
+      await fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Veteriner hesabı oluşturulamadı.");
+      setError(err instanceof ApiError ? err.message : "Başvuru onaylanamadı.");
     } finally {
-      setIsCreatingVet(false);
+      setActionLoadingId(null);
     }
   };
 
-  const handleCreatePetShopAccount = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setFeedback(null);
-    setIsCreatingPetshop(true);
-
-    try {
-      await createPetShopAccount({
-        firstName: petshopFirstName.trim(),
-        lastName: petshopLastName.trim(),
-        email: petshopEmail.trim(),
-        password: petshopPassword,
-      });
-      setFeedback(`Petshop hesabı oluşturuldu: ${petshopEmail.trim()}`);
-      setPetshopFirstName("");
-      setPetshopLastName("");
-      setPetshopEmail("");
-      setPetshopPassword("");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Petshop hesabı oluşturulamadı.");
-    } finally {
-      setIsCreatingPetshop(false);
+  const handleRejectBusinessApplication = async (id: number) => {
+    const reason = window.prompt("Red sebebini yazın:");
+    if (!reason || !reason.trim()) {
+      return;
     }
-  };
-
-  const handleCreateShelterAccount = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setFeedback(null);
-    setIsCreatingShelter(true);
 
     try {
-      await createShelterAccount({
-        firstName: shelterFirstName.trim(),
-        lastName: shelterLastName.trim(),
-        email: shelterEmail.trim(),
-        password: shelterPassword,
-      });
-      setFeedback(`Barınak hesabı oluşturuldu: ${shelterEmail.trim()}`);
-      setShelterFirstName("");
-      setShelterLastName("");
-      setShelterEmail("");
-      setShelterPassword("");
+      setActionLoadingId(`business-application-${id}`);
+      setFeedback(null);
+      await rejectBusinessApplication(id, reason.trim());
+      setFeedback(`Başvuru #${id} reddedildi.`);
+      await fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Barınak hesabı oluşturulamadı.");
+      setError(err instanceof ApiError ? err.message : "Başvuru reddedilemedi.");
     } finally {
-      setIsCreatingShelter(false);
+      setActionLoadingId(null);
     }
   };
 
@@ -689,6 +665,8 @@ export default function AdminDashboardPage() {
                 fetchExternalPosts(externalPostsPageIndex);
               if (activeTab === "instagramQueue")
                 fetchInstagramQueue(instagramQueuePageIndex);
+              if (activeTab === "businessApplications")
+                fetchBusinessApplications(businessApplicationsPageIndex, businessApplicationsStatusFilter);
             }}
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
@@ -823,57 +801,28 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => {
-              setActiveTab("vetAccounts");
+              setActiveTab("businessApplications");
               setError(null);
               setFeedback(null);
             }}
             className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
-              activeTab === "vetAccounts"
+              activeTab === "businessApplications"
                 ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
                 : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
             }`}
           >
-            <Stethoscope size={18} />
-            <span>Veteriner Hesapları</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("petshopAccounts");
-              setError(null);
-              setFeedback(null);
-            }}
-            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
-              activeTab === "petshopAccounts"
-                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
-            }`}
-          >
-            <ShoppingBag size={18} />
-            <span>Petshop Hesapları</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("shelterAccounts");
-              setError(null);
-              setFeedback(null);
-            }}
-            className={`flex items-center gap-2 px-5 py-3 font-extrabold text-sm border-b-2 transition-all whitespace-nowrap ${
-              activeTab === "shelterAccounts"
-                ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl dark:bg-blue-500/10"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:border-slate-600"
-            }`}
-          >
-            <Home size={18} />
-            <span>Barınak Hesapları</span>
+            <Briefcase size={18} />
+            <span>Kurum Başvuruları</span>
+            {businessApplicationsPage?.totalElements !== undefined && (
+              <span className="ml-1.5 px-2 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {businessApplicationsPage.totalElements}
+              </span>
+            )}
           </button>
         </div>
 
         {/* Filter Bar */}
-        {activeTab !== "vetAccounts" && activeTab !== "petshopAccounts" && activeTab !== "shelterAccounts" && (
+        {activeTab !== "businessApplications" && (
         <div className="mb-6">
           <AdminFilterBar
             searchQuery={searchQuery}
@@ -1783,237 +1732,153 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* VET ACCOUNTS TAB */}
-          {activeTab === "vetAccounts" && (
+          {/* BUSINESS APPLICATIONS TAB */}
+          {activeTab === "businessApplications" && (
             <div className="p-6">
               <h2 className="mb-1 text-lg font-extrabold text-slate-900 dark:text-slate-50">
-                Yeni Veteriner Hesabı Aç
+                Kurum Başvuruları
               </h2>
               <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-                Bu hesapla giriş yapan kullanıcı, "Veteriner Paneli"nden kendi klinik bilgi kartını oluşturabilir.
+                Kullanıcıların Hizmetler sayfasından yaptığı işletme sahibi olma başvuruları. Onaylandığında
+                kullanıcının rolü değişir ve iş kartı (klinik/petshop/barınak) otomatik oluşur.
               </p>
 
-              <form onSubmit={handleCreateVetAccount} className="max-w-md space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Ad
-                    </label>
-                    <input
-                      value={vetFirstName}
-                      onChange={(event) => setVetFirstName(event.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Soyad
-                    </label>
-                    <input
-                      value={vetLastName}
-                      onChange={(event) => setVetLastName(event.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  </div>
+              <div className="mb-6 flex flex-wrap gap-2">
+                {(
+                  [
+                    { value: "BEKLEMEDE", label: "Bekleyen" },
+                    { value: "ONAYLANDI", label: "Onaylanan" },
+                    { value: "REDDEDILDI", label: "Reddedilen" },
+                  ] as Array<{ value: BusinessApplicationStatus; label: string }>
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setBusinessApplicationsStatusFilter(option.value);
+                      setBusinessApplicationsPageIndex(0);
+                    }}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      businessApplicationsStatusFilter === option.value
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              {loading && <p className="text-sm text-slate-500 dark:text-slate-400">Yükleniyor...</p>}
+
+              {!loading && (businessApplicationsPage?.content.length ?? 0) === 0 && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">Bu kategoride başvuru yok.</p>
+              )}
+
+              <div className="space-y-4">
+                {businessApplicationsPage?.content.map((application) => {
+                  const typeLabel =
+                    application.businessType === "VET"
+                      ? "Veteriner"
+                      : application.businessType === "PETSHOP"
+                        ? "Petshop"
+                        : "Barınak";
+                  const isActioning = actionLoadingId === `business-application-${application.id}`;
+
+                  return (
+                    <div
+                      key={application.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row dark:border-slate-800"
+                    >
+                      {application.photoUrl && (
+                        <img
+                          src={application.photoUrl}
+                          alt={application.name}
+                          className="h-28 w-28 shrink-0 rounded-xl object-cover"
+                        />
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                            {typeLabel}
+                          </span>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">
+                            {application.name}
+                          </h3>
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Başvuran: {application.applicantName} ({application.applicantEmail})
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                          {application.address}
+                          {application.district ? `, ${application.district}` : ""}, {application.city} ·{" "}
+                          {application.phone}
+                        </p>
+                        {application.rejectionReason && (
+                          <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">
+                            Red sebebi: {application.rejectionReason}
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                          {new Date(application.createdAt).toLocaleDateString("tr-TR")}
+                        </p>
+
+                        {application.status === "BEKLEMEDE" && (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleApproveBusinessApplication(application.id)}
+                              disabled={isActioning}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              <Check size={14} />
+                              Onayla
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectBusinessApplication(application.id)}
+                              disabled={isActioning}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-60 dark:bg-rose-500/10"
+                            >
+                              <XCircle size={14} />
+                              Reddet
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {businessApplicationsPage && businessApplicationsPage.totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setBusinessApplicationsPageIndex((p) => Math.max(0, p - 1))}
+                    disabled={businessApplicationsPageIndex === 0}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 disabled:opacity-40 dark:border-slate-700"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    {businessApplicationsPageIndex + 1} / {businessApplicationsPage.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBusinessApplicationsPageIndex((p) =>
+                        Math.min(businessApplicationsPage.totalPages - 1, p + 1),
+                      )
+                    }
+                    disabled={businessApplicationsPageIndex >= businessApplicationsPage.totalPages - 1}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 disabled:opacity-40 dark:border-slate-700"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    E-posta
-                  </label>
-                  <input
-                    type="email"
-                    value={vetEmail}
-                    onChange={(event) => setVetEmail(event.target.value)}
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Şifre
-                  </label>
-                  <input
-                    type="password"
-                    value={vetPassword}
-                    onChange={(event) => setVetPassword(event.target.value)}
-                    required
-                    minLength={8}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  />
-                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-                    En az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermeli.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isCreatingVet}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Stethoscope size={16} />
-                  {isCreatingVet ? "Oluşturuluyor..." : "Hesap Oluştur"}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* PETSHOP ACCOUNTS TAB */}
-          {activeTab === "petshopAccounts" && (
-            <div className="p-6">
-              <h2 className="mb-1 text-lg font-extrabold text-slate-900 dark:text-slate-50">
-                Yeni Petshop Hesabı Aç
-              </h2>
-              <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-                Bu hesapla giriş yapan kullanıcı, "Petshop Paneli"nden kendi petshop kartını oluşturabilir.
-              </p>
-
-              <form onSubmit={handleCreatePetShopAccount} className="max-w-md space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Ad
-                    </label>
-                    <input
-                      value={petshopFirstName}
-                      onChange={(event) => setPetshopFirstName(event.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Soyad
-                    </label>
-                    <input
-                      value={petshopLastName}
-                      onChange={(event) => setPetshopLastName(event.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    E-posta
-                  </label>
-                  <input
-                    type="email"
-                    value={petshopEmail}
-                    onChange={(event) => setPetshopEmail(event.target.value)}
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Şifre
-                  </label>
-                  <input
-                    type="password"
-                    value={petshopPassword}
-                    onChange={(event) => setPetshopPassword(event.target.value)}
-                    required
-                    minLength={8}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  />
-                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-                    En az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermeli.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isCreatingPetshop}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <ShoppingBag size={16} />
-                  {isCreatingPetshop ? "Oluşturuluyor..." : "Hesap Oluştur"}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* SHELTER ACCOUNTS TAB */}
-          {activeTab === "shelterAccounts" && (
-            <div className="p-6">
-              <h2 className="mb-1 text-lg font-extrabold text-slate-900 dark:text-slate-50">
-                Yeni Barınak Hesabı Aç
-              </h2>
-              <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-                Bu hesapla giriş yapan kullanıcı, "Barınak Paneli"nden kendi barınak kartını oluşturabilir.
-              </p>
-
-              <form onSubmit={handleCreateShelterAccount} className="max-w-md space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Ad
-                    </label>
-                    <input
-                      value={shelterFirstName}
-                      onChange={(event) => setShelterFirstName(event.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Soyad
-                    </label>
-                    <input
-                      value={shelterLastName}
-                      onChange={(event) => setShelterLastName(event.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    E-posta
-                  </label>
-                  <input
-                    type="email"
-                    value={shelterEmail}
-                    onChange={(event) => setShelterEmail(event.target.value)}
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Şifre
-                  </label>
-                  <input
-                    type="password"
-                    value={shelterPassword}
-                    onChange={(event) => setShelterPassword(event.target.value)}
-                    required
-                    minLength={8}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  />
-                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-                    En az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermeli.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isCreatingShelter}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Home size={16} />
-                  {isCreatingShelter ? "Oluşturuluyor..." : "Hesap Oluştur"}
-                </button>
-              </form>
+              )}
             </div>
           )}
         </div>

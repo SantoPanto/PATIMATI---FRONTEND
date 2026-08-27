@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
+  Briefcase,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -15,11 +16,14 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ServiceHero from "../components/ServiceHero";
+import { useAuth } from "../contexts/AuthContext";
+import { getMyBusinessApplication } from "../services/businessApplications";
 import { listVetClinics } from "../services/vet";
 import { listPetShops } from "../services/petshop";
 import { listShelters } from "../services/shelter";
 import type {
   AnimalType,
+  BusinessApplicationResponse,
   PetShopPublicResponse,
   ShelterPublicResponse,
   VetClinicPublicResponse,
@@ -27,6 +31,8 @@ import type {
 import { getUserErrorMessage } from "../utils/errorMessage";
 import { getAnimalTypeLabel } from "../utils/animalTypeLabels";
 import { POI_RENKLERI } from "../utils/haritaSunum";
+
+const BUSINESS_OWNER_ROLES = new Set(["VET", "PETSHOP", "BARINAK", "ADMIN"]);
 
 type ServiceKind = "VET" | "PETSHOP" | "BARINAK";
 type FilterType = "ALL" | ServiceKind;
@@ -55,11 +61,11 @@ const PAGE_SIZE = 20;
  * dizin sayfasıyla aynı gerçek sayfalama devreye girer. */
 const ALL_PREVIEW_SIZE = 8;
 
-const FILTERS: Array<{ value: FilterType; label: string }> = [
-  { value: "ALL", label: "Tümü" },
-  { value: "VET", label: "Veteriner" },
-  { value: "PETSHOP", label: "Petshop" },
-  { value: "BARINAK", label: "Barınak" },
+const FILTERS: Array<{ value: FilterType; label: string; color: string | null }> = [
+  { value: "ALL", label: "Tümü", color: null },
+  { value: "VET", label: "Veteriner", color: POI_RENKLERI.VETERINARY },
+  { value: "PETSHOP", label: "Petshop", color: POI_RENKLERI.PET_SHOP },
+  { value: "BARINAK", label: "Barınak", color: POI_RENKLERI.SHELTER },
 ];
 
 /*
@@ -112,6 +118,7 @@ function toServiceItem(
 }
 
 export default function ServicesPage() {
+  const { user, isAuthenticated } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
   const [city, setCity] = useState("");
   const [items, setItems] = useState<ServiceItem[]>([]);
@@ -120,6 +127,24 @@ export default function ServicesPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [myApplication, setMyApplication] = useState<BusinessApplicationResponse | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || (user && BUSINESS_OWNER_ROLES.has(user.role))) {
+      return;
+    }
+    let cancelled = false;
+    getMyBusinessApplication()
+      .then((application) => {
+        if (!cancelled) setMyApplication(application);
+      })
+      .catch(() => {
+        // Sessizce yok say -- CTA'nın varsayılan (başvurabilir) haliyle gösterilmesi yeterli.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user]);
 
   const loadServices = useCallback(async () => {
     setIsLoading(true);
@@ -209,27 +234,69 @@ export default function ServicesPage() {
 
       <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 md:py-8 lg:px-8">
 
+        {(!user || !BUSINESS_OWNER_ROLES.has(user.role)) && (
+          <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-orange-100 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/10">
+            <div className="flex items-center gap-3">
+              <Briefcase size={20} className="shrink-0 text-orange-600 dark:text-orange-400" />
+              <div>
+                <p className="text-sm font-bold text-[#0F172A] dark:text-[#F1F5F9]">İşletme sahibi misiniz?</p>
+                {myApplication?.status === "BEKLEMEDE" ? (
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Başvurunuz inceleniyor.</p>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    Veteriner kliniği, petshop veya barınağınızı PatiMati'ye ekleyin.
+                  </p>
+                )}
+              </div>
+            </div>
+            {myApplication?.status === "BEKLEMEDE" ? (
+              <span className="shrink-0 rounded-full bg-orange-100 px-4 py-2 text-xs font-bold text-orange-700 dark:bg-orange-500/20 dark:text-orange-300">
+                İncelemede
+              </span>
+            ) : (
+              <Link
+                href="/hizmetler/isletme-basvurusu"
+                className="shrink-0 rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-orange-600"
+              >
+                Başvur
+              </Link>
+            )}
+          </div>
+        )}
+
         <div
           className="mb-6 flex flex-wrap gap-2"
           role="tablist"
           aria-label="Hizmet türü filtreleri"
         >
-          {FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              type="button"
-              role="tab"
-              aria-selected={activeFilter === filter.value}
-              onClick={() => handleFilterChange(filter.value)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                activeFilter === filter.value
-                  ? "bg-[#2563EB] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
+          {FILTERS.map((filter) => {
+            const selected = activeFilter === filter.value;
+            const style = filter.color
+              ? selected
+                ? { backgroundColor: filter.color, color: "#fff" }
+                : { backgroundColor: `${filter.color}1a`, color: filter.color }
+              : undefined;
+
+            return (
+              <button
+                key={filter.value}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => handleFilterChange(filter.value)}
+                style={style}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  filter.color
+                    ? "hover:opacity-80"
+                    : selected
+                      ? "bg-[#2563EB] text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                }`}
+              >
+                {filter.label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="mb-6 max-w-xs">
