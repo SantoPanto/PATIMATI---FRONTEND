@@ -100,6 +100,7 @@ export default function Header() {
             href="/admin"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
             aria-label="Yönetim Paneli"
+            title="Yönetim Paneli"
           >
             <ShieldAlert size={18} className="text-blue-600 dark:text-blue-400" />
             <span className="hidden md:inline">Admin Panel</span>
@@ -111,6 +112,7 @@ export default function Header() {
             href="/vet/panel"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
             aria-label="Veteriner Paneli"
+            title="Veteriner Paneli"
           >
             <Stethoscope size={18} className="text-blue-600 dark:text-blue-400" />
             <span className="hidden md:inline">Veteriner Paneli</span>
@@ -122,6 +124,7 @@ export default function Header() {
             href="/petshop/panel"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
             aria-label="Petshop Paneli"
+            title="Petshop Paneli"
           >
             <ShoppingBag size={18} className="text-blue-600 dark:text-blue-400" />
             <span className="hidden md:inline">Petshop Paneli</span>
@@ -133,6 +136,7 @@ export default function Header() {
             href="/barinak/panel"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-500/20"
             aria-label="Barınak Paneli"
+            title="Barınak Paneli"
           >
             <Home size={18} className="text-blue-600 dark:text-blue-400" />
             <span className="hidden md:inline">Barınak Paneli</span>
@@ -144,6 +148,7 @@ export default function Header() {
             href="/municipality"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-3 text-xs sm:text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all duration-200 shrink-0 shadow-xs dark:text-emerald-400 dark:hover:text-emerald-300 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 dark:border-emerald-500/20"
             aria-label="Belediye Paneli"
+            title="Belediye Paneli"
           >
             <Landmark size={18} className="text-emerald-700 dark:text-emerald-400" />
             <span className="hidden md:inline">Belediye Paneli</span>
@@ -209,6 +214,11 @@ export default function Header() {
                 : "Karanlık temaya geç"
             }
             onClick={toggleTheme}
+            title={
+              theme === "dark"
+                ? "Aydınlık temaya geç"
+                : "Karanlık temaya geç"
+            }
           >
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -219,6 +229,7 @@ export default function Header() {
                 className="header-notification-button"
                 type="button"
                 aria-label="Bildirimleri görüntüle"
+                title="Bildirimleri görüntüle"
                 onClick={() => navigate("/notifications")}
               >
                 <Bell size={20} />
@@ -231,6 +242,7 @@ export default function Header() {
                 className="header-notification-button"
                 type="button"
                 aria-label="Mesajları görüntüle"
+                title="Mesajları görüntüle"
                 onClick={() => navigate("/chat")}
               >
                 <MessageCircle size={20} />
@@ -240,6 +252,7 @@ export default function Header() {
                 href="/profile"
                 className="header-profile-icon"
                 aria-label="Profili görüntüle"
+                title="Profili görüntüle"
               >
                 <UserRound size={22} strokeWidth={2} />
               </Link>

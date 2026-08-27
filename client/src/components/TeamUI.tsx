@@ -95,9 +95,36 @@ export function TeamShell({
   );
 }
 
-export function TeamBack({ href = "/" }: { href?: string }) {
+export function TeamBack({
+  href = "/",
+  tarihce = false,
+}: {
+  href?: string;
+  tarihce?: boolean;
+}) {
+  // tarihce: geri oku sabit bir sayfaya değil GELİNEN sayfaya döner
+  // (bildirimler zilden açılıyor; sabit href kullanıcıyı profile fırlatıyordu).
+  if (tarihce) {
+    return (
+      <button
+        type="button"
+        className="icon-button"
+        aria-label="Geri"
+        title="Geri"
+        onClick={() => {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.assign("/");
+          }
+        }}
+      >
+        ←
+      </button>
+    );
+  }
   return (
-    <Link href={href} className="icon-button" aria-label="Geri">
+    <Link href={href} className="icon-button" aria-label="Geri" title="Geri">
       ←
     </Link>
   );

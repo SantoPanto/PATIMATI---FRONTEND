@@ -377,5 +377,12 @@ export function getNotificationHref(
     }
   }
 
+  // Tipi haritalanmamış ama hedef ilanı belli bildirimler ilan detayına
+  // gitsin — aksi hâlde tıklama sessizce hiçbir şey yapmıyordu (ekip
+  // bildirimi, 28.08).
+  if (notification.data.adId) {
+    return `/pet/${encodeURIComponent(notification.data.adId)}`;
+  }
+
   return null;
 }
