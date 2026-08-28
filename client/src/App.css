@@ -1559,17 +1559,9 @@ img {
 /* Küçük telefonlar */
 
 @media (max-width: 380px) {
-  /* Çok dar telefonlarda header'ın son birkaç pikseli: boşluk ve rozet
-     dolgusu mikro sıkışır (393px cihazlarda gerek yok, 360px'te fark eder). */
-  .home-header__actions {
-    gap: 2px;
-  }
-
-  .home-header__content a[aria-label$=" Paneli"] {
-    padding: 5px 6px;
-    margin-right: 2px;
-  }
-
+  /* Header'ın eski mikro sıkıştırma kademesi (33px simge, 2px boşluk, rozet
+     kırpma) KALDIRILDI: 767px bloğundaki flex-wrap sığmayan kümeyi alta
+     sardığı için çok dar ekranda da sıkıştırmaya gerek kalmadı (28.08). */
   .hero-badge span {
     max-width: 230px;
     overflow: hidden;
@@ -2041,20 +2033,34 @@ img {
 }
 
 @media (max-width: 767px) {
-  /* Dar ekranda header tek satıra sığmıyordu: sağ simge kümesi tek başına
-     314px (6 x 44px + boşluklar), rozetli rollerde taşma ekranı yatay
-     kaydırıyor / küçültüyordu (ekip bildirimi 28.08). Marka metni gizlenir,
-     simgeler sıkışır — toplam ~360px'e iner. */
+  /* Dar ekranda header tek satıra sığmıyordu: rozetli rollerde (ADMIN'de
+     Yönetim+Belediye) sağ simge kümesi ekrandan taşıp kesiliyordu (28.08
+     telefon ekran görüntüsü; 390px'te belge 431px). Karar (kullanıcı,
+     28.08): şerit SIKIŞTIRILMAZ, sığmayan küme ALTA SARAR — hepsi tam boy
+     görünür ve gelecekte eklenecek her yeni rozet/simgede de taşma olmaz.
+     Header sticky (fixed değil): yükseklik artınca içeriği doğal iter.
+     Simge boyutunun TEK kaynağı bu blok: aşağıdaki eski ikinci 767px bloğu
+     40px/68px değerleriyle bunları eziyordu, oradan temizlendi. */
   .brand__text {
     display: none;
   }
 
+  .home-header {
+    height: auto;
+    min-height: 68px;
+  }
+
   .home-header__content {
-    gap: 8px;
+    flex-wrap: wrap;
+    height: auto;
+    gap: 4px 6px;
+    padding: 8px 0;
   }
 
   .home-header__actions {
     gap: 4px;
+    /* Tek satıra sığarken sağda durur; alta sarınca da sağa yaslı kalır. */
+    margin-left: auto;
   }
 
   .header-notification-button,
@@ -2062,15 +2068,15 @@ img {
   .header-profile-icon {
     width: 36px;
     height: 36px;
+    min-height: 36px;
     border-radius: 11px;
   }
 
   /* Rol rozetleri (Yönetim/Veteriner/Petshop/Barınak/Belediye Paneli) mobilde
-     yalnız simge; padding/margin da küçülmezse rozetli rollerde header yine
-     taşıyor. Seçici aria-label üstünden: rozetlerin ortak sınıfı yok. */
+     yalnız simge. Seçici aria-label üstünden: rozetlerin ortak sınıfı yok. */
   .home-header__content a[aria-label$=" Paneli"] {
     padding: 6px 8px;
-    margin-right: 4px;
+    margin-right: 2px;
   }
 
   .login-link {
@@ -2513,9 +2519,8 @@ img {
     padding-bottom: 0;
   }
 
-  .home-header {
-    height: 68px;
-  }
+  /* Sabit 68px BURADAN kaldırıldı: ilk 767px bloğu height:auto +
+     min-height:68px veriyor; sabit yükseklik alta sarmayı kırpıyordu (28.08). */
 
   .brand__text {
     font-size: 18px;
@@ -2531,13 +2536,8 @@ img {
     display: none;
   }
 
-  .header-notification-button,
-  .header-logout-button {
-    width: 40px;
-    height: 40px;
-    min-height: 40px;
-    border-radius: 12px;
-  }
+  /* Simge boyutu BURADAN kaldırıldı (40px'ti): yukarıdaki ilk 767px bloğunun
+     36px kuralını eziyor, rozetli rollerde header'ı taşırıyordu (28.08). */
 
   .header-login-button,
   .header-register-button {
@@ -2552,10 +2552,10 @@ img {
 }
 
 @media (max-width: 440px) {
-  .home-header__content {
-    gap: 8px;
-  }
-
+  /* home-header__content gap ve home-header__actions gap BURADAN kaldırıldı:
+     ilk 767px bloğunun 6px/4px değerlerini 8px/6px'e geri şişirip rozetli
+     rollerde taşmaya katkı veriyorlardı (28.08). auth-actions girişsiz
+     görünümde kalır. */
   .brand {
     gap: 7px;
   }
@@ -2569,7 +2569,6 @@ img {
     height: 37px;
   }
 
-  .home-header__actions,
   .auth-actions {
     gap: 6px;
   }
