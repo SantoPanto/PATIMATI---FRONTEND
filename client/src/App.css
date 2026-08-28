@@ -1559,35 +1559,9 @@ img {
 /* Küçük telefonlar */
 
 @media (max-width: 380px) {
-  /* Çok dar telefonlarda header'ın son birkaç pikseli: boşluk, rozet dolgusu
-     ve simgeler mikro sıkışır (393px cihazlarda gerek yok, 360px'te fark
-     eder). ADMIN'in iki rozetiyle 360px'te iframe ölçümü: 366→360 (28.08). */
-  .home-header__actions {
-    gap: 2px;
-  }
-
-  .home-header__content {
-    gap: 4px;
-  }
-
-  .home-header__content a[aria-label$=" Paneli"] {
-    padding: 4px 5px;
-    margin-right: 2px;
-  }
-
-  .header-notification-button,
-  .header-logout-button,
-  .header-profile-icon {
-    width: 33px;
-    height: 33px;
-    min-height: 33px;
-  }
-
-  .brand__icon {
-    width: 34px;
-    height: 34px;
-  }
-
+  /* Header'ın eski mikro sıkıştırma kademesi (33px simge, 2px boşluk, rozet
+     kırpma) KALDIRILDI: 767px bloğundaki flex-wrap sığmayan kümeyi alta
+     sardığı için çok dar ekranda da sıkıştırmaya gerek kalmadı (28.08). */
   .hero-badge span {
     max-width: 230px;
     overflow: hidden;
@@ -2059,23 +2033,34 @@ img {
 }
 
 @media (max-width: 767px) {
-  /* Dar ekranda header tek satıra sığmıyordu: sağ simge kümesi tek başına
-     314px (6 x 44px + boşluklar), rozetli rollerde taşma ekranı yatay
-     kaydırıyor / küçültüyordu (ekip bildirimi 28.08). Marka metni gizlenir,
-     simgeler sıkışır. Simge boyutunun TEK kaynağı bu blok: aşağıdaki eski
-     40px'lik ikinci 767px bloğu bunu eziyordu ve ADMIN'in iki rozeti
-     (Yönetim+Belediye) eklenince 390px cihazda belge 431px'e taşıyordu
-     (28.08 telefon ekran görüntüsü + iframe ölçümü; düzeltme sonrası 387). */
+  /* Dar ekranda header tek satıra sığmıyordu: rozetli rollerde (ADMIN'de
+     Yönetim+Belediye) sağ simge kümesi ekrandan taşıp kesiliyordu (28.08
+     telefon ekran görüntüsü; 390px'te belge 431px). Karar (kullanıcı,
+     28.08): şerit SIKIŞTIRILMAZ, sığmayan küme ALTA SARAR — hepsi tam boy
+     görünür ve gelecekte eklenecek her yeni rozet/simgede de taşma olmaz.
+     Header sticky (fixed değil): yükseklik artınca içeriği doğal iter.
+     Simge boyutunun TEK kaynağı bu blok: aşağıdaki eski ikinci 767px bloğu
+     40px/68px değerleriyle bunları eziyordu, oradan temizlendi. */
   .brand__text {
     display: none;
   }
 
+  .home-header {
+    height: auto;
+    min-height: 68px;
+  }
+
   .home-header__content {
-    gap: 6px;
+    flex-wrap: wrap;
+    height: auto;
+    gap: 4px 6px;
+    padding: 8px 0;
   }
 
   .home-header__actions {
     gap: 4px;
+    /* Tek satıra sığarken sağda durur; alta sarınca da sağa yaslı kalır. */
+    margin-left: auto;
   }
 
   .header-notification-button,
@@ -2088,8 +2073,7 @@ img {
   }
 
   /* Rol rozetleri (Yönetim/Veteriner/Petshop/Barınak/Belediye Paneli) mobilde
-     yalnız simge; padding/margin da küçülmezse rozetli rollerde header yine
-     taşıyor. Seçici aria-label üstünden: rozetlerin ortak sınıfı yok. */
+     yalnız simge. Seçici aria-label üstünden: rozetlerin ortak sınıfı yok. */
   .home-header__content a[aria-label$=" Paneli"] {
     padding: 6px 8px;
     margin-right: 2px;
@@ -2535,9 +2519,8 @@ img {
     padding-bottom: 0;
   }
 
-  .home-header {
-    height: 68px;
-  }
+  /* Sabit 68px BURADAN kaldırıldı: ilk 767px bloğu height:auto +
+     min-height:68px veriyor; sabit yükseklik alta sarmayı kırpıyordu (28.08). */
 
   .brand__text {
     font-size: 18px;
