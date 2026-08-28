@@ -172,6 +172,17 @@ function ProfileContent() {
   const cityLookupControllerRef = useRef<AbortController | null>(null);
   const resolvedCityCoordinatesRef = useRef<ProfileCoordinates | null>(null);
   const lastUserKeyRef = useRef<number | null>(null);
+  const bilgiFormuRef = useRef<HTMLElement | null>(null);
+
+  /* Mobil tek kolonda "Profili düzenle" düğmesi üstteki kartta, form ise
+     ~1200px aşağıdaki bölümde açılıyor; kaydırmayınca dokunuş "hiçbir şey
+     olmadı" gibi görünüyordu (ekip + kullanıcı cihaz bulgusu, 28.08).
+     Render SONRASI garanti olsun diye kaydırma isEditing'e bağlı effect'te. */
+  useEffect(() => {
+    if (isEditing) {
+      bilgiFormuRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [isEditing]);
 
   const abortCityLookup = useCallback(() => {
     cityLookupSequenceRef.current += 1;
@@ -587,7 +598,10 @@ function ProfileContent() {
           </aside>
 
           <div className="space-y-6">
-            <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6 dark:border-[#334155] dark:bg-[#1E293B]">
+            <section
+              ref={bilgiFormuRef}
+              className="scroll-mt-24 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6 dark:border-[#334155] dark:bg-[#1E293B]"
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-semibold leading-7 dark:text-[#F1F5F9]">
